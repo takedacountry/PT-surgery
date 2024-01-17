@@ -766,30 +766,27 @@ static long recover_pgtable(void)
 	int count;
 	struct ds_pgtable *itr;
 
-	// int entry_count=0;
+	struct file *file;
+	char *filename = "./write_log_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
 
-	// struct file *file;
-	// char *filename = "./write_log_txt";
-	// int size;
-	// char *buf;
- //        loff_t pos = 0;
-
-	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	// if(IS_ERR(file)){
-	// 	printk("pre_file open err=%ld", PTR_ERR(file));
-	// 	goto end;
-	// }
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
 	
- //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
- //        if(!buf)
-	// 	goto end;
-	// memset(buf, '\0', 100);
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		goto end;
+	memset(buf, '\0', 100);
 	
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
 				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
-					// entry_count++;
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
 					// printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
