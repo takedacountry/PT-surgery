@@ -484,9 +484,9 @@ SYSCALL_DEFINE0(mycall_ds_search)
 			count = 0;
 			flag = 1;
 		}
-		if(itr->limit != itr->base + 1){
+		// if(itr->limit != itr->base + 1){
 			// printk(KERN_INFO "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
-		}
+		// }
 		count++;
 	}
 	printk(KERN_INFO "kernel count %d\n", count);
@@ -768,22 +768,22 @@ static long recover_pgtable(void)
 
 	// int entry_count=0;
 
-	struct file *file;
-	char *filename = "./write_log_txt";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+	// struct file *file;
+	// char *filename = "./write_log_txt";
+	// int size;
+	// char *buf;
+ //        loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
-	}
+	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	// if(IS_ERR(file)){
+	// 	printk("pre_file open err=%ld", PTR_ERR(file));
+	// 	goto end;
+	// }
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto end;
-	memset(buf, '\0', 100);
+ //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+ //        if(!buf)
+	// 	goto end;
+	// memset(buf, '\0', 100);
 	
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -792,9 +792,9 @@ static long recover_pgtable(void)
 					// entry_count++;
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
-					printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
+					// printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
 					ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
-					printk(KERN_INFO "pmd after: %lx",(unsigned long)pmd_val(*pmdp));
+					// printk(KERN_INFO "pmd after: %lx",(unsigned long)pmd_val(*pmdp));
 					if(!ptep_new){
 						spin_unlock(ptl);
 						goto end;
@@ -804,7 +804,7 @@ static long recover_pgtable(void)
 					va_start = make_ds_va(a, b, c, 0);
 					va_end = make_ds_va(a, b, c, 511);
 
-					printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx", a, b, c, va_start, va_end);
+					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx", a, b, c, va_start, va_end);
 					
 					list_for_each_entry(itr, &ds_pgtable_head, list){
 						if(itr->limit <= va_start){
@@ -812,7 +812,7 @@ static long recover_pgtable(void)
 						}else if(va_end < itr->base){
 							break; // already finished
 						}else{ // recover pgtable from ds
-							printk(KERN_INFO "    %lx %lx %lx %lx", itr->base, itr->limit, itr->offset, itr->flag);
+							// printk(KERN_INFO "    %lx %lx %lx %lx", itr->base, itr->limit, itr->offset, itr->flag);
 							dup_pte(&ptep_new, itr, va_start, va_end);
 							va_start = itr->limit;
 						}
@@ -894,8 +894,8 @@ static long recover_pgtable(void)
 		count = 0;
 	}			
 end:	
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	return 0;	
 }
 
