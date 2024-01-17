@@ -164,7 +164,7 @@ static long make_user_pgtable(void)
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, d); // first entry num
+						// pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count user PT pagetable num.
 						// if(pte_num_pre != pte_num >> 9){
 						// 	entry_count++;
@@ -243,7 +243,7 @@ static long make_user_pgtable2(void)
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, d); // first entry num
+						// pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count user PT pagetable num.
 						// if(pte_num_pre != pte_num >> 9){
 						// 	entry_count++;
@@ -323,7 +323,7 @@ static long make_kernel_pgtable(void)
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, d); // first entry num
+						// pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count kernel PT pagetable num.
 						// if(pte_num_pre != pte_num >> 9){
 						// 	entry_count++;
@@ -403,7 +403,7 @@ static long make_kernel_pgtable2(void)
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, d); // first entry num
+						// pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count kernel PT pagetable num.
 						// if(pte_num_pre != pte_num >> 9){
 						// 	entry_count++;
