@@ -139,8 +139,8 @@ static long make_user_pgtable(void)
 	int count;
 	int entry_count = 0;
 		
-	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
+	// unsigned long pte_num;
+	// unsigned long pte_num_pre = 0;
 	
 	// struct file *file;
 	// char *filename = "./user_pgtable";
@@ -166,10 +166,11 @@ static long make_user_pgtable(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count user PT pagetable num.
-						if(pte_num_pre != pte_num >> 9){
-							entry_count++;
-							pte_num_pre = pte_num >> 9;
-						}
+						// if(pte_num_pre != pte_num >> 9){
+						// 	entry_count++;
+						// 	pte_num_pre = pte_num >> 9;
+						// }
+						entry_count++;
 						
 						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
 						// kernel_write(file, buf, size, &pos);
@@ -217,8 +218,8 @@ static long make_user_pgtable2(void)
 	int count;
 	int entry_count = 0;
 		
-	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
+	// unsigned long pte_num;
+	// unsigned long pte_num_pre = 0;
 	
 	// struct file *file;
 	// char *filename = "./user_pgtable2";
@@ -244,10 +245,11 @@ static long make_user_pgtable2(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count user PT pagetable num.
-						if(pte_num_pre != pte_num >> 9){
-							entry_count++;
-							pte_num_pre = pte_num >> 9;
-						}
+						// if(pte_num_pre != pte_num >> 9){
+						// 	entry_count++;
+						// 	pte_num_pre = pte_num >> 9;
+						// }
+						entry_count++;
 						
 						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
 						// kernel_write(file, buf, size, &pos);
@@ -295,8 +297,8 @@ static long make_kernel_pgtable(void)
 	int count;
 	int entry_count = 0;
 	
-	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
+	// unsigned long pte_num;
+	// unsigned long pte_num_pre = 0;
 
 	// struct file *file;
 	// char *filename = "./kernel_pgtable";
@@ -323,10 +325,11 @@ static long make_kernel_pgtable(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count kernel PT pagetable num.
-						if(pte_num_pre != pte_num >> 9){
-							entry_count++;
-							pte_num_pre = pte_num >> 9;
-						}
+						// if(pte_num_pre != pte_num >> 9){
+						// 	entry_count++;
+						// 	pte_num_pre = pte_num >> 9;
+						// }
+						entry_count++;
 
 						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
 						// kernel_write(file, buf, size, &pos);
@@ -374,8 +377,8 @@ static long make_kernel_pgtable2(void)
 	int count;
 	int entry_count = 0;
 	
-	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
+	// unsigned long pte_num;
+	// unsigned long pte_num_pre = 0;
 
 	// struct file *file;
 	// char *filename = "./kernel_pgtable2";
@@ -402,10 +405,11 @@ static long make_kernel_pgtable2(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d); // first entry num
 						// count kernel PT pagetable num.
-						if(pte_num_pre != pte_num >> 9){
-							entry_count++;
-							pte_num_pre = pte_num >> 9;
-						}
+						// if(pte_num_pre != pte_num >> 9){
+						// 	entry_count++;
+						// 	pte_num_pre = pte_num >> 9;
+						// }
+						entry_count++;
 
 						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
 						// kernel_write(file, buf, size, &pos);
