@@ -101,9 +101,10 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
 
-    for(char *t = ma; t < ma + INDEX; t++){
-        printf("%d ", *t);
-    }
+    // success
+    // for(char *t = ma; t < ma + INDEX; t++){
+    //     printf("%d ", *t);
+    // }
     
     // memset(ma, 1, INDEX);
     // memset(mb, 1, INDEX);
