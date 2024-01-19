@@ -31,9 +31,9 @@ int main(void)
     long count;
     
     char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(INDEX);
-    char *mc = (char*)malloc(INDEX);
-    char *md = (char*)malloc(INDEX);
+    // char *mb = (char*)malloc(INDEX);
+    // char *mc = (char*)malloc(INDEX);
+    // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
     // char *mf = (char*)malloc(INDEX);
     // char *mg = (char*)malloc(INDEX);
@@ -47,10 +47,10 @@ int main(void)
     // char *mo = (char*)malloc(INDEX);
     // char *mp = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
-    memset(mb, 0, INDEX);
-    memset(mc, 0, INDEX);
-    memset(md, 0, INDEX);
+    memset(ma, 1, INDEX);
+    // memset(mb, 0, INDEX);
+    // memset(mc, 0, INDEX);
+    // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
     // memset(mf, 0, INDEX);
     // memset(mg, 0, INDEX);
@@ -66,9 +66,9 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    printf("va: %p\n", mb); // print user va 
-    printf("va: %p\n", mc); // print user va 
-    printf("va: %p\n", md); // print user va 
+    // printf("va: %p\n", mb); // print user va 
+    // printf("va: %p\n", mc); // print user va 
+    // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
     // printf("va: %p\n", mf); // print user va
     // printf("va: %p\n", mg); // print user va
@@ -101,14 +101,14 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
 
-    // for(char *t = ma; t < ma + 100; t++){
-    //     printf("%d ", *t);
-    // }
+    for(char *t = ma; t < ma + INDEX; t++){
+        printf("%d ", *t);
+    }
     
-    memset(ma, 1, INDEX);
-    memset(mb, 1, INDEX);
-    memset(mc, 1, INDEX);
-    memset(md, 1, INDEX);
+    // memset(ma, 1, INDEX);
+    // memset(mb, 1, INDEX);
+    // memset(mc, 1, INDEX);
+    // memset(md, 1, INDEX);
     // memset(me, 1, INDEX);
     // memset(mf, 1, INDEX);
     // memset(mg, 1, INDEX);
@@ -127,9 +127,9 @@ int main(void)
     // }
     
     free(ma);
-    free(mb);
-    free(mc);
-    free(md);
+    // free(mb);
+    // free(mc);
+    // free(md);
     // free(me);
     // free(mf);
     // free(mg);
