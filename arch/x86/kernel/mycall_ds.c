@@ -790,14 +790,14 @@ static long recover_pgtable(void)
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
 					printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
-					printk(KERN_IFNO "pte before: %lx", (unsigned long)__pa(ptep_old));
+					printk(KERN_INFO "pte before: %lx", (unsigned long)__pa(ptep_old));
 					ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
 					printk(KERN_INFO "pmd after:  %lx",(unsigned long)pmd_val(*pmdp));
 					if(!ptep_new){
 						spin_unlock(ptl);
 						goto end;
 					}
-					printk(KERN_IFNO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+					printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
