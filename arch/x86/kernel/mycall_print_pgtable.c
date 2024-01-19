@@ -142,22 +142,22 @@ static long make_user_pgtable(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 	
-	struct file *file;
-	char *filename = "./user_pgtable";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+	// struct file *file;
+	// char *filename = "./user_pgtable";
+	// int size;
+	// char *buf;
+ //        loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
-	}
+	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	// if(IS_ERR(file)){
+	// 	printk("pre_file open err=%ld", PTR_ERR(file));
+	// 	goto end;
+	// }
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto end;
-	memset(buf, '\0', 100);
+ //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+ //        if(!buf)
+	// 	goto end;
+	// memset(buf, '\0', 100);
 
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -171,9 +171,9 @@ static long make_user_pgtable(void)
 						}
 						// entry_count++;
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
-						kernel_write(file, buf, size, &pos);
-						vfs_fsync_range(file, 0, size, 1);
+						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						// kernel_write(file, buf, size, &pos);
+						// vfs_fsync_range(file, 0, size, 1);
 						
                         			count = num;
                     			}else if(num == 0){ // error
@@ -201,12 +201,12 @@ static long make_user_pgtable(void)
 end:
 	printk(KERN_INFO "user PT count: %d", entry_count);
 	
-	size = sprintf(buf, "user PT count: %d", entry_count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+	// size = sprintf(buf, "user PT count: %d", entry_count);
+	// kernel_write(file, buf, size, &pos);
+	// vfs_fsync_range(file, 0, size, 1);
 	
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	
 	return 0;
 }
@@ -220,22 +220,22 @@ static long make_user_pgtable2(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 	
-	struct file *file;
-	char *filename = "./user_pgtable2";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+	// struct file *file;
+	// char *filename = "./user_pgtable2";
+	// int size;
+	// char *buf;
+ //        loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
-	}
+	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	// if(IS_ERR(file)){
+	// 	printk("pre_file open err=%ld", PTR_ERR(file));
+	// 	goto end;
+	// }
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto end;
-	memset(buf, '\0', 100);
+ //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+ //        if(!buf)
+	// 	goto end;
+	// memset(buf, '\0', 100);
 
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -249,9 +249,9 @@ static long make_user_pgtable2(void)
 						}
 						// entry_count++;
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
-						kernel_write(file, buf, size, &pos);
-						vfs_fsync_range(file, 0, size, 1);
+						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						// kernel_write(file, buf, size, &pos);
+						// vfs_fsync_range(file, 0, size, 1);
 						
                         			count = num;
                     			}else if(num == 0){ // error
@@ -279,12 +279,12 @@ static long make_user_pgtable2(void)
 end:
 	printk(KERN_INFO "user PT count: %d", entry_count);
 	
-	size = sprintf(buf, "user PT count: %d", entry_count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+	// size = sprintf(buf, "user PT count: %d", entry_count);
+	// kernel_write(file, buf, size, &pos);
+	// vfs_fsync_range(file, 0, size, 1);
 	
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	
 	return 0;
 }
@@ -298,22 +298,22 @@ static long make_kernel_pgtable(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 
-	struct file *file;
-	char *filename = "./kernel_pgtable";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+	// struct file *file;
+	// char *filename = "./kernel_pgtable";
+	// int size;
+	// char *buf;
+ //        loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
-	}
+	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	// if(IS_ERR(file)){
+	// 	printk("pre_file open err=%ld", PTR_ERR(file));
+	// 	goto end;
+	// }
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto end;
-	memset(buf, '\0', 100);
+ //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+ //        if(!buf)
+	// 	goto end;
+	// memset(buf, '\0', 100);
 	
 	
 	for(unsigned long a=USER_MAX; a<MAX; a++){
@@ -327,9 +327,9 @@ static long make_kernel_pgtable(void)
 							pte_num_pre = pte_num >> 9;
 						}
 
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
-						kernel_write(file, buf, size, &pos);
-						vfs_fsync_range(file, 0, size, 1);
+						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						// kernel_write(file, buf, size, &pos);
+						// vfs_fsync_range(file, 0, size, 1);
 						
                         			count = num;
                     			}else if(num == 0){ // error
@@ -357,12 +357,12 @@ static long make_kernel_pgtable(void)
 end:
 	printk(KERN_INFO "kernel PT count: %d\n", entry_count);
 	
-	size = sprintf(buf, "kernel PT count: %d\n",entry_count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+	// size = sprintf(buf, "kernel PT count: %d\n",entry_count);
+	// kernel_write(file, buf, size, &pos);
+	// vfs_fsync_range(file, 0, size, 1);
 	
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	
 	return 0;
 }
@@ -376,22 +376,22 @@ static long make_kernel_pgtable2(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 
-	struct file *file;
-	char *filename = "./kernel_pgtable2";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+	// struct file *file;
+	// char *filename = "./kernel_pgtable2";
+	// int size;
+	// char *buf;
+ //        loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
-	}
+	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	// if(IS_ERR(file)){
+	// 	printk("pre_file open err=%ld", PTR_ERR(file));
+	// 	goto end;
+	// }
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto end;
-	memset(buf, '\0', 100);
+ //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+ //        if(!buf)
+	// 	goto end;
+	// memset(buf, '\0', 100);
 	
 	
 	for(unsigned long a=USER_MAX; a<MAX; a++){
@@ -405,9 +405,9 @@ static long make_kernel_pgtable2(void)
 							pte_num_pre = pte_num >> 9;
 						}
 
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
-						kernel_write(file, buf, size, &pos);
-						vfs_fsync_range(file, 0, size, 1);
+						// size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						// kernel_write(file, buf, size, &pos);
+						// vfs_fsync_range(file, 0, size, 1);
 						
                         			count = num;
                     			}else if(num == 0){ // error
@@ -435,12 +435,12 @@ static long make_kernel_pgtable2(void)
 end:
 	printk(KERN_INFO "kernel PT count: %d\n", entry_count);
 	
-	size = sprintf(buf, "kernel PT count: %d\n",entry_count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+	// size = sprintf(buf, "kernel PT count: %d\n",entry_count);
+	// kernel_write(file, buf, size, &pos);
+	// vfs_fsync_range(file, 0, size, 1);
 	
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	
 	return 0;
 }
