@@ -789,21 +789,21 @@ static long recover_pgtable(void)
 				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
-					printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
-					printk(KERN_INFO "pte before: %lx", (unsigned long)__pa(ptep_old));
+					// printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
+					// printk(KERN_INFO "pte before: %lx", (unsigned long)__pa(ptep_old));
 					ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
-					printk(KERN_INFO "pmd after:  %lx",(unsigned long)pmd_val(*pmdp));
+					// printk(KERN_INFO "pmd after:  %lx",(unsigned long)pmd_val(*pmdp));
 					if(!ptep_new){
 						spin_unlock(ptl);
 						goto end;
 					}
-					printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+					// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
 					va_end = make_ds_va(a, b, c, 511);
 
-					printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx", a, b, c, va_start, va_end);
+					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx", a, b, c, va_start, va_end);
 					
 					list_for_each_entry(itr, &ds_pgtable_head, list){
 						if(itr->limit <= va_start){
@@ -811,7 +811,7 @@ static long recover_pgtable(void)
 						}else if(va_end < itr->base){
 							break; // already finished
 						}else{ // recover pgtable from ds
-							printk(KERN_INFO "    %lx %lx %lx %lx", itr->base, itr->limit, itr->offset, itr->flag);
+							// printk(KERN_INFO "    %lx %lx %lx %lx", itr->base, itr->limit, itr->offset, itr->flag);
 							dup_pte(&ptep_new, itr, va_start, va_end);
 							va_start = itr->limit;
 						}
