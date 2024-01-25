@@ -786,6 +786,7 @@ static long recover_pgtable(void)
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
+				/*
 				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
@@ -821,12 +822,18 @@ static long recover_pgtable(void)
 					// print_pte(pmdp);
 				}
 				else if(num == 2){ // in kernel
-					goto end;
+				*/
+				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 2){ // in user
+					// goto end;
 					
 					ptep_old = pte_offset_index(pmdp, 0);
 					
 					// printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
 					size = sprintf(buf, "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+					// printk(KERN_INFO "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+					size = sprintf(buf, "pte before: %lx\n", (unsigned long)__pa(ptep_old));
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 					
@@ -842,6 +849,11 @@ static long recover_pgtable(void)
 						// spin_unlock(ptl);
 						goto end;
 					}
+					
+					// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+					size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
@@ -893,8 +905,8 @@ static long recover_pgtable(void)
 		count = 0;
 	}			
 end:	
-	// kfree(buf);
-	// filp_close(file, NULL);
+	kfree(buf);
+	filp_close(file, NULL);
 	return 0;	
 }
 
