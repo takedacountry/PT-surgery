@@ -166,7 +166,7 @@ static long make_user_pgtable(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
-							size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx\n", a, b, c, 0, pte_num);
+							size = sprintf(buf, "%ld-%ld-%ld-0  %lx\n", a, b, c, pte_num);
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 							
@@ -327,7 +327,7 @@ static long make_kernel_pgtable(void)
                     			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
-							size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx\n", a, b, c, 0, pte_num);
+							size = sprintf(buf, "%ld-%ld-%ld-0  %lx\n", a, b, c, pte_num);
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 							
