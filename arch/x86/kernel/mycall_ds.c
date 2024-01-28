@@ -554,6 +554,12 @@ static int search_pgtable_get_pmd(unsigned long pgd, unsigned long pud, unsigned
   	return get_pmd_scan_pgd(mm, pgd, pud, pmd, pmdp);
 }
 
+
+
+
+
+
+
 static void pte_realloc_pmd_populate(struct mm_struct *mm, pmd_t *pmd, struct page *pte)
 {
 	unsigned long pfn = page_to_pfn(pte);
@@ -666,6 +672,59 @@ static pte_t *pte_realloc_kernel_offset_head(pmd_t *pmdp, struct file *file, lof
 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
 }
 
+
+static void pmd_populate_kernel(pmd_t *pmdp, struct file *file, loff_t *pos)
+{
+	int size;
+	char *buf;
+	
+	// spinlock_t *ptl;
+	pte_t *new = pte_alloc_one_kernel(&init_mm);
+	if (!new)
+		return 1;
+
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return 1;
+	memset(buf, '\0', 100);
+
+	size = sprintf(buf, "pte alloc one kernel\n");
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	
+	// ptl = pmd_lock(mm, pmd);
+	// *(ptlp) = ptl;
+	spin_lock(&init_mm.page_table_lock);
+
+	size = sprintf(buf, "spinlock\n");
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
+		smp_wmb(); /* See comment in pmd_install() */
+		pte_realloc_kernel_pmd_populate(&init_mm, pmd, new, file, pos);
+		new = NULL;
+	}
+	
+	size = sprintf(buf, "pmd populate\n");
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	if (new)
+		pte_free_kernel(&init_mm, new);
+	return 0;
+}
+
+static pte *pte_realloc_kernel(pmd_t *pmdp)
+{
+	pte_t *new = pte_alloc_one_kernel(&init_mm);
+	if (!new)
+		return NULL;
+	return new;
+}
+
+
 static void dup_pte(pte_t **ptep, struct ds_pgtable *itr, unsigned long start, unsigned long end)
 {
 	unsigned long count;
@@ -764,6 +823,7 @@ static long recover_pgtable(void)
 	
 	int num;
 	int count;
+	int flag = 0;
 	struct ds_pgtable *itr;
 
 	struct file *file;
@@ -834,7 +894,8 @@ static long recover_pgtable(void)
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 					
-					ptep_new = pte_realloc_kernel_offset_head(pmdp, file, &pos);
+					// ptep_new = pte_realloc_kernel_offset_head(pmdp, file, &pos);
+					ptep_new = pte_realloc_kernel(pmdp);
 					
 					// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
 					size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -843,7 +904,6 @@ static long recover_pgtable(void)
 					
 					if(!ptep_new){
 						spin_unlock(&init_mm.page_table_lock);
-						// spin_unlock(ptl);
 						goto end;
 					}
 					
@@ -874,8 +934,20 @@ static long recover_pgtable(void)
 							
 							dup_pte(&ptep_new, itr, va_start, va_end);
 							va_start = itr->limit;
+							flag = 1;
 						}
 					}
+
+					if(flag == 1){
+						pmd_populate_kernel(pmdp, file, &pos);
+						flag = 0;
+					}else{
+						printk(KERN_INFO "do not dup pte\n");
+						size = sprintf(buf, "do not dup pte\n");
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+					}
+					
 					pte_free_kernel(&init_mm, ptep_old);
 					spin_unlock(&init_mm.page_table_lock);
 					// spin_unlock(ptl);
