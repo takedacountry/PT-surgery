@@ -786,7 +786,6 @@ static long recover_pgtable(void)
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
-				/*
 				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
@@ -822,9 +821,7 @@ static long recover_pgtable(void)
 					// print_pte(pmdp);
 				}
 				else if(num == 2){ // in kernel
-				*/
-				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 2){ // in user
-					// goto end;
+					goto end;
 					
 					ptep_old = pte_offset_index(pmdp, 0);
 					
