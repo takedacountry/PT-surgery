@@ -865,8 +865,6 @@ static long recover_pgtable(void)
 					// print_pte(pmdp);
 				}
 				else if(num == 2){ // in kernel
-					goto end;
-					
 					ptep_old = pte_offset_index(pmdp, 0);
 					
 					// printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
