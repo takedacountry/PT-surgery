@@ -476,11 +476,11 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 SYSCALL_DEFINE0(mycall_ds_search)
 {
 	struct ds_pgtable *itr;
-	int count = 1;
+	int count = 0;
 	int flag = 0;
 	list_for_each_entry(itr, &ds_pgtable_head, list){
 		if(flag == 0 && itr->base >= 0x800000000){
-			printk(KERN_INFO "user count %d\n", count-1);
+			printk(KERN_INFO "user ds count %d\n", count);
 			count = 0;
 			flag = 1;
 		}
@@ -489,7 +489,7 @@ SYSCALL_DEFINE0(mycall_ds_search)
 		// }
 		count++;
 	}
-	printk(KERN_INFO "kernel count %d\n", count);
+	printk(KERN_INFO "kernel ds count %d\n", count);
 	return 0;
 }
 
