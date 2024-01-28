@@ -601,7 +601,7 @@ static pte_t *pte_realloc_offset_head(struct mm_struct *mm, pmd_t *pmdp, spinloc
 	return pte_realloc(mm, pmdp, ptlp) ? NULL : pte_offset_index(pmdp, 0);
 }
 
-static void pte_realloc_kernel_pmd_populate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
+static void pte_realloc_kernel_pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
 {
 	int size;
 	char *buf;
@@ -623,96 +623,79 @@ static void pte_realloc_kernel_pmd_populate(struct mm_struct *mm, pmd_t *pmd, pt
 	vfs_fsync_range(file, 0, size, 1);
 }
 
-static int pte_realloc_kernel(pmd_t *pmd, struct file *file, loff_t *pos)
+// static int pte_realloc_kernel(pmd_t *pmd, struct file *file, loff_t *pos)
+// {
+// 	int size;
+// 	char *buf;
+	
+// 	// spinlock_t *ptl;
+// 	pte_t *new = pte_alloc_one_kernel(&init_mm);
+// 	if (!new)
+// 		return 1;
+
+//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
+//         if(!buf)
+// 		return 1;
+// 	memset(buf, '\0', 100);
+
+// 	size = sprintf(buf, "pte alloc one kernel\n");
+// 	kernel_write(file, buf, size, pos);
+// 	vfs_fsync_range(file, 0, size, 1);
+	
+	
+// 	// ptl = pmd_lock(mm, pmd);
+// 	// *(ptlp) = ptl;
+// 	spin_lock(&init_mm.page_table_lock);
+
+// 	size = sprintf(buf, "spinlock\n");
+// 	kernel_write(file, buf, size, pos);
+// 	vfs_fsync_range(file, 0, size, 1);
+	
+// 	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
+// 		smp_wmb(); /* See comment in pmd_install() */
+// 		pte_realloc_kernel_pmd_populate(&init_mm, pmd, new, file, pos);
+// 		new = NULL;
+// 	}
+	
+// 	size = sprintf(buf, "pmd populate\n");
+// 	kernel_write(file, buf, size, pos);
+// 	vfs_fsync_range(file, 0, size, 1);
+	
+// 	if (new)
+// 		pte_free_kernel(&init_mm, new);
+// 	return 0;
+// }
+
+// // kernel only
+// static pte_t *pte_realloc_kernel_offset_head(pmd_t *pmdp, struct file *file, loff_t *pos)
+// {
+// 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
+// }
+
+static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *pte, struct file *file, loff_t *pos)
 {
 	int size;
 	char *buf;
 	
-	// spinlock_t *ptl;
-	pte_t *new = pte_alloc_one_kernel(&init_mm);
-	if (!new)
-		return 1;
-
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
         if(!buf)
 		return 1;
 	memset(buf, '\0', 100);
 
-	size = sprintf(buf, "pte alloc one kernel\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
-	
-	// ptl = pmd_lock(mm, pmd);
-	// *(ptlp) = ptl;
 	spin_lock(&init_mm.page_table_lock);
-
-	size = sprintf(buf, "spinlock\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
 	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
 		smp_wmb(); /* See comment in pmd_install() */
-		pte_realloc_kernel_pmd_populate(&init_mm, pmd, new, file, pos);
-		new = NULL;
+		pte_realloc_kernel_pmd_repopulate(&init_mm, pmd, pte, file, pos);
+		pte = NULL;
 	}
+	spin_unlock(&init_mm.page_table_lock);
 	
 	size = sprintf(buf, "pmd populate\n");
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
-	if (new)
-		pte_free_kernel(&init_mm, new);
-	return 0;
-}
-
-// kernel only
-static pte_t *pte_realloc_kernel_offset_head(pmd_t *pmdp, struct file *file, loff_t *pos)
-{
-	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
-}
-
-
-static void pmd_populate_kernel(pmd_t *pmdp, struct file *file, loff_t *pos)
-{
-	int size;
-	char *buf;
-	
-	// spinlock_t *ptl;
-	pte_t *new = pte_alloc_one_kernel(&init_mm);
-	if (!new)
-		return 1;
-
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return 1;
-	memset(buf, '\0', 100);
-
-	size = sprintf(buf, "pte alloc one kernel\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
-	
-	// ptl = pmd_lock(mm, pmd);
-	// *(ptlp) = ptl;
-	spin_lock(&init_mm.page_table_lock);
-
-	size = sprintf(buf, "spinlock\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
-	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
-		smp_wmb(); /* See comment in pmd_install() */
-		pte_realloc_kernel_pmd_populate(&init_mm, pmd, new, file, pos);
-		new = NULL;
-	}
-	
-	size = sprintf(buf, "pmd populate\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
-	if (new)
-		pte_free_kernel(&init_mm, new);
+	if (pte)
+		pte_free_kernel(&init_mm, pte);
 	return 0;
 }
 
@@ -723,6 +706,7 @@ static pte *pte_realloc_kernel(pmd_t *pmdp)
 		return NULL;
 	return new;
 }
+
 
 
 static void dup_pte(pte_t **ptep, struct ds_pgtable *itr, unsigned long start, unsigned long end)
@@ -939,18 +923,15 @@ static long recover_pgtable(void)
 					}
 
 					if(flag == 1){
-						pmd_populate_kernel(pmdp, file, &pos);
+						pmd_repopulate_kernel(pmdp, pte_new, file, &pos);
 						flag = 0;
 					}else{
-						printk(KERN_INFO "do not dup pte\n");
-						size = sprintf(buf, "do not dup pte\n");
+						printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+						size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 					}
-					
-					pte_free_kernel(&init_mm, ptep_old);
-					spin_unlock(&init_mm.page_table_lock);
-					// spin_unlock(ptl);
+
 					// print_pte(pmdp);
 					
 				}
