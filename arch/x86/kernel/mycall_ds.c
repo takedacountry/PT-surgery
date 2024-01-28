@@ -914,7 +914,7 @@ static long recover_pgtable(void)
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 
-					pte = pte_new;
+					pte = ptep_new;
 					
 					list_for_each_entry(itr, &ds_pgtable_head, list){
 						if(itr->limit <= va_start){
