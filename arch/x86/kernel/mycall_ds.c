@@ -672,21 +672,19 @@ static void pte_realloc_kernel_pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, 
 // 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
 // }
 
-static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *pte, struct file *file, loff_t *pos)
+static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
 {
 	int size;
 	char *buf;
 	
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return 1;
 	memset(buf, '\0', 100);
 
 	spin_lock(&init_mm.page_table_lock);
-	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
+	if (!pmd_none(*pmdp) && pmd_present(*pmdp)) {
 		smp_wmb(); /* See comment in pmd_install() */
-		pte_realloc_kernel_pmd_repopulate(&init_mm, pmd, pte, file, pos);
-		pte = NULL;
+		pte_realloc_kernel_pmd_repopulate(&init_mm, pmdp, ptep, file, pos);
+		ptep = NULL;
 	}
 	spin_unlock(&init_mm.page_table_lock);
 	
@@ -694,12 +692,11 @@ static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *pte, struct file *file, lo
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
-	if (pte)
-		pte_free_kernel(&init_mm, pte);
-	return 0;
+	if (ptep)
+		pte_free_kernel(&init_mm, ptep);
 }
 
-static pte *pte_realloc_kernel(pmd_t *pmdp)
+static pte_t *pte_realloc_kernel(pmd_t *pmdp)
 {
 	pte_t *new = pte_alloc_one_kernel(&init_mm);
 	if (!new)
@@ -921,7 +918,7 @@ static long recover_pgtable(void)
 					}
 
 					if(flag == 1){
-						pmd_repopulate_kernel(pmdp, pte_new, file, &pos);
+						pmd_repopulate_kernel(pmdp, ptep_new, file, &pos);
 						flag = 0;
 					}else{
 						printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
