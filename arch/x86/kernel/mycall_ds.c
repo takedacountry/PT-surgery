@@ -601,6 +601,19 @@ static pte_t *pte_realloc_offset_head(struct mm_struct *mm, pmd_t *pmdp, spinloc
 	return pte_realloc(mm, pmdp, ptlp) ? NULL : pte_offset_index(pmdp, 0);
 }
 
+
+
+// static pte_t *pte_realloc(struct mm_struct *mm, pmd_t *pmd)
+// {
+// 	pgtable_t new = pte_alloc_one(mm);
+// 	if(!new)
+// 		return	NULL;
+// 	return new;
+// }
+
+
+
+
 static void pte_realloc_kernel_pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
 {
 	int size;
@@ -797,6 +810,7 @@ static long recover_pgtable(void)
 	pmd_t *pmdp;
 	pte_t *ptep_old;
 	pte_t *ptep_new;
+	pte_t *pte;
 	
 	unsigned long va_start;
 	unsigned long va_end;
@@ -899,6 +913,8 @@ static long recover_pgtable(void)
 					size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
+
+					pte = pte_new;
 					
 					list_for_each_entry(itr, &ds_pgtable_head, list){
 						if(itr->limit <= va_start){
@@ -911,11 +927,13 @@ static long recover_pgtable(void)
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 							
-							dup_pte(&ptep_new, itr, va_start, va_end);
+							dup_pte(&pte, itr, va_start, va_end);
 							va_start = itr->limit;
 							flag = 1;
 						}
 					}
+
+					
 
 					if(flag == 1){
 						pmd_repopulate_kernel(pmdp, ptep_new, file, &pos);
