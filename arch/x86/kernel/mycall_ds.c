@@ -626,30 +626,6 @@ static pte_t *pte_realloc(struct mm_struct *mm)
 }
 
 
-
-
-static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
-{
-	int size;
-	char *buf;
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return;
-	memset(buf, '\0', 100);
-	
-	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
-
-	size = sprintf(buf, "paravirt alloc pte\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-	
-	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
-
-	size = sprintf(buf, "set pmd\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-}
-
 // static int pte_realloc_kernel(pmd_t *pmd, struct file *file, loff_t *pos)
 // {
 // 	int size;
@@ -698,6 +674,29 @@ static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, 
 // {
 // 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
 // }
+
+
+static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
+{
+	int size;
+	char *buf;
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return;
+	memset(buf, '\0', 100);
+	
+	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
+
+	size = sprintf(buf, "paravirt alloc pte\n");
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
+
+	size = sprintf(buf, "set pmd\n");
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+}
 
 static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
 {
@@ -828,7 +827,7 @@ static long recover_pgtable(void)
 	
 	unsigned long va_start;
 	unsigned long va_end;
-	spinlock_t *ptl;
+	// spinlock_t *ptl;
 	
 	int num;
 	int count;
