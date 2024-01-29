@@ -619,10 +619,13 @@ static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
 
 static pte_t *pte_realloc(struct mm_struct *mm)
 {
-	pgtable_t new = pte_alloc_one(mm);
+	struct page *new = (struct page *)pte_alloc_one(mm);
+	unsigned long pte;
 	if(!new)
 		return	NULL;
-	return (pte_t *)new;
+	
+	pte = (unsigned long)page_address(new);
+	return (pte_t *)pte;
 }
 
 
