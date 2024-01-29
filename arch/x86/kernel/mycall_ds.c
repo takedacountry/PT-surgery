@@ -617,7 +617,7 @@ static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
 		pte_free_kernel(&init_mm, ptep);
 }
 
-static pte_t *pte_realloc(struct mm_struct *mm, pmd_t *pmd)
+static pte_t *pte_realloc(struct mm_struct *mm)
 {
 	pgtable_t new = pte_alloc_one(mm);
 	if(!new)
@@ -723,7 +723,7 @@ static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, lo
 		pte_free_kernel(&init_mm, ptep);
 }
 
-static pte_t *pte_realloc_kernel(pmd_t *pmdp)
+static pte_t *pte_realloc_kernel(void)
 {
 	pte_t *new = pte_alloc_one_kernel(&init_mm);
 	if (!new)
@@ -869,7 +869,7 @@ static long recover_pgtable(void)
 					vfs_fsync_range(file, 0, size, 1);
 					
 					// ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
-					ptep_new = pte_realloc(current->mm, pmdp);
+					ptep_new = pte_realloc(current->mm);
 					
 					if(!ptep_new){
 						// spin_unlock(ptl);
@@ -942,7 +942,7 @@ static long recover_pgtable(void)
 					vfs_fsync_range(file, 0, size, 1);
 					
 					// ptep_new = pte_realloc_kernel_offset_head(pmdp, file, &pos);
-					ptep_new = pte_realloc_kernel(pmdp);
+					ptep_new = pte_realloc_kernel();
 					
 					if(!ptep_new){
 						// spin_unlock(&init_mm.page_table_lock);
