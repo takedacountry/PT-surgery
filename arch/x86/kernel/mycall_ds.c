@@ -614,7 +614,7 @@ static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
 	spin_unlock(ptl);
 	
 	if (ptep)
-		pte_free_kernel(&init_mm, ptep);
+		pte_free(mm, virt_to_page(ptep));
 }
 
 static pte_t *pte_realloc(struct mm_struct *mm)
@@ -679,27 +679,27 @@ static pte_t *pte_realloc(struct mm_struct *mm)
 // }
 
 
-static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
-{
-	int size;
-	char *buf;
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return;
-	memset(buf, '\0', 100);
+// static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
+// {
+// 	int size;
+// 	char *buf;
+//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
+//         if(!buf)
+// 		return;
+// 	memset(buf, '\0', 100);
 	
-	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
+// 	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
 
-	size = sprintf(buf, "paravirt alloc pte\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
+// 	size = sprintf(buf, "paravirt alloc pte\n");
+// 	kernel_write(file, buf, size, pos);
+// 	vfs_fsync_range(file, 0, size, 1);
 	
-	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
+// 	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
 
-	size = sprintf(buf, "set pmd\n");
-	kernel_write(file, buf, size, pos);
-	vfs_fsync_range(file, 0, size, 1);
-}
+// 	size = sprintf(buf, "set pmd\n");
+// 	kernel_write(file, buf, size, pos);
+// 	vfs_fsync_range(file, 0, size, 1);
+// }
 
 static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
 {
@@ -712,7 +712,7 @@ static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, lo
 	spin_lock(&init_mm.page_table_lock);
 	if (!pmd_none(*pmdp) && pmd_present(*pmdp)) {
 		smp_wmb(); /* See comment in pmd_install() */
-		pmd_repopulate_kernel(&init_mm, pmdp, ptep, file, pos);
+		pmd_repopulate(&init_mm, pmdp, ptep);
 		ptep = NULL;
 	}
 	spin_unlock(&init_mm.page_table_lock);
