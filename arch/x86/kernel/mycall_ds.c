@@ -890,20 +890,10 @@ static long recover_pgtable(void)
 					// ptep_new = pte_realloc_kernel_offset_head(pmdp, file, &pos);
 					ptep_new = pte_realloc_kernel(pmdp);
 					
-					// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
-					size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
-					kernel_write(file, buf, size, &pos);
-					vfs_fsync_range(file, 0, size, 1);
-					
 					if(!ptep_new){
 						spin_unlock(&init_mm.page_table_lock);
 						goto end;
 					}
-					
-					// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
-					size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
-					kernel_write(file, buf, size, &pos);
-					vfs_fsync_range(file, 0, size, 1);
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
@@ -938,13 +928,24 @@ static long recover_pgtable(void)
 					if(flag == 1){
 						pmd_repopulate_kernel(pmdp, ptep_new, file, &pos);
 						flag = 0;
+						
+						// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+						size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+
+						// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+						size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
 					}else{
 						printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
 						size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
+						pte_free_kernel(&init_mm, ptep_new);
 					}
-
+					
 					// print_pte(pmdp);
 					
 				}
