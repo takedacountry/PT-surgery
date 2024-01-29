@@ -555,66 +555,80 @@ static int search_pgtable_get_pmd(unsigned long pgd, unsigned long pud, unsigned
 }
 
 
-
-
-
-
-
-static void pte_realloc_pmd_populate(struct mm_struct *mm, pmd_t *pmd, struct page *pte)
-{
-	unsigned long pfn = page_to_pfn(pte);
-
-	paravirt_alloc_pte(mm, pfn);
-	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | pmd_flags(*pmd)));
-}
-
-static void pte_realloc_pmd_install(struct mm_struct *mm, pmd_t *pmd, pgtable_t *pte, spinlock_t **ptlp)
-{
-	spinlock_t *ptl = pmd_lock(mm, pmd);
-	*(ptlp) = ptl;
-	
-	if(!pmd_none(*pmd) && pmd_present(*pmd)){
-		// mm_inc_nr_ptes(mm);
-		smp_wmb();
-		pte_realloc_pmd_populate(mm, pmd, *pte);
-		*pte = NULL;
-	}
-	// spin_unlock(ptl);
-}
-
-
-static int pte_realloc(struct mm_struct *mm, pmd_t *pmd, spinlock_t **ptlp)
-{
-	pgtable_t new = pte_alloc_one(mm); 
-	if (!new)
-		return 1;
-	
-	pte_realloc_pmd_install(mm, pmd, &new, ptlp);
-	if (new)
-		pte_free(mm, new);
-	return 0;
-}
-
-// user only
-static pte_t *pte_realloc_offset_head(struct mm_struct *mm, pmd_t *pmdp, spinlock_t **ptlp)
-{
-	return pte_realloc(mm, pmdp, ptlp) ? NULL : pte_offset_index(pmdp, 0);
-}
-
-
-
-// static pte_t *pte_realloc(struct mm_struct *mm, pmd_t *pmd)
+// static void pte_realloc_pmd_populate(struct mm_struct *mm, pmd_t *pmd, struct page *pte)
 // {
-// 	pgtable_t new = pte_alloc_one(mm);
-// 	if(!new)
-// 		return	NULL;
-// 	return new;
+// 	unsigned long pfn = page_to_pfn(pte);
+
+// 	paravirt_alloc_pte(mm, pfn);
+// 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | pmd_flags(*pmd)));
+// }
+
+// static void pte_realloc_pmd_install(struct mm_struct *mm, pmd_t *pmd, pgtable_t *pte, spinlock_t **ptlp)
+// {
+// 	spinlock_t *ptl = pmd_lock(mm, pmd);
+// 	*(ptlp) = ptl;
+	
+// 	if(!pmd_none(*pmd) && pmd_present(*pmd)){
+// 		// mm_inc_nr_ptes(mm);
+// 		smp_wmb();
+// 		pte_realloc_pmd_populate(mm, pmd, *pte);
+// 		*pte = NULL;
+// 	}
+// 	// spin_unlock(ptl);
 // }
 
 
+// static int pte_realloc(struct mm_struct *mm, pmd_t *pmd, spinlock_t **ptlp)
+// {
+// 	pgtable_t new = pte_alloc_one(mm); 
+// 	if (!new)
+// 		return 1;
+	
+// 	pte_realloc_pmd_install(mm, pmd, &new, ptlp);
+// 	if (new)
+// 		pte_free(mm, new);
+// 	return 0;
+// }
+
+// // user only
+// static pte_t *pte_realloc_offset_head(struct mm_struct *mm, pmd_t *pmdp, spinlock_t **ptlp)
+// {
+// 	return pte_realloc(mm, pmdp, ptlp) ? NULL : pte_offset_index(pmdp, 0);
+// }
+
+static void pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
+{
+	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
+	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
+}
+
+static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep)
+{
+	spinlock_t *ptl = pmd_lock(mm, pmdp);
+	
+	if (!pmd_none(*pmdp) && pmd_present(*pmdp)) {
+		smp_wmb(); /* See comment in pmd_install() */
+		pmd_repopulate(mm, pmdp, ptep);
+		ptep = NULL;
+	}
+	spin_unlock(ptl);
+	
+	if (ptep)
+		pte_free_kernel(&init_mm, ptep);
+}
+
+static pte_t *pte_realloc(struct mm_struct *mm, pmd_t *pmd)
+{
+	pgtable_t new = pte_alloc_one(mm);
+	if(!new)
+		return	NULL;
+	return (pte_t *)new;
+}
 
 
-static void pte_realloc_kernel_pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
+
+
+static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
 {
 	int size;
 	char *buf;
@@ -685,7 +699,7 @@ static void pte_realloc_kernel_pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, 
 // 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
 // }
 
-static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
+static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
 {
 	int size;
 	char *buf;
@@ -696,7 +710,7 @@ static void pmd_repopulate_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, l
 	spin_lock(&init_mm.page_table_lock);
 	if (!pmd_none(*pmdp) && pmd_present(*pmdp)) {
 		smp_wmb(); /* See comment in pmd_install() */
-		pte_realloc_kernel_pmd_repopulate(&init_mm, pmdp, ptep, file, pos);
+		pmd_repopulate_kernel(&init_mm, pmdp, ptep, file, pos);
 		ptep = NULL;
 	}
 	spin_unlock(&init_mm.page_table_lock);
@@ -844,21 +858,34 @@ static long recover_pgtable(void)
 				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
-					// printk(KERN_INFO "pmd before: %lx",(unsigned long)pmd_val(*pmdp));
-					// printk(KERN_INFO "pte before: %lx", (unsigned long)__pa(ptep_old));
-					ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
-					// printk(KERN_INFO "pmd after:  %lx",(unsigned long)pmd_val(*pmdp));
+
+					// printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+					size = sprintf(buf, "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+					// printk(KERN_INFO "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+					size = sprintf(buf, "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+					
+					// ptep_new = pte_realloc_offset_head(current->mm, pmdp, &ptl);
+					ptep_new = pte_realloc(current->mm, pmdp);
+					
 					if(!ptep_new){
-						spin_unlock(ptl);
+						// spin_unlock(ptl);
 						goto end;
 					}
-					// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
 					va_end = make_ds_va(a, b, c, 511);
 
-					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx", a, b, c, va_start, va_end);
+					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+					size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+
+					pte = ptep_new;
 					
 					list_for_each_entry(itr, &ds_pgtable_head, list){
 						if(itr->limit <= va_start){
@@ -866,12 +893,39 @@ static long recover_pgtable(void)
 						}else if(va_end < itr->base){
 							break; // already finished
 						}else{ // recover pgtable from ds
-							// printk(KERN_INFO "    %lx %lx %lx %lx", itr->base, itr->limit, itr->offset, itr->flag);
-							dup_pte(&ptep_new, itr, va_start, va_end);
+							// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+							size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+							
+							dup_pte(&pte, itr, va_start, va_end);
 							va_start = itr->limit;
+							flag = 1;
 						}
 					}
-					spin_unlock(ptl);
+
+					if(flag == 1){
+						pmd_reinstall(current->mm, pmdp, ptep_new);
+						flag = 0;
+
+						// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+						size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+
+						// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+						size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+					}else{
+						// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+						size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+						pte_free(current->mm, virt_to_page(ptep_new));
+					}
+					
+					// spin_unlock(ptl);
 					// pte_free(current->mm, virt_to_page(ptep_old));
 					// print_pte(pmdp);
 				}
@@ -891,7 +945,7 @@ static long recover_pgtable(void)
 					ptep_new = pte_realloc_kernel(pmdp);
 					
 					if(!ptep_new){
-						spin_unlock(&init_mm.page_table_lock);
+						// spin_unlock(&init_mm.page_table_lock);
 						goto end;
 					}
 					
@@ -926,7 +980,7 @@ static long recover_pgtable(void)
 					
 
 					if(flag == 1){
-						pmd_repopulate_kernel(pmdp, ptep_new, file, &pos);
+						pmd_reinstall_kernel(pmdp, ptep_new, file, &pos);
 						flag = 0;
 						
 						// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -939,7 +993,7 @@ static long recover_pgtable(void)
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 					}else{
-						printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+						// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
 						size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
