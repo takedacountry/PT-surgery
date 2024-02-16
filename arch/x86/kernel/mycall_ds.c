@@ -143,7 +143,9 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte);
 }
 
-struct ds_pgtable{
+// want to make list every process
+		
+struct ds_list{
 	unsigned long base;
 	unsigned long limit;
 	long offset;
@@ -151,7 +153,14 @@ struct ds_pgtable{
 	struct list_head list;
 };
 
-static LIST_HEAD(ds_pgtable_head);
+struct m_list{
+	unsigned long pa;
+	unsigned long va;
+	struct list_head list;
+};
+
+static LIST_HEAD(ds_list_head);
+static LIST_HEAD(m_list_head);
 		
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
@@ -167,7 +176,7 @@ static long make_ds_offset(long base)
 
 static int make_ds_list(unsigned long base, unsigned long limit, long offset, unsigned long flag)
 {
-	struct ds_pgtable *list = kmalloc(sizeof(struct ds_pgtable), GFP_KERNEL);
+	struct ds_list *list = kmalloc(sizeof(struct ds_list), GFP_KERNEL);
 	if(!list)
 		return -ENOMEM;
 
@@ -175,7 +184,7 @@ static int make_ds_list(unsigned long base, unsigned long limit, long offset, un
 	list->limit = limit;
 	list->offset = offset;
 	list->flag = flag;
-	list_add_tail(&list->list, &ds_pgtable_head);
+	list_add_tail(&list->list, &ds_list_head);
 	return 0;
 }
 
@@ -227,7 +236,7 @@ static long make_ds_user(void)
 						}else if(pte_value == pte_value_pre + 1 && pte_flag == pte_flag_pre){ // continuous address hit
 							pte_value_pre = pte_value;
 						}else{ // last hit, first nit
-							// add ds_pgtable list
+							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
 							if(make_ds_list(base, limit, offset, flag) < 0)
 								goto end;
@@ -245,7 +254,7 @@ static long make_ds_user(void)
 						goto end;
 					}else{ // pte miss
 						if(hit_flag > 0){ // last hit, miss
-							// add ds_pgtable list
+							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
 							if(make_ds_list(base, limit, offset, flag) < 0)
 								goto end;
@@ -375,7 +384,7 @@ static long make_ds_kernel(void)
 							if(!(ds_flag & SAME_FLAG_MASK))
 								ds_flag |= SAME_FLAG_MASK;
 						}else{ // last hit, first nit
-							// add ds_pgtable list
+							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
 							if(ds_flag & SAME_FLAG_MASK){
 								flag |= SAME_ADDR_MASK;
@@ -398,7 +407,7 @@ static long make_ds_kernel(void)
 						goto end;
 					}else{ // pte miss
 						if(ds_flag & HIT_FLAG_MASK){ // last hit, miss
-							// add ds_pgtable list
+							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
 							if(ds_flag & SAME_FLAG_MASK){
 								flag |= SAME_ADDR_MASK;
@@ -475,10 +484,10 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 
 SYSCALL_DEFINE0(mycall_ds_search)
 {
-	struct ds_pgtable *itr;
+	struct ds_list *itr;
 	int count = 0;
 	int flag = 0;
-	list_for_each_entry(itr, &ds_pgtable_head, list){
+	list_for_each_entry(itr, &ds_list_head, list){
 		if(flag == 0 && itr->base >= 0x800000000){
 			printk(KERN_INFO "user ds count %d\n", count);
 			count = 0;
@@ -735,7 +744,7 @@ static pte_t *pte_realloc_kernel(void)
 
 
 
-static void dup_pte(pte_t **ptep, struct ds_pgtable *itr, unsigned long start, unsigned long end)
+static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsigned long end)
 {
 	unsigned long count;
 	unsigned long flag;
@@ -835,7 +844,7 @@ static long recover_pgtable(void)
 	int num;
 	int count;
 	int flag = 0;
-	struct ds_pgtable *itr;
+	struct ds_list *itr;
 
 	struct file *file;
 	char *filename = "./write_log_txt";
@@ -889,7 +898,7 @@ static long recover_pgtable(void)
 
 					pte = ptep_new;
 					
-					list_for_each_entry(itr, &ds_pgtable_head, list){
+					list_for_each_entry(itr, &ds_list_head, list){
 						if(itr->limit <= va_start){
 							continue; // not hit yet
 						}else if(va_end < itr->base){
@@ -962,7 +971,7 @@ static long recover_pgtable(void)
 
 					pte = ptep_new;
 					
-					list_for_each_entry(itr, &ds_pgtable_head, list){
+					list_for_each_entry(itr, &ds_list_head, list){
 						if(itr->limit <= va_start){
 							continue; // not hit yet
 						}else if(va_end < itr->base){
@@ -1042,10 +1051,10 @@ SYSCALL_DEFINE0(mycall_recover_pgtable)
 
 static long delete_ds(void)
 {
-	struct ds_pgtable *itr;
+	struct ds_list *itr;
 
-	while((&ds_pgtable_head)->next != &ds_pgtable_head){
-		itr = list_first_entry(&ds_pgtable_head, typeof(*itr), list);
+	while((&ds_list_head)->next != &ds_list_head){
+		itr = list_first_entry(&ds_list_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
