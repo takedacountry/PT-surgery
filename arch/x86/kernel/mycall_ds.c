@@ -32,8 +32,6 @@
 #define CONTI_FLAG_MASK_NOT (~(CONTI_FLAG_MASK))
 #define SAME_FLAG_MASK_NOT (~(SAME_FLAG_MASK))
 
-static unsigned long pte_value;
-static unsigned long pte_flag;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -64,21 +62,20 @@ static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
 }
 
 
-static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
+	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
     		return 4;
   	}
-	pte_value = pte_pfn(*ptep);
-	pte_flag = pte_flags(*ptep);
-	
+		
   	return 1;
 }
 
-static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
 
@@ -91,10 +88,10 @@ static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pmd_flags(*pmdp);
   //   		return 2;
   // 	}
-  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte, ptepp);
 }
 
-static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
 	  
@@ -107,10 +104,10 @@ static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pud_flags(*pudp);
   //   		return 3;
   // 	}
-  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte);  
+  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte, ptepp);  
 }
 
-static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	p4d_t *p4dp = p4d_offset_index(pgdp, pgd);
 	
@@ -118,10 +115,10 @@ static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, u
 	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
     		return 7;
   	}
-  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte, ptepp);
 }
 
-static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
@@ -129,10 +126,10 @@ static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
     		return 7;
   	}
-  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte, ptepp);
 }
 
-static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	struct mm_struct *mm = current->mm;
 
@@ -140,7 +137,7 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
     		printk(KERN_INFO "error: The numbers are not appropriate.\n");
     		return 0;
   	}
-  	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
 // want to make list every process
@@ -188,8 +185,25 @@ static int make_ds_list(unsigned long base, unsigned long limit, long offset, un
 	return 0;
 }
 
+static int make_m_list(unsigned long pa, unsigned long va)
+{
+	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
+	if(!list)
+		return -ENOMEM;
+
+	list->pa = pa;
+	list->va = va;
+	list_add_tail(&list->list, &m_list_head);
+	return 0;
+}
+
 static long make_ds_user(void)
 {
+	pte_t *ptep;
+	unsigned long pte_value;
+	unsigned long pte_flag;
+	unsigned long pte_pa;
+	
 	int num;
 	int count;
 	int hit_flag = 0;
@@ -201,6 +215,9 @@ static long make_ds_user(void)
 	
 	unsigned long pte_value_pre;
 	unsigned long pte_flag_pre;
+
+	unsigned long pte_num;
+	unsigned long pte_num_pre = 0;
 	
 	// struct file *file;
 	// char *filename = "./user_pgtable";
@@ -223,7 +240,18 @@ static long make_ds_user(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
+						
+						pte_num = make_ds_va(a, b, c, 0); // first entry num
+						if(pte_num_pre != pte_num){
+							pte_pa = (unsigned long)__pa(ptep);
+							if(make_m_list(pte_pa, pte_num) < 0)
+								goto end;
+							pte_num_pre = pte_num;
+						}
+						
 						if(hit_flag == 0){ // miss, first hit
 							// make ds members
 							base = make_ds_va(a, b, c, d);
