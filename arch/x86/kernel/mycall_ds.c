@@ -151,8 +151,8 @@ struct ds_list{
 };
 
 struct m_list{
-	unsigned long pa;
 	unsigned long va;
+	unsigned long num;
 	struct list_head list;
 };
 
@@ -185,14 +185,14 @@ static int make_ds_list(unsigned long base, unsigned long limit, long offset, un
 	return 0;
 }
 
-static int make_m_list(unsigned long pa, unsigned long va)
+static int make_m_list(unsigned long va, unsigned long num)
 {
 	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
 	if(!list)
 		return -ENOMEM;
 
-	list->pa = pa;
 	list->va = va;
+	list->num = num;
 	list_add_tail(&list->list, &m_list_head);
 	return 0;
 }
@@ -525,7 +525,7 @@ SYSCALL_DEFINE0(mycall_m_search)
 	
 	list_for_each_entry(itr, &m_list_head, list){
 		// printk(KERN_INFO "m list: %lx %lx\n",itr->pa, itr->va);
-		size = sprintf(buf, "m list: %lx %lx\n",itr->pa, itr->va);
+		size = sprintf(buf, "%lx %lx\n",itr->va, itr->num);
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
