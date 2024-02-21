@@ -1088,12 +1088,18 @@ SYSCALL_DEFINE0(mycall_recover_pgtable)
 static long delete_ds(void)
 {
 	struct ds_list *itr;
+	int count=0;
 
 	while((&ds_list_head)->next != &ds_list_head){
 		itr = list_first_entry(&ds_list_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
+
+	list_for_each_entry(itr, &ds_list_head, list){
+		count++;
+	}
+	printk(KERN_INFO "delete ds count %d\n", count);
 
 	return 0;
 }
@@ -1106,12 +1112,18 @@ SYSCALL_DEFINE0(mycall_ds_delete)
 static long delete_m(void)
 {
 	struct m_list *itr;
+	int count=0;
 
 	while((&m_list_head)->next != &m_list_head){
 		itr = list_first_entry(&m_list_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
+
+	list_for_each_entry(itr, &m_list_head, list){
+		count++;
+	}
+	printk(KERN_INFO "delete m count %d\n", count);
 
 	return 0;
 }
