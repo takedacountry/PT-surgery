@@ -503,6 +503,43 @@ SYSCALL_DEFINE0(mycall_ds_search)
 	return 0;
 }
 
+SYSCALL_DEFINE0(mycall_m_search)
+{
+	struct m_list *itr;
+	int count=0;
+	
+	struct file *file;
+	char *filename = "./m_list_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return 0;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		goto end;
+	memset(buf, '\0', 100);
+	
+	list_for_each_entry(itr, &m_list_head, list){
+		// printk(KERN_INFO "m list: %lx %lx\n",itr->pa, itr->va);
+		size = sprintf(buf, "m list: %lx %lx\n",itr->pa, itr->va);
+		kernel_write(file, buf, size, &pos);
+		vfs_fsync_range(file, 0, size, 1);
+		count++;
+	}
+	printk(KERN_INFO "m count %d\n", count);
+	size = sprintf(buf, "m count %d\n", count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	return 0;
+}
+
 
 
 static int get_pmd_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, pmd_t **pmdpp)
@@ -1066,4 +1103,22 @@ static long delete_ds(void)
 SYSCALL_DEFINE0(mycall_ds_delete)
 {
 	return delete_ds();
+}
+
+static long delete_m(void)
+{
+	struct m_list *itr;
+
+	while((&m_list_head)->next != &m_list_head){
+		itr = list_first_entry(&m_list_head, typeof(*itr), list);
+		list_del(&itr->list);
+		kfree(itr);
+	}
+
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_m_delete)
+{
+	return delete_m();
 }
