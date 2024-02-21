@@ -202,7 +202,6 @@ static long make_ds_user(void)
 	pte_t *ptep;
 	unsigned long pte_value;
 	unsigned long pte_flag;
-	unsigned long pte_pa;
 	
 	int num;
 	int count;
@@ -246,8 +245,7 @@ static long make_ds_user(void)
 						
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
-							pte_pa = (unsigned long)__pa(ptep);
-							if(make_m_list(pte_pa, pte_num) < 0)
+							if(make_m_list((unsigned long)ptep, pte_num) < 0)
 								goto end;
 							pte_num_pre = pte_num;
 						}
@@ -316,6 +314,11 @@ end:
 
 static long make_ds_kernel(void)
 {
+	pte_t *ptep;
+	unsigned long pte_value;
+	unsigned long pte_flag;
+	unsigned long pte_pa;
+	
 	int num;
 	int count;
 	int ds_flag = 0;
@@ -350,50 +353,17 @@ static long make_ds_kernel(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
-						/*
-						if(pte_value == 0x100056){
-							pte_number = make_ds_va(a, b, c, d);
-							if(ds_flag & HIT_FLAG_MASK){ // last hit, first_hit 0x100056
-								limit = make_ds_va(a, b, c, d);
-								if(ds_flag & SAME_FLAG_MASK){
-									flag |= SAME_ADDR_MASK;
-									ds_flag &= SAME_FLAG_MASK_NOT;
-								}
-								if(make_ds_list(base, limit, offset, flag) < 0)
-									goto end;
-								ds_flag &= HIT_FLAG_MASK_NOT;
-							}
-							if(!(ds_flag & SAME_FLAG_MASK)){ //first hit 0x100056
-								base = pte_number;
-								offset = make_ds_offset(base);
-								flag = pte_flag;
-								pte_flag_pre = pte_flag;
-								ds_flag |= SAME_FLAG_MASK;
-								pte_number_pre = base;
-							}else if(pte_flag_pre == pte_flag && pte_number - pte_number_pre == 0x10){ // second hit ~ last hit 0x100056
-								pte_number = make_ds_va(a, b, c, d);
-								if(pte_number - pte_number_pre == 0x10){ // continue
-									ds_flag |= SAME16_FLAG_MASK;
-									pte_number_pre = pte_number;
-								}else{ // finish
-									limit = pte_number;
-									if(ds_flag & SAME_FLAG_MASK){
-										flag |= SAME_ADDR_MASK;
-										ds_flag &= SAME_FLAG_MASK_NOT;
-									}
-									if(ds_flag & SAME16_FLAG_MASK){
-										flag |= SAME16_ADDR_MASK;
-										ds_flag &= SAME16_FLAG_MASK_NOT;
-									}
-									if(make_ds_list(base, limit, offset, flag) < 0)
-										goto end;
-									
-								
-							}
-
-						}else 
-      						*/
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
+						
+						pte_num = make_ds_va(a, b, c, 0); // first entry num
+						if(pte_num_pre != pte_num){
+							pte_pa = (unsigned long)ptep;
+							if(make_m_list(pte_pa, pte_num) < 0)
+								goto end;
+							pte_num_pre = pte_num;
+						}
 
 						if(!(ds_flag & HIT_FLAG_MASK)){
 							// make ds members
