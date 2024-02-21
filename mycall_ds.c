@@ -17,6 +17,8 @@
 #define SYS_mycall_ds_make_kernel 464
 #define SYS_mycall_print_kernel_pgtable2 465
 #define SYS_mycall_print_user_pgtable2 466
+#define SYS_mycall_m_search 467
+#define SYS_mycall_m_delete 468
 
 #define INDEX 1024*1024*1024 //1GB
 #define PGD 512
