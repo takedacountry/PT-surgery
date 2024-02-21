@@ -11,7 +11,7 @@
 #define SYS_mycall_print_kernel_pgtable 458
 #define SYS_mycall_ds_make 459
 #define SYS_mycall_ds_search 460
-#define SYS_mycall_recover_pgtable 461
+#define SYS_mycall_recover_all_pgtable 461
 #define SYS_mycall_ds_delete 462
 #define SYS_mycall_ds_make_user 463
 #define SYS_mycall_ds_make_kernel 464
@@ -19,6 +19,7 @@
 #define SYS_mycall_print_user_pgtable2 466
 #define SYS_mycall_m_search 467
 #define SYS_mycall_m_delete 468
+#define SYS_mycall_recover_pgtable 469
 
 #define INDEX 1024*1024*1024 //1GB
 #define PGD 512
@@ -91,7 +92,7 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_ds_search));
     printf("%ld\n", syscall(SYS_mycall_m_search));
     
-    printf("%ld\n", syscall(SYS_mycall_recover_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
 
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
