@@ -827,7 +827,7 @@ static void print_pte(pmd_t *pmdp)
 }
 */
 
-static long recover_pgtable(void)
+static long recover_all_pgtable(void)
 {
 	pmd_t *pmdp;
 	pte_t *ptep_old;
@@ -1037,14 +1037,44 @@ end:
 }
 
 
-SYSCALL_DEFINE0(mycall_recover_pgtable)
+SYSCALL_DEFINE0(mycall_recover_all_pgtable)
 {
 	int ret = -1;
 	printk(KERN_INFO "start recover pgtable\n");
-	ret = recover_pgtable();
+	ret = recover_all_pgtable();
 	printk(KERN_INFO "end recover pgtable\n");
 	return ret;
 }
+
+
+static long recover_pgtable(unsigned long va)
+{
+	struct m_list *itr;
+
+	list_for_each_entry(itr, &m_list_head, list){
+		if(itr->va + 0x1000 <= va){
+			continue;
+		}else if(va < itr->va){
+			goto end;
+		}else{
+			// hit
+		}
+	}
+
+end:
+	return 0;
+}
+
+SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
+{
+	int ret = -1;
+	printk(KERN_INFO "start recover pgtable %lx\n",va);
+	ret = recover_pgtable(va);
+	printk(KERN_INFO "end recover pgtable %lx\n",va);
+	return ret;
+}
+
+
 
 static long delete_ds(void)
 {
