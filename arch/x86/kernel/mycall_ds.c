@@ -218,23 +218,6 @@ static long make_ds_user(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 	
-	// struct file *file;
-	// char *filename = "./user_pgtable";
-	// int size;
-	// char *buf;
- //        loff_t pos = 0;
-
-	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	// if(IS_ERR(file)){
-	// 	printk("pre_file open err=%ld", PTR_ERR(file));
-	// 	goto end;
-	// }
-	
- //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
- //        if(!buf)
-	// 	goto end;
-	// memset(buf, '\0', 100);
-
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
@@ -306,8 +289,6 @@ static long make_ds_user(void)
         	count = 0;
     	}
 end:
-	// kfree(buf);
-	// filp_close(file, NULL);
 	
 	return 0;
 }
@@ -332,24 +313,6 @@ static long make_ds_kernel(void)
 
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
-	
-	// struct file *file;
-	// char *filename = "./kernel_pgtable";
-	// int size;
-	// char *buf;
- //        loff_t pos = 0;
-
-	// file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	// if(IS_ERR(file)){
-	// 	printk("pre_file open err=%ld", PTR_ERR(file));
-	// 	goto end;
-	// }
-	
- //        buf = kmalloc(PATH_MAX, GFP_KERNEL);
- //        if(!buf)
-	// 	goto end;
-	// memset(buf, '\0', 100);
-	
 	
 	for(unsigned long a=USER_MAX; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -435,8 +398,6 @@ static long make_ds_kernel(void)
         	count = 0;
     	}
 end:
-	// kfree(buf);
-	// filp_close(file, NULL);
 	
 	return 0;
 }
