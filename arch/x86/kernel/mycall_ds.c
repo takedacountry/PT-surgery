@@ -317,7 +317,6 @@ static long make_ds_kernel(void)
 	pte_t *ptep;
 	unsigned long pte_value;
 	unsigned long pte_flag;
-	unsigned long pte_pa;
 	
 	int num;
 	int count;
@@ -362,8 +361,7 @@ static long make_ds_kernel(void)
 						
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
-							pte_pa = (unsigned long)ptep;
-							if(make_m_list(pte_pa, pte_num) < 0)
+							if(make_m_list((unsigned long)ptep, pte_num) < 0)
 								goto end;
 							pte_num_pre = pte_num;
 						}
@@ -517,12 +515,12 @@ SYSCALL_DEFINE0(mycall_m_search)
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)){
 		printk("pre_file open err=%ld", PTR_ERR(file));
-		return 0;
+		return -1;
 	}
 	
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
         if(!buf)
-		goto end;
+		return -1;
 	memset(buf, '\0', 100);
 	
 	list_for_each_entry(itr, &m_list_head, list){
