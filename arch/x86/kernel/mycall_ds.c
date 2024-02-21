@@ -165,7 +165,7 @@ static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsign
 	return va;	
 }
 
-static long make_ds_offset(long base)
+static long make_ds_offset(long base, unsigned long pte_value)
 {
 	long offset = base - pte_value;
 	return offset;
@@ -253,7 +253,7 @@ static long make_ds_user(void)
 						if(hit_flag == 0){ // miss, first hit
 							// make ds members
 							base = make_ds_va(a, b, c, d);
-							offset = make_ds_offset(base);
+							offset = make_ds_offset(base, pte_value);
 							flag = pte_flag;
 							
 							hit_flag = 1;
@@ -269,7 +269,7 @@ static long make_ds_user(void)
 
 							// make ds members
 							base = limit;
-							offset = make_ds_offset(base);
+							offset = make_ds_offset(base, pte_value);
 							flag = pte_flag;
 							
 							pte_value_pre = pte_value;
@@ -331,6 +331,9 @@ static long make_ds_kernel(void)
 	unsigned long pte_value_pre;
 	unsigned long pte_flag_pre;
 
+	unsigned long pte_num;
+	unsigned long pte_num_pre = 0;
+	
 	// struct file *file;
 	// char *filename = "./kernel_pgtable";
 	// int size;
@@ -368,7 +371,7 @@ static long make_ds_kernel(void)
 						if(!(ds_flag & HIT_FLAG_MASK)){
 							// make ds members
 							base = make_ds_va(a, b, c, d);
-							offset = make_ds_offset(base);
+							offset = make_ds_offset(base, pte_value);
 							flag = pte_flag;
 							
 							ds_flag |= HIT_FLAG_MASK;
@@ -393,7 +396,7 @@ static long make_ds_kernel(void)
 
 							// make ds members
 							base = limit;
-							offset = make_ds_offset(base);
+							offset = make_ds_offset(base, pte_value);
 							flag = pte_flag;
 							
 							pte_value_pre = pte_value;
