@@ -17,20 +17,24 @@
 #include <asm-generic/barrier.h>
 #include <asm-generic/memory_model.h>
 
-#define USER_MAX 0x100
-#define MAX 0x200
-#define SAME_ADDR_SHIFT 16
-#define SAME_ADDR_MASK (_AT(long, 1) << SAME_ADDR_SHIFT)
-#define SAME_ADDR_MASK_NOT (~(SAME_ADDR_MASK))
-#define HIT_FLAG_SHIFT 0
-#define CONTI_FLAG_SHIFT 1
-#define SAME_FLAG_SHIFT 2
-#define HIT_FLAG_MASK (_AT(int, 1) << HIT_FLAG_SHIFT)
-#define CONTI_FLAG_MASK (_AT(int, 1) << CONTI_FLAG_SHIFT)
-#define SAME_FLAG_MASK (_AT(int, 1) << SAME_FLAG_SHIFT)
-#define HIT_FLAG_MASK_NOT (~(HIT_FLAG_MASK))
-#define CONTI_FLAG_MASK_NOT (~(CONTI_FLAG_MASK))
-#define SAME_FLAG_MASK_NOT (~(SAME_FLAG_MASK))
+#define USER_MAX 		0x100
+#define MAX 			0x200
+#define PT_PGTABLE_SHIFT 	9
+#define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SIZE)
+#define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
+#define PT_PGTABLE_MASK_NOT	(~PT_PGTABLE_MASK)
+#define SAME_ADDR_SHIFT 	16
+#define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
+#define SAME_ADDR_MASK_NOT 	(~(SAME_ADDR_MASK))
+#define HIT_FLAG_SHIFT 		0
+#define CONTI_FLAG_SHIFT 	1
+#define SAME_FLAG_SHIFT 	2
+#define HIT_FLAG_MASK 		(_AT(int, 1) << HIT_FLAG_SHIFT)
+#define CONTI_FLAG_MASK 	(_AT(int, 1) << CONTI_FLAG_SHIFT)
+#define SAME_FLAG_MASK		(_AT(int, 1) << SAME_FLAG_SHIFT)
+#define HIT_FLAG_MASK_NOT 	(~(HIT_FLAG_MASK))
+#define CONTI_FLAG_MASK_NOT 	(~(CONTI_FLAG_MASK))
+#define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
 
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
@@ -549,9 +553,13 @@ static int get_pmd_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
   	return get_pmd_scan_p4d(pgdp, pgd, pud, pmd, pmdp);
 }
 
-static int search_pgtable_get_pmd(unsigned long pgd, unsigned long pud, unsigned long pmd, pmd_t **pmdp)
+static int search_pgtable_get_pmd(unsigned long num, pmd_t **pmdp)
 {
   	struct mm_struct *mm = current->mm;
+
+	unsigned long pgd = (num >> 27) & PT_PGTABLE_MASK;
+	unsigned long pud = (num >> 18) & PT_PGTABLE_MASK;
+	unsigned long pmd = (num >> 9) & PT_PGTABLE_MASK;
 
   	if(pgd<0 || 512<=pgd || pud<0 || 512<=pud || pmd<0 || 512<=pmd) {
     		printk(KERN_INFO "error: The numbers are not appropriate.\n");
@@ -559,48 +567,6 @@ static int search_pgtable_get_pmd(unsigned long pgd, unsigned long pud, unsigned
   	}
   	return get_pmd_scan_pgd(mm, pgd, pud, pmd, pmdp);
 }
-
-
-// static void pte_realloc_pmd_populate(struct mm_struct *mm, pmd_t *pmd, struct page *pte)
-// {
-// 	unsigned long pfn = page_to_pfn(pte);
-
-// 	paravirt_alloc_pte(mm, pfn);
-// 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | pmd_flags(*pmd)));
-// }
-
-// static void pte_realloc_pmd_install(struct mm_struct *mm, pmd_t *pmd, pgtable_t *pte, spinlock_t **ptlp)
-// {
-// 	spinlock_t *ptl = pmd_lock(mm, pmd);
-// 	*(ptlp) = ptl;
-	
-// 	if(!pmd_none(*pmd) && pmd_present(*pmd)){
-// 		// mm_inc_nr_ptes(mm);
-// 		smp_wmb();
-// 		pte_realloc_pmd_populate(mm, pmd, *pte);
-// 		*pte = NULL;
-// 	}
-// 	// spin_unlock(ptl);
-// }
-
-
-// static int pte_realloc(struct mm_struct *mm, pmd_t *pmd, spinlock_t **ptlp)
-// {
-// 	pgtable_t new = pte_alloc_one(mm); 
-// 	if (!new)
-// 		return 1;
-	
-// 	pte_realloc_pmd_install(mm, pmd, &new, ptlp);
-// 	if (new)
-// 		pte_free(mm, new);
-// 	return 0;
-// }
-
-// // user only
-// static pte_t *pte_realloc_offset_head(struct mm_struct *mm, pmd_t *pmdp, spinlock_t **ptlp)
-// {
-// 	return pte_realloc(mm, pmdp, ptlp) ? NULL : pte_offset_index(pmdp, 0);
-// }
 
 static void pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
 {
@@ -633,79 +599,6 @@ static pte_t *pte_realloc(struct mm_struct *mm)
 	pte = (unsigned long)page_address(new);
 	return (pte_t *)pte;
 }
-
-
-// static int pte_realloc_kernel(pmd_t *pmd, struct file *file, loff_t *pos)
-// {
-// 	int size;
-// 	char *buf;
-	
-// 	// spinlock_t *ptl;
-// 	pte_t *new = pte_alloc_one_kernel(&init_mm);
-// 	if (!new)
-// 		return 1;
-
-//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
-//         if(!buf)
-// 		return 1;
-// 	memset(buf, '\0', 100);
-
-// 	size = sprintf(buf, "pte alloc one kernel\n");
-// 	kernel_write(file, buf, size, pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-	
-	
-// 	// ptl = pmd_lock(mm, pmd);
-// 	// *(ptlp) = ptl;
-// 	spin_lock(&init_mm.page_table_lock);
-
-// 	size = sprintf(buf, "spinlock\n");
-// 	kernel_write(file, buf, size, pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-	
-// 	if (!pmd_none(*pmd) && pmd_present(*pmd)) {
-// 		smp_wmb(); /* See comment in pmd_install() */
-// 		pte_realloc_kernel_pmd_populate(&init_mm, pmd, new, file, pos);
-// 		new = NULL;
-// 	}
-	
-// 	size = sprintf(buf, "pmd populate\n");
-// 	kernel_write(file, buf, size, pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-	
-// 	if (new)
-// 		pte_free_kernel(&init_mm, new);
-// 	return 0;
-// }
-
-// // kernel only
-// static pte_t *pte_realloc_kernel_offset_head(pmd_t *pmdp, struct file *file, loff_t *pos)
-// {
-// 	return pte_realloc_kernel(pmdp, file, pos) ? NULL : pte_offset_index(pmdp, 0);
-// }
-
-
-// static void pmd_repopulate_kernel(struct mm_struct *mm, pmd_t *pmd, pte_t *pte, struct file *file, loff_t *pos)
-// {
-// 	int size;
-// 	char *buf;
-//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
-//         if(!buf)
-// 		return;
-// 	memset(buf, '\0', 100);
-	
-// 	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
-
-// 	size = sprintf(buf, "paravirt alloc pte\n");
-// 	kernel_write(file, buf, size, pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-	
-// 	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
-
-// 	size = sprintf(buf, "set pmd\n");
-// 	kernel_write(file, buf, size, pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-// }
 
 static void pmd_reinstall_kernel(pmd_t *pmdp, pte_t *ptep, struct file *file, loff_t *pos)
 {
@@ -827,21 +720,156 @@ static void print_pte(pmd_t *pmdp)
 }
 */
 
-static long recover_all_pgtable(void)
+static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
+{
+	static ds_list *itr;
+	unsigned long va_end;
+	int flag = 0;
+	
+	int size;
+	char *buf;
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+	memset(buf, '\0', 100);
+
+	va_end = va_start | PT_PGTABLE_MASK;
+
+	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	list_for_each_entry(itr, &ds_list_head, list){
+		if(itr->limit <= va_start){
+			continue; // not hit yet
+		}else if(va_end < itr->base){
+			break; // already finished
+		}else{ // recover pgtable from ds
+			// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+			size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			dup_pte(&pte, itr, va_start, va_end);
+			va_start = itr->limit;
+			flag = 1;
+		}
+	}
+	return flag;
+}
+
+static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *pos)
 {
 	pmd_t *pmdp;
 	pte_t *ptep_old;
 	pte_t *ptep_new;
-	pte_t *pte;
+	int num;
+		
+	if((num = search_pgtable_get_pmd(va_start, &pmdp)) == 1){ // in user
+		ptep_old = pte_offset_index(pmdp, 0);
+
+		// printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+		size = sprintf(buf, "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+		kernel_write(file, buf, size, pos);
+		vfs_fsync_range(file, 0, size, 1);
+		// printk(KERN_INFO "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+		size = sprintf(buf, "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+		kernel_write(file, buf, size, pos);
+		vfs_fsync_range(file, 0, size, 1);
+		
+		ptep_new = pte_realloc(current->mm);
+		
+		if(!ptep_new){
+			printk(KERN_INFO "out of memory\n");
+			goto err;
+		}
+		
+		if(update_pgtable(va_start, ptep_new, file, pos) == 1){
+			pmd_reinstall(current->mm, pmdp, ptep_new);
+
+			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+			size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+
+			// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+			size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+		}else{
+			// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+			pte_free(current->mm, virt_to_page(ptep_new));
+		}
+	}
+	else if(num == 2){ // in kernel
+		ptep_old = pte_offset_index(pmdp, 0);
+		
+		// printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+		size = sprintf(buf, "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+		kernel_write(file, buf, size, pos);
+		vfs_fsync_range(file, 0, size, 1);
+		// printk(KERN_INFO "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+		size = sprintf(buf, "pte before: %lx\n", (unsigned long)__pa(ptep_old));
+		kernel_write(file, buf, size, pos);
+		vfs_fsync_range(file, 0, size, 1);
+		
+		ptep_new = pte_realloc_kernel();
+		
+		if(!ptep_new){
+			printk(KERN_INFO "out of memory\n");
+			goto err;
+		}
+		
+		if(update_pgtable(va_start, ptep_new, file, pos) == 1){
+			pmd_reinstall_kernel(pmdp, ptep_new, file, pos);
+			flag = 0;
+			
+			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+			size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+
+			// printk(KERN_INFO "pte after:  %lx", (unsigned long)__pa(ptep_new));
+			size = sprintf(buf, "pte after: %lx\n",(unsigned long)__pa(ptep_new));
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+		}else{
+			// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+			pte_free_kernel(&init_mm, ptep_new);
+		}
+	}
+	else if(num == 0){
+		goto err;
+	}
+	else{
+		return num - 3;
+	}
+	return 0;
+err:
+	return -1;
+}
+
+static long recover_all_pgtable(void)
+{
+	// pmd_t *pmdp;
+	// pte_t *ptep_old;
+	// pte_t *ptep_new;
+	// pte_t *pte;
 	
 	unsigned long va_start;
-	unsigned long va_end;
+	// unsigned long va_end;
 	// spinlock_t *ptl;
 	
-	int num;
+	// int num;
 	int count;
-	int flag = 0;
-	struct ds_list *itr;
+	// int flag = 0;
+	// struct ds_list *itr;
 
 	struct file *file;
 	char *filename = "./write_log_txt";
@@ -852,18 +880,25 @@ static long recover_all_pgtable(void)
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)){
 		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto end;
+		goto err;
 	}
 	
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
         if(!buf)
-		goto end;
+		goto err;
 	memset(buf, '\0', 100);
 	
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
-				if((num = search_pgtable_get_pmd(a, b, c, &pmdp)) == 1){ // in user
+				va_start = make_ds_va(a, b, c, 0);
+
+				if((count = __recover_pgtable(va_start, file, &pos)) < 0){
+					goto end;
+				}
+				
+				/*if((num = search_pgtable_get_pmd(va_start, &pmdp)) == 1){ // in user
+					
 					// pte_alloc
 					ptep_old = pte_offset_index(pmdp, 0);
 
@@ -885,36 +920,35 @@ static long recover_all_pgtable(void)
 					}
 					
 					// list_for_each_entry ds
-					va_start = make_ds_va(a, b, c, 0);
-					va_end = make_ds_va(a, b, c, 511);
+					
+					// va_end = make_ds_va(a, b, c, 511);
 
 					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
-					size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
-					kernel_write(file, buf, size, &pos);
-					vfs_fsync_range(file, 0, size, 1);
+					// size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+					// kernel_write(file, buf, size, &pos);
+					// vfs_fsync_range(file, 0, size, 1);
 
-					pte = ptep_new;
-					
-					list_for_each_entry(itr, &ds_list_head, list){
-						if(itr->limit <= va_start){
-							continue; // not hit yet
-						}else if(va_end < itr->base){
-							break; // already finished
-						}else{ // recover pgtable from ds
-							// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-							size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-							kernel_write(file, buf, size, &pos);
-							vfs_fsync_range(file, 0, size, 1);
+					// pte = ptep_new;
+
+					// list_for_each_entry(itr, &ds_list_head, list){
+					// 	if(itr->limit <= va_start){
+					// 		continue; // not hit yet
+					// 	}else if(va_end < itr->base){
+					// 		break; // already finished
+					// 	}else{ // recover pgtable from ds
+					// 		// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					// 		size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					// 		kernel_write(file, buf, size, &pos);
+					// 		vfs_fsync_range(file, 0, size, 1);
 							
-							dup_pte(&pte, itr, va_start, va_end);
-							va_start = itr->limit;
-							flag = 1;
-						}
-					}
+					// 		dup_pte(&pte, itr, va_start, va_end);
+					// 		va_start = itr->limit;
+					// 		flag = 1;
+					// 	}
+					// }
 
-					if(flag == 1){
+					if(update_pgtable(va_start, ptep_new, file, &pos) == 1){
 						pmd_reinstall(current->mm, pmdp, ptep_new);
-						flag = 0;
 
 						// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
 						size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -959,35 +993,35 @@ static long recover_all_pgtable(void)
 					
 					// list_for_each_entry ds
 					va_start = make_ds_va(a, b, c, 0);
-					va_end = make_ds_va(a, b, c, 511);
+					// va_end = make_ds_va(a, b, c, 511);
 
-					// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
-					size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
-					kernel_write(file, buf, size, &pos);
-					vfs_fsync_range(file, 0, size, 1);
+					// // printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+					// size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+					// kernel_write(file, buf, size, &pos);
+					// vfs_fsync_range(file, 0, size, 1);
 
-					pte = ptep_new;
+					// pte = ptep_new;
 					
-					list_for_each_entry(itr, &ds_list_head, list){
-						if(itr->limit <= va_start){
-							continue; // not hit yet
-						}else if(va_end < itr->base){
-							break; // already finished
-						}else{ // recover pgtable from ds
-							// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-							size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-							kernel_write(file, buf, size, &pos);
-							vfs_fsync_range(file, 0, size, 1);
+					// list_for_each_entry(itr, &ds_list_head, list){
+					// 	if(itr->limit <= va_start){
+					// 		continue; // not hit yet
+					// 	}else if(va_end < itr->base){
+					// 		break; // already finished
+					// 	}else{ // recover pgtable from ds
+					// 		// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					// 		size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					// 		kernel_write(file, buf, size, &pos);
+					// 		vfs_fsync_range(file, 0, size, 1);
 							
-							dup_pte(&pte, itr, va_start, va_end);
-							va_start = itr->limit;
-							flag = 1;
-						}
-					}
+					// 		dup_pte(&pte, itr, va_start, va_end);
+					// 		va_start = itr->limit;
+					// 		flag = 1;
+					// 	}
+					// }
 
 					
 
-					if(flag == 1){
+					if(update_pgtable(va_start, ptep_new, file, &pos) == 1){
 						pmd_reinstall_kernel(pmdp, ptep_new, file, &pos);
 						flag = 0;
 						
@@ -1018,6 +1052,7 @@ static long recover_all_pgtable(void)
 					count = num - 3;
 				}
 				num = 0;
+				*/
 				if(--count > 0)
 					break;
 				count = 0;
@@ -1029,11 +1064,14 @@ static long recover_all_pgtable(void)
 		if(--count > 0)
 			break;
 		count = 0;
-	}			
+	}
+	kfree(buf);
+	filp_close(file, NULL);
+	return 0;
 end:	
 	kfree(buf);
 	filp_close(file, NULL);
-	return 0;	
+	return -1;	
 }
 
 
@@ -1046,23 +1084,43 @@ SYSCALL_DEFINE0(mycall_recover_all_pgtable)
 	return ret;
 }
 
-
 static long recover_pgtable(unsigned long va)
 {
 	struct m_list *itr;
+	int count;
+	
+	struct file *file;
+	char *filename = "./write_log_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto err;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		goto err;
+	memset(buf, '\0', 100);
 
 	list_for_each_entry(itr, &m_list_head, list){
 		if(itr->va + 0x1000 <= va){
 			continue;
 		}else if(va < itr->va){
-			goto end;
+			printk(KERN_INFO "pgtable not found %lx\n",va);
+			goto err;
 		}else{
-			// hit
+			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
+				goto err;
+			}
+			return 0;
 		}
 	}
-
-end:
-	return 0;
+err:
+	return -1;
 }
 
 SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
@@ -1073,8 +1131,6 @@ SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
 	printk(KERN_INFO "end recover pgtable %lx\n",va);
 	return ret;
 }
-
-
 
 static long delete_ds(void)
 {
