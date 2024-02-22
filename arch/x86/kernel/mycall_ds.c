@@ -831,7 +831,6 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 		
 		if(update_pgtable(va_start, ptep_new, file, pos) == 1){
 			pmd_reinstall_kernel(pmdp, ptep_new, file, pos);
-			flag = 0;
 			
 			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
 			size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -900,7 +899,7 @@ static long recover_all_pgtable(void)
 				va_start = make_ds_va(a, b, c, 0);
 
 				if((count = __recover_pgtable(va_start, file, &pos)) < 0){
-					goto end;
+					goto err;
 				}
 				
 				/*if((num = search_pgtable_get_pmd(va_start, &pmdp)) == 1){ // in user
@@ -1071,12 +1070,12 @@ static long recover_all_pgtable(void)
 			break;
 		count = 0;
 	}
-	kfree(buf);
-	filp_close(file, NULL);
+	// kfree(buf);
+	// filp_close(file, NULL);
 	return 0;
-end:	
-	kfree(buf);
-	filp_close(file, NULL);
+err:	
+	// kfree(buf);
+	// filp_close(file, NULL);
 	return -1;	
 }
 
