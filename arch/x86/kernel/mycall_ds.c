@@ -734,8 +734,8 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 
 	va_end = va_start | PT_PGTABLE_MASK;
 
-	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", (num >> 27) & PT_PGTABLE_MASK, (num >> 18) & PT_PGTABLE_MASK, (num >> 9) & PT_PGTABLE_MASK, va_start, va_end);
-	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", (num >> 27) & PT_PGTABLE_MASK, (num >> 18) & PT_PGTABLE_MASK, (num >> 9) & PT_PGTABLE_MASK, va_start, va_end);
+	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", (va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, va_start, va_end);
+	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", (va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, va_start, va_end);
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
