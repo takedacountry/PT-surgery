@@ -20,7 +20,7 @@
 #define USER_MAX 		0x100
 #define MAX 			0x200
 #define PT_PGTABLE_SHIFT 	9
-#define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SIZE)
+#define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SHIFT)
 #define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
 #define PT_PGTABLE_MASK_NOT	(~PT_PGTABLE_MASK)
 #define SAME_ADDR_SHIFT 	16
@@ -722,7 +722,7 @@ static void print_pte(pmd_t *pmdp)
 
 static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
 {
-	static ds_list *itr;
+	struct ds_list *itr;
 	unsigned long va_end;
 	int flag = 0;
 	
@@ -734,8 +734,8 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 
 	va_end = va_start | PT_PGTABLE_MASK;
 
-	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
-	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", a, b, c, va_start, va_end);
+	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", (num >> 27) & PT_PGTABLE_MASK, (num >> 18) & PT_PGTABLE_MASK, (num >> 9) & PT_PGTABLE_MASK, va_start, va_end);
+	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", (num >> 27) & PT_PGTABLE_MASK, (num >> 18) & PT_PGTABLE_MASK, (num >> 9) & PT_PGTABLE_MASK, va_start, va_end);
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
@@ -764,6 +764,12 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 	pte_t *ptep_old;
 	pte_t *ptep_new;
 	int num;
+
+	int size;
+	char *buf;
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+	memset(buf, '\0', 100);
 		
 	if((num = search_pgtable_get_pmd(va_start, &pmdp)) == 1){ // in user
 		ptep_old = pte_offset_index(pmdp, 0);
@@ -797,8 +803,8 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 			kernel_write(file, buf, size, pos);
 			vfs_fsync_range(file, 0, size, 1);
 		}else{
-			// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
-			size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			// printk(KERN_INFO "not dup pte\n");
+			size = sprintf(buf, "not dup pte\n");
 			kernel_write(file, buf, size, pos);
 			vfs_fsync_range(file, 0, size, 1);
 			pte_free(current->mm, virt_to_page(ptep_new));
@@ -837,8 +843,8 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 			kernel_write(file, buf, size, pos);
 			vfs_fsync_range(file, 0, size, 1);
 		}else{
-			// printk(KERN_INFO "not dup pte %ld-%ld-%ld-0\n", a, b, c);
-			size = sprintf(buf, "not dup pte %ld-%ld-%ld-0\n", a, b, c);
+			// printk(KERN_INFO "not dup pte\n");
+			size = sprintf(buf, "not dup pte\n");
 			kernel_write(file, buf, size, pos);
 			vfs_fsync_range(file, 0, size, 1);
 			pte_free_kernel(&init_mm, ptep_new);
@@ -873,8 +879,8 @@ static long recover_all_pgtable(void)
 
 	struct file *file;
 	char *filename = "./write_log_txt";
-	int size;
-	char *buf;
+	// int size;
+	// char *buf;
         loff_t pos = 0;
 
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -883,10 +889,10 @@ static long recover_all_pgtable(void)
 		goto err;
 	}
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto err;
-	memset(buf, '\0', 100);
+        // buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        // if(!buf)
+		// goto err;
+	// memset(buf, '\0', 100);
 	
 	for(unsigned long a=0; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -1091,8 +1097,8 @@ static long recover_pgtable(unsigned long va)
 	
 	struct file *file;
 	char *filename = "./write_log_txt";
-	int size;
-	char *buf;
+	// int size;
+	// char *buf;
         loff_t pos = 0;
 
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1101,10 +1107,10 @@ static long recover_pgtable(unsigned long va)
 		goto err;
 	}
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		goto err;
-	memset(buf, '\0', 100);
+        // buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        // if(!buf)
+		// goto err;
+	// memset(buf, '\0', 100);
 
 	list_for_each_entry(itr, &m_list_head, list){
 		if(itr->va + 0x1000 <= va){
