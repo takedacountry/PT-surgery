@@ -195,7 +195,7 @@ static int make_m_list(unsigned long va, unsigned long num)
 	if(!list)
 		return -ENOMEM;
 
-	list->va = va;
+	list->va = va & PAGE_MASK;
 	list->num = num;
 	list_add_tail(&list->list, &m_list_head);
 	return 0;
