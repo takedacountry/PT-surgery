@@ -36,6 +36,7 @@
 #define CONTI_FLAG_MASK_NOT 	(~(CONTI_FLAG_MASK))
 #define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
 
+unsigned long vaddr;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -231,6 +232,9 @@ static long make_ds_user(void)
 						pte_flag = pte_flags(*ptep);
 						
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
+						if(pte_num_pre == 0)
+							vaddr = (unsigned long)ptep;
+						
 						if(pte_num_pre != pte_num){
 							if(make_m_list((unsigned long)ptep, pte_num) < 0)
 								goto end;
@@ -1118,6 +1122,7 @@ static long recover_pgtable(unsigned long va)
 			printk(KERN_INFO "pgtable not found %lx\n",va);
 			goto err;
 		}else{
+			printk(KERN_INFO "pgtable found %lx\n",va);
 			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
 				goto err;
 			}
@@ -1132,7 +1137,7 @@ SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
 {
 	int ret = -1;
 	printk(KERN_INFO "start recover pgtable %lx\n",va);
-	ret = recover_pgtable(va);
+	ret = recover_pgtable(vaddr);
 	printk(KERN_INFO "end recover pgtable %lx\n",va);
 	return ret;
 }
