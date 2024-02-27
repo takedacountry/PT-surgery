@@ -232,8 +232,8 @@ static long make_ds_user(void)
 						pte_flag = pte_flags(*ptep);
 						
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
-						if(pte_num_pre == 0)
-							vaddr = (unsigned long)ptep;
+						// if(pte_num_pre == 0)
+						// 	vaddr = (unsigned long)ptep;
 						
 						if(pte_num_pre != pte_num){
 							if(make_m_list((unsigned long)ptep, pte_num) < 0)
@@ -331,6 +331,9 @@ static long make_ds_kernel(void)
 						pte_flag = pte_flags(*ptep);
 						
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
+						if(pte_num_pre == 0)
+							vaddr = (unsigned long)ptep;
+						
 						if(pte_num_pre != pte_num){
 							if(make_m_list((unsigned long)ptep, pte_num) < 0)
 								goto end;
