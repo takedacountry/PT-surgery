@@ -93,7 +93,7 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_m_search));
     
     // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
-    printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0xffff91970ae29000));
+    printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0));
     
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
