@@ -1119,12 +1119,7 @@ static long recover_pgtable(unsigned long va)
 	// memset(buf, '\0', 100);
 
 	list_for_each_entry(itr, &m_list_head, list){
-		if(itr->va + 0x1000 <= va){
-			continue;
-		}else if(va < itr->va){
-			printk(KERN_INFO "pgtable not found %lx\n",va);
-			goto err;
-		}else{
+		if(itr->va <= va && va < itr->va + 0x1000){
 			printk(KERN_INFO "pgtable found %lx\n",va);
 			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
 				goto err;
@@ -1133,6 +1128,7 @@ static long recover_pgtable(unsigned long va)
 		}
 	}
 err:
+	printk(KERN_INFO "recover pgtable va:%lx error!\n",va);
 	return -1;
 }
 
