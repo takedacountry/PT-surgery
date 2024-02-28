@@ -176,30 +176,30 @@ static long make_ds_offset(long base, unsigned long pte_value)
 	return offset;
 }
 
-static int make_ds_list(unsigned long base, unsigned long limit, long offset, unsigned long flag)
+static struct ds_list *make_ds_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
 {
 	struct ds_list *list = kmalloc(sizeof(struct ds_list), GFP_KERNEL);
 	if(!list)
-		return -ENOMEM;
+		return NULL;
 
 	list->base = base;
 	list->limit = limit;
 	list->offset = offset;
 	list->flag = flag;
 	list_add_tail(&list->list, &ds_list_head);
-	return 0;
+	return list;
 }
 
-static int make_m_list(unsigned long va, unsigned long num)
+static struct m_list *make_m_node(unsigned long va, unsigned long num)
 {
 	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
 	if(!list)
-		return -ENOMEM;
+		return NULL;
 
 	list->va = va & PAGE_MASK;
 	list->num = num;
 	list_add_tail(&list->list, &m_list_head);
-	return 0;
+	return list;
 }
 
 static long make_ds_user(void)
@@ -236,7 +236,7 @@ static long make_ds_user(void)
 						// 	vaddr = (unsigned long)ptep;
 						
 						if(pte_num_pre != pte_num){
-							if(make_m_list((unsigned long)ptep, pte_num) < 0)
+							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
 								goto end;
 							pte_num_pre = pte_num;
 						}
@@ -255,7 +255,7 @@ static long make_ds_user(void)
 						}else{ // last hit, first nit
 							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
-							if(make_ds_list(base, limit, offset, flag) < 0)
+							if(make_ds_node(base, limit, offset, flag) == NULL)
 								goto end;
 
 							// make ds members
@@ -273,7 +273,7 @@ static long make_ds_user(void)
 						if(hit_flag > 0){ // last hit, miss
 							// add ds_list list
 							limit = make_ds_va(a, b, c, d);
-							if(make_ds_list(base, limit, offset, flag) < 0)
+							if(make_ds_node(base, limit, offset, flag) == NULL)
 								goto end;
 							hit_flag = 0;
 						}
@@ -335,7 +335,7 @@ static long make_ds_kernel(void)
 							vaddr = (unsigned long)ptep;
 						
 						if(pte_num_pre != pte_num){
-							if(make_m_list((unsigned long)ptep, pte_num) < 0)
+							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
 								goto end;
 							pte_num_pre = pte_num;
 						}
@@ -363,7 +363,7 @@ static long make_ds_kernel(void)
 								flag |= SAME_ADDR_MASK;
 								ds_flag &= SAME_FLAG_MASK_NOT;
 							}
-							if(make_ds_list(base, limit, offset, flag) < 0)
+							if(make_ds_node(base, limit, offset, flag) == NULL)
 								goto end;
 
 							// make ds members
@@ -385,7 +385,7 @@ static long make_ds_kernel(void)
 							if(ds_flag & SAME_FLAG_MASK){
 								flag |= SAME_ADDR_MASK;
 							}
-							if(make_ds_list(base, limit, offset, flag) < 0)
+							if(make_ds_node(base, limit, offset, flag) == NULL)
 								goto end;
 							ds_flag = 0;
 						}
@@ -451,6 +451,28 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	printk(KERN_INFO "ds_make_kernel time: %lld\n", ktime_sub(end, start));
 	
 	return ret;
+}
+
+static void make_ds_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *list, *itr;
+	unsigned long pte_value = pte_pfn(*ptep);
+	unsigned long pte_flag = pte_flags(*ptep);
+
+	if((list = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) ==NULL)
+		goto end;
+
+	// add node
+	if((&ds_list_head)->next != &ds_list_head){ //no node
+		list_add();
+	}else{
+		list_for_each_entry(itr, &ds_list_head, list){
+			if(itr->next == )	
+		}
+	}
+	// list marge
+	
+	
 }
 
 SYSCALL_DEFINE0(mycall_ds_search)
