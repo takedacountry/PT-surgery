@@ -155,15 +155,59 @@ struct ds_list{
 	struct list_head list;
 };
 
+// struct usr_ds_list_head{
+// 	int id;
+// 	struct list_head proc_list;
+// };
+
+struct ds_list_head{
+	struct list_head usr_ds_list;
+	struct list_head ker_ds_list;
+};
+
 struct m_list{
 	unsigned long va;
 	unsigned long num;
 	struct list_head list;
 };
 
-static LIST_HEAD(ds_list_head);
-static LIST_HEAD(m_list_head);
+// struct usr_m_list_head{
+// 	int id;
+// 	struct list_head proc_list;
+// };
 		
+struct m_list_head{
+	struct list_head usr_m_list;
+	struct list_head ker_m_list;
+};
+
+// static LIST_HEAD(ds_list_head);
+// static LIST_HEAD(m_list_head);
+
+struct m_list_head *m_list;
+struct ds_list_head *ds_list;
+
+void init_ds_list_head(){
+	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
+	if(!ds_list)
+		return;
+	INIT_LIST_HEAD(&ds_list->usr_ds_list);
+	INIT_LIST_HEAD(&ds_list->ker_ds_list);
+}
+
+void init_m_list_head(){
+	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
+	if(!m_list)
+		return;
+	INIT_LIST_HEAD(&m_list->usr_m_list);
+	INIT_LIST_HEAD(&m_list->ker_m_list);
+}
+
+void free_list_head(){
+	kfree(ds_list);
+	kfree(m_list);
+}
+
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
 	unsigned long va = a << 27 | b << 18 | c << 9 | d;
@@ -186,7 +230,7 @@ static struct ds_list *make_ds_node(unsigned long base, unsigned long limit, lon
 	list->limit = limit;
 	list->offset = offset;
 	list->flag = flag;
-	list_add_tail(&list->list, &ds_list_head);
+	// list_add_tail(&list->list, &ds_list_head);
 	return list;
 }
 
@@ -198,7 +242,7 @@ static struct m_list *make_m_node(unsigned long va, unsigned long num)
 
 	list->va = va & PAGE_MASK;
 	list->num = num;
-	list_add_tail(&list->list, &m_list_head);
+	// list_add_tail(&list->list, &m_list_head);
 	return list;
 }
 
@@ -238,6 +282,7 @@ static long make_ds_user(void)
 						if(pte_num_pre != pte_num){
 							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
 								goto end;
+							incert_m_node();
 							pte_num_pre = pte_num;
 						}
 						
@@ -453,24 +498,68 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	return ret;
 }
 
-static void make_ds_list(unsigned long address, pte_t *ptep)
+static bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
 {
-	struct ds_list *list, *itr;
+	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag)
+		return true;
+	else
+		return false;
+}
+
+static void ds_list_next_merge(struct ds_list *prev, struct ds_list *next)
+{
+	if(is_ds_node_merge(prev, next)){
+			
+	}
+}
+
+static void ds_list_prev_merge(struct ds_list *prev, struct ds_list *next)
+{
+	if(is_ds_node_merge(prev, next)){
+		
+	}
+}
+
+static void make_usr_ds_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *node, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
 
-	if((list = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) ==NULL)
+	if((node = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) ==NULL)
 		goto end;
 
-	// add node
-	if((&ds_list_head)->next != &ds_list_head){ //no node
-		list_add();
+	// incert node
+	if(list_empty(&ds_list->usr_ds_list)){ //no node
+		list_add(&node->list, &ds_list->usr_ds_list);
 	}else{
-		list_for_each_entry(itr, &ds_list_head, list){
-			if(itr->next == )	
+		list_for_each_entry(next, &ds_list->usr_ds_list, list){
+			if(node->limit <= next->base){
+				list_add_tail(&node->list, &next->list);
+				if(list_is_first(&node->list, &ds_list->usr_ds_list)){
+					ds_list_next_merge(node, next);
+					goto end;
+				}
+				prev = list_prev_entry(node, list);
+				break;
+			}
+			if(list_is_last(&next->list, &ds_list->usr_ds_list)){
+				list_add_tail(&node->list, &ds_list->usr_ds_list);
+				prev = list_prev_entry(node, list);
+				ds_list_prev_merge(prev, node);
+				goto end;
+			}
+		}
+		
+		if(is_ds_node_merge(prev, node)){
+			
+		}
+		if(is_ds_node_merge(node, next)){
+			
 		}
 	}
 	// list marge
+end:
 	
 	
 }
