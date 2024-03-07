@@ -246,82 +246,128 @@ static struct m_list *make_m_node(unsigned long va, unsigned long num)
 	return list;
 }
 
+// static long make_ds_user(void)
+// {
+// 	pte_t *ptep;
+// 	unsigned long pte_value;
+// 	unsigned long pte_flag;
+	
+// 	int num;
+// 	int count;
+// 	int hit_flag = 0;
+		
+// 	unsigned long base;
+// 	unsigned long limit;
+// 	long offset;
+// 	unsigned long flag;
+	
+// 	unsigned long pte_value_pre;
+// 	unsigned long pte_flag_pre;
+
+// 	unsigned long pte_num;
+// 	unsigned long pte_num_pre = 0;
+	
+// 	for(unsigned long a=0; a<USER_MAX; a++){
+//         	for(unsigned long b=0; b<MAX; b++){
+//             		for(unsigned long c=0; c<MAX; c++){
+//                 		for(unsigned long d=0; d<MAX; d++){
+//                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+// 						pte_value = pte_pfn(*ptep);
+// 						pte_flag = pte_flags(*ptep);
+						
+// 						pte_num = make_ds_va(a, b, c, 0); // first entry num
+// 						// if(pte_num_pre == 0)
+// 						// 	vaddr = (unsigned long)ptep;
+						
+// 						if(pte_num_pre != pte_num){
+// 							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
+// 								goto end;
+// 							pte_num_pre = pte_num;
+// 						}
+						
+// 						if(hit_flag == 0){ // miss, first hit
+// 							// make ds members
+// 							base = make_ds_va(a, b, c, d);
+// 							offset = make_ds_offset(base, pte_value);
+// 							flag = pte_flag;
+							
+// 							hit_flag = 1;
+// 							pte_value_pre = pte_value; // pte_value_pre initialize
+// 							pte_flag_pre = pte_flag; // pte_flag_pre initialize
+// 						}else if(pte_value == pte_value_pre + 1 && pte_flag == pte_flag_pre){ // continuous address hit
+// 							pte_value_pre = pte_value;
+// 						}else{ // last hit, first nit
+// 							// add ds_list list
+// 							limit = make_ds_va(a, b, c, d);
+// 							if(make_ds_node(base, limit, offset, flag) == NULL)
+// 								goto end;
+
+// 							// make ds members
+// 							base = limit;
+// 							offset = make_ds_offset(base, pte_value);
+// 							flag = pte_flag;
+							
+// 							pte_value_pre = pte_value;
+// 							pte_flag_pre = pte_flag;
+// 						}
+//                         			count = num;
+//                     			}else if(num == 0){ // error
+// 						goto end;
+// 					}else{ // pte miss
+// 						if(hit_flag > 0){ // last hit, miss
+// 							// add ds_list list
+// 							limit = make_ds_va(a, b, c, d);
+// 							if(make_ds_node(base, limit, offset, flag) == NULL)
+// 								goto end;
+// 							hit_flag = 0;
+// 						}
+//                         			count = num - 3;
+//                     			}
+//                     			num = 0;
+//                     			if(--count > 0)
+//                         			break;
+//                     			count = 0;
+//                 		}
+//                 		if(--count > 0)
+//                   			break;
+//                 		count = 0;
+//             		}
+//             		if(--count > 0)
+//               			break;
+//             		count = 0;
+//         	}
+//         	if(--count > 0)
+//           		break;
+//         	count = 0;
+//     	}
+// end:
+	
+// 	return 0;
+// }
+
 static long make_ds_user(void)
 {
 	pte_t *ptep;
-	unsigned long pte_value;
-	unsigned long pte_flag;
 	
 	int num;
 	int count;
 	int hit_flag = 0;
 		
-	unsigned long base;
-	unsigned long limit;
-	long offset;
-	unsigned long flag;
-	
-	unsigned long pte_value_pre;
-	unsigned long pte_flag_pre;
-
 	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
 	
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-						pte_value = pte_pfn(*ptep);
-						pte_flag = pte_flags(*ptep);
+						pte_num = make_ds_va(a, b, c, d);
+						if(make_usr_list(pte_num, ptep) < 0)
+							goto end;
 						
-						pte_num = make_ds_va(a, b, c, 0); // first entry num
-						// if(pte_num_pre == 0)
-						// 	vaddr = (unsigned long)ptep;
-						
-						if(pte_num_pre != pte_num){
-							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
-								goto end;
-							incert_m_node();
-							pte_num_pre = pte_num;
-						}
-						
-						if(hit_flag == 0){ // miss, first hit
-							// make ds members
-							base = make_ds_va(a, b, c, d);
-							offset = make_ds_offset(base, pte_value);
-							flag = pte_flag;
-							
-							hit_flag = 1;
-							pte_value_pre = pte_value; // pte_value_pre initialize
-							pte_flag_pre = pte_flag; // pte_flag_pre initialize
-						}else if(pte_value == pte_value_pre + 1 && pte_flag == pte_flag_pre){ // continuous address hit
-							pte_value_pre = pte_value;
-						}else{ // last hit, first nit
-							// add ds_list list
-							limit = make_ds_va(a, b, c, d);
-							if(make_ds_node(base, limit, offset, flag) == NULL)
-								goto end;
-
-							// make ds members
-							base = limit;
-							offset = make_ds_offset(base, pte_value);
-							flag = pte_flag;
-							
-							pte_value_pre = pte_value;
-							pte_flag_pre = pte_flag;
-						}
                         			count = num;
                     			}else if(num == 0){ // error
 						goto end;
-					}else{ // pte miss
-						if(hit_flag > 0){ // last hit, miss
-							// add ds_list list
-							limit = make_ds_va(a, b, c, d);
-							if(make_ds_node(base, limit, offset, flag) == NULL)
-								goto end;
-							hit_flag = 0;
-						}
+					}else{
                         			count = num - 3;
                     			}
                     			num = 0;
@@ -345,6 +391,7 @@ end:
 	
 	return 0;
 }
+
 
 static long make_ds_kernel(void)
 {
@@ -506,61 +553,88 @@ static bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
 		return false;
 }
 
-static void ds_list_next_merge(struct ds_list *prev, struct ds_list *next)
+static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 {
 	if(is_ds_node_merge(prev, next)){
-			
+		prev->limit = next->limit;
+		list_del(&next->list);
+		kfree(next);
 	}
 }
 
-static void ds_list_prev_merge(struct ds_list *prev, struct ds_list *next)
+static bool is_add_m_node(unsigned long num)
 {
-	if(is_ds_node_merge(prev, next)){
-		
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num == num)
+			return false;
+		if(num < itr->num)
+			return true;
 	}
 }
 
-static void make_usr_ds_list(unsigned long address, pte_t *ptep)
+static int add_m_node(unsigned long va, unsigned long num)
 {
-	struct ds_list *node, *next, *prev;
+	struct m_list *mnode;
+
+	if((mnode = make_m_node(va, num)) == NULL)
+		return -ENOMEM;
+
+	if(list_empty(&m_list->usr_m_list)){ //no node
+		list_add(&mnode->list, &m_list->usr_m_list);
+	}else{
+		list_for_each_entry(itr, &m_list->usr_m_list, list){
+			if(num < itr->num){
+				list_add_tail(&mnode->list, &itr->list);
+				return 0;
+			}
+		}
+		list_add_tail(&mnode->list, &m_list->usr_m_list);
+	}
+	return 0;
+}
+
+static int make_usr_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *dnode, *next, *prev;
+	struct m_list *mnode;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
 
-	if((node = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) ==NULL)
-		goto end;
+	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+		return -ENOMEM;
 
-	// incert node
+	if(is_add_m_node(address & PT_PGTABLE_MASK_NOT))
+		add_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+		
+	// incert dnode
 	if(list_empty(&ds_list->usr_ds_list)){ //no node
-		list_add(&node->list, &ds_list->usr_ds_list);
+		list_add(&dnode->list, &ds_list->usr_ds_list);
 	}else{
 		list_for_each_entry(next, &ds_list->usr_ds_list, list){
-			if(node->limit <= next->base){
-				list_add_tail(&node->list, &next->list);
-				if(list_is_first(&node->list, &ds_list->usr_ds_list)){
-					ds_list_next_merge(node, next);
+			if(dnode->limit <= next->base){
+				list_add_tail(&dnode->list, &next->list);
+				if(list_is_first(&dnode->list, &ds_list->usr_ds_list)){
+					ds_node_merge(dnode, next);
 					goto end;
 				}
-				prev = list_prev_entry(node, list);
+				prev = list_prev_entry(dnode, list);
 				break;
 			}
 			if(list_is_last(&next->list, &ds_list->usr_ds_list)){
-				list_add_tail(&node->list, &ds_list->usr_ds_list);
-				prev = list_prev_entry(node, list);
-				ds_list_prev_merge(prev, node);
+				list_add_tail(&dnode->list, &ds_list->usr_ds_list);
+				prev = list_prev_entry(dnode, list);
+				ds_node_merge(prev, dnode);
 				goto end;
 			}
 		}
-		
-		if(is_ds_node_merge(prev, node)){
-			
-		}
-		if(is_ds_node_merge(node, next)){
-			
-		}
+		ds_node_merge(prev, dnode);
+		ds_node_merge(dnode, next);
 	}
 	// list marge
 end:
-	
+	return 0;
 	
 }
 
