@@ -188,7 +188,7 @@ struct m_list_head *m_list;
 struct ds_list_head *ds_list;
 
 void init_ds_list_head(){
-	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
+	ds_list = kmalloc(sizeof(struct ds_list->usr_ds_list), GFP_KERNEL);
 	if(!ds_list)
 		return;
 	INIT_LIST_HEAD(&ds_list->usr_ds_list);
@@ -196,7 +196,7 @@ void init_ds_list_head(){
 }
 
 void init_m_list_head(){
-	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
+	m_list = kmalloc(sizeof(struct m_list->usr_m_list), GFP_KERNEL);
 	if(!m_list)
 		return;
 	INIT_LIST_HEAD(&m_list->usr_m_list);
@@ -230,7 +230,7 @@ static struct ds_list *make_ds_node(unsigned long base, unsigned long limit, lon
 	list->limit = limit;
 	list->offset = offset;
 	list->flag = flag;
-	// list_add_tail(&list->list, &ds_list_head);
+	// list_add_tail(&list->list, &ds_list->usr_ds_list);
 	return list;
 }
 
@@ -242,7 +242,7 @@ static struct m_list *make_m_node(unsigned long va, unsigned long num)
 
 	list->va = va & PAGE_MASK;
 	list->num = num;
-	// list_add_tail(&list->list, &m_list_head);
+	// list_add_tail(&list->list, &m_list->usr_m_list);
 	return list;
 }
 
@@ -351,9 +351,11 @@ static long make_ds_user(void)
 	
 	int num;
 	int count;
-	int hit_flag = 0;
 		
 	unsigned long pte_num;
+
+	init_ds_list_head();
+	init_m_list_head();
 	
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
@@ -393,94 +395,140 @@ end:
 }
 
 
+// static long make_ds_kernel(void)
+// {
+// 	pte_t *ptep;
+// 	unsigned long pte_value;
+// 	unsigned long pte_flag;
+	
+// 	int num;
+// 	int count;
+// 	int ds_flag = 0;
+	
+// 	unsigned long base;
+// 	unsigned long limit;
+// 	long offset;
+// 	unsigned long flag;
+	
+// 	unsigned long pte_value_pre;
+// 	unsigned long pte_flag_pre;
+
+// 	unsigned long pte_num;
+// 	unsigned long pte_num_pre = 0;
+	
+// 	for(unsigned long a=USER_MAX; a<MAX; a++){
+//         	for(unsigned long b=0; b<MAX; b++){
+//             		for(unsigned long c=0; c<MAX; c++){
+//                 		for(unsigned long d=0; d<MAX; d++){
+//                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+// 						pte_value = pte_pfn(*ptep);
+// 						pte_flag = pte_flags(*ptep);
+						
+// 						pte_num = make_ds_va(a, b, c, 0); // first entry num
+// 						if(pte_num_pre == 0)
+// 							vaddr = (unsigned long)ptep;
+						
+// 						if(pte_num_pre != pte_num){
+// 							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
+// 								goto end;
+// 							pte_num_pre = pte_num;
+// 						}
+
+// 						if(!(ds_flag & HIT_FLAG_MASK)){
+// 							// make ds members
+// 							base = make_ds_va(a, b, c, d);
+// 							offset = make_ds_offset(base, pte_value);
+// 							flag = pte_flag;
+							
+// 							ds_flag |= HIT_FLAG_MASK;
+// 							pte_value_pre = pte_value; // pte_value_pre initialize
+// 							pte_flag_pre = pte_flag; // pte_flag_pre initialize
+// 						}else if(pte_value == pte_value_pre + 1 && pte_flag == pte_flag_pre && !(ds_flag & SAME_FLAG_MASK)){ // continuous address hit
+// 							pte_value_pre = pte_value;
+// 							if(!(ds_flag & CONTI_FLAG_MASK))
+// 								ds_flag |= CONTI_FLAG_MASK;
+// 						}else if(pte_value == pte_value_pre && pte_flag == pte_flag_pre && !(ds_flag & CONTI_FLAG_MASK)){ // same address hit
+// 							if(!(ds_flag & SAME_FLAG_MASK))
+// 								ds_flag |= SAME_FLAG_MASK;
+// 						}else{ // last hit, first nit
+// 							// add ds_list list
+// 							limit = make_ds_va(a, b, c, d);
+// 							if(ds_flag & SAME_FLAG_MASK){
+// 								flag |= SAME_ADDR_MASK;
+// 								ds_flag &= SAME_FLAG_MASK_NOT;
+// 							}
+// 							if(make_ds_node(base, limit, offset, flag) == NULL)
+// 								goto end;
+
+// 							// make ds members
+// 							base = limit;
+// 							offset = make_ds_offset(base, pte_value);
+// 							flag = pte_flag;
+							
+// 							pte_value_pre = pte_value;
+// 							pte_flag_pre = pte_flag;
+// 							ds_flag &= CONTI_FLAG_MASK_NOT;
+// 						}
+//                         			count = num;
+//                     			}else if(num == 0){ // error
+// 						goto end;
+// 					}else{ // pte miss
+// 						if(ds_flag & HIT_FLAG_MASK){ // last hit, miss
+// 							// add ds_list list
+// 							limit = make_ds_va(a, b, c, d);
+// 							if(ds_flag & SAME_FLAG_MASK){
+// 								flag |= SAME_ADDR_MASK;
+// 							}
+// 							if(make_ds_node(base, limit, offset, flag) == NULL)
+// 								goto end;
+// 							ds_flag = 0;
+// 						}
+//                         			count = num - 3;
+//                     			}
+//                     			num = 0;
+//                     			if(--count > 0)
+//                         			break;
+//                     			count = 0;
+//                 		}
+//                 		if(--count > 0)
+//                   			break;
+//                 		count = 0;
+//             		}
+//             		if(--count > 0)
+//               			break;
+//             		count = 0;
+//         	}
+//         	if(--count > 0)
+//           		break;
+//         	count = 0;
+//     	}
+// end:
+	
+// 	return 0;
+// }
+
 static long make_ds_kernel(void)
 {
 	pte_t *ptep;
-	unsigned long pte_value;
-	unsigned long pte_flag;
 	
 	int num;
 	int count;
-	int ds_flag = 0;
-	
-	unsigned long base;
-	unsigned long limit;
-	long offset;
-	unsigned long flag;
-	
-	unsigned long pte_value_pre;
-	unsigned long pte_flag_pre;
 
 	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
 	
 	for(unsigned long a=USER_MAX; a<MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-						pte_value = pte_pfn(*ptep);
-						pte_flag = pte_flags(*ptep);
+						pte_num = make_ds_va(a, b, c, d);
+						if(make_ker_list(pte_num, ptep) < 0)
+							goto end;
 						
-						pte_num = make_ds_va(a, b, c, 0); // first entry num
-						if(pte_num_pre == 0)
-							vaddr = (unsigned long)ptep;
-						
-						if(pte_num_pre != pte_num){
-							if(make_m_node((unsigned long)ptep, pte_num) == NULL)
-								goto end;
-							pte_num_pre = pte_num;
-						}
-
-						if(!(ds_flag & HIT_FLAG_MASK)){
-							// make ds members
-							base = make_ds_va(a, b, c, d);
-							offset = make_ds_offset(base, pte_value);
-							flag = pte_flag;
-							
-							ds_flag |= HIT_FLAG_MASK;
-							pte_value_pre = pte_value; // pte_value_pre initialize
-							pte_flag_pre = pte_flag; // pte_flag_pre initialize
-						}else if(pte_value == pte_value_pre + 1 && pte_flag == pte_flag_pre && !(ds_flag & SAME_FLAG_MASK)){ // continuous address hit
-							pte_value_pre = pte_value;
-							if(!(ds_flag & CONTI_FLAG_MASK))
-								ds_flag |= CONTI_FLAG_MASK;
-						}else if(pte_value == pte_value_pre && pte_flag == pte_flag_pre && !(ds_flag & CONTI_FLAG_MASK)){ // same address hit
-							if(!(ds_flag & SAME_FLAG_MASK))
-								ds_flag |= SAME_FLAG_MASK;
-						}else{ // last hit, first nit
-							// add ds_list list
-							limit = make_ds_va(a, b, c, d);
-							if(ds_flag & SAME_FLAG_MASK){
-								flag |= SAME_ADDR_MASK;
-								ds_flag &= SAME_FLAG_MASK_NOT;
-							}
-							if(make_ds_node(base, limit, offset, flag) == NULL)
-								goto end;
-
-							// make ds members
-							base = limit;
-							offset = make_ds_offset(base, pte_value);
-							flag = pte_flag;
-							
-							pte_value_pre = pte_value;
-							pte_flag_pre = pte_flag;
-							ds_flag &= CONTI_FLAG_MASK_NOT;
-						}
                         			count = num;
                     			}else if(num == 0){ // error
 						goto end;
 					}else{ // pte miss
-						if(ds_flag & HIT_FLAG_MASK){ // last hit, miss
-							// add ds_list list
-							limit = make_ds_va(a, b, c, d);
-							if(ds_flag & SAME_FLAG_MASK){
-								flag |= SAME_ADDR_MASK;
-							}
-							if(make_ds_node(base, limit, offset, flag) == NULL)
-								goto end;
-							ds_flag = 0;
-						}
                         			count = num - 3;
                     			}
                     			num = 0;
@@ -504,7 +552,6 @@ end:
 	
 	return 0;
 }
-
 
 SYSCALL_DEFINE0(mycall_ds_make)
 {
@@ -562,7 +609,7 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
-static bool is_add_m_node(unsigned long num)
+static bool is_add_usr_m_node(unsigned long num)
 {
 	struct m_list *itr;
 	
@@ -574,7 +621,7 @@ static bool is_add_m_node(unsigned long num)
 	}
 }
 
-static int add_m_node(unsigned long va, unsigned long num)
+static int add_usr_m_node(unsigned long va, unsigned long num)
 {
 	struct m_list *mnode;
 
@@ -595,6 +642,39 @@ static int add_m_node(unsigned long va, unsigned long num)
 	return 0;
 }
 
+static bool is_add_ker_m_node(unsigned long num)
+{
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->ker_m_list, list){
+		if(itr->num == num)
+			return false;
+		if(num < itr->num)
+			return true;
+	}
+}
+
+static int add_ker_m_node(unsigned long va, unsigned long num)
+{
+	struct m_list *mnode;
+
+	if((mnode = make_m_node(va, num)) == NULL)
+		return -ENOMEM;
+
+	if(list_empty(&m_list->ker_m_list)){ //no node
+		list_add(&mnode->list, &m_list->ker_m_list);
+	}else{
+		list_for_each_entry(itr, &m_list->ker_m_list, list){
+			if(num < itr->num){
+				list_add_tail(&mnode->list, &itr->list);
+				return 0;
+			}
+		}
+		list_add_tail(&mnode->list, &m_list->ker_m_list);
+	}
+	return 0;
+}
+
 static int make_usr_list(unsigned long address, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
@@ -605,8 +685,8 @@ static int make_usr_list(unsigned long address, pte_t *ptep)
 	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
 		return -ENOMEM;
 
-	if(is_add_m_node(address & PT_PGTABLE_MASK_NOT))
-		add_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+	if(is_add_usr_m_node(address & PT_PGTABLE_MASK_NOT))
+		add_usr_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
 		
 	// incert dnode
 	if(list_empty(&ds_list->usr_ds_list)){ //no node
@@ -638,12 +718,55 @@ end:
 	
 }
 
+static int make_ker_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *dnode, *next, *prev;
+	struct m_list *mnode;
+	unsigned long pte_value = pte_pfn(*ptep);
+	unsigned long pte_flag = pte_flags(*ptep);
+
+	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+		return -ENOMEM;
+
+	if(is_add_ker_m_node(address & PT_PGTABLE_MASK_NOT))
+		add_ker_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+		
+	// incert dnode
+	if(list_empty(&ds_list->ker_ds_list)){ //no node
+		list_add(&dnode->list, &ds_list->ker_ds_list);
+	}else{
+		list_for_each_entry(next, &ds_list->ker_ds_list, list){
+			if(dnode->limit <= next->base){
+				list_add_tail(&dnode->list, &next->list);
+				if(list_is_first(&dnode->list, &ds_list->ker_ds_list)){
+					ds_node_merge(dnode, next);
+					goto end;
+				}
+				prev = list_prev_entry(dnode, list);
+				break;
+			}
+			if(list_is_last(&next->list, &ds_list->ker_ds_list)){
+				list_add_tail(&dnode->list, &ds_list->ker_ds_list);
+				prev = list_prev_entry(dnode, list);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
+		}
+		ds_node_merge(prev, dnode);
+		ds_node_merge(dnode, next);
+	}
+	// list marge
+end:
+	return 0;
+	
+}
+
 SYSCALL_DEFINE0(mycall_ds_search)
 {
 	struct ds_list *itr;
 	int count = 0;
 	int flag = 0;
-	list_for_each_entry(itr, &ds_list_head, list){
+	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 		if(flag == 0 && itr->base >= 0x800000000){
 			printk(KERN_INFO "user ds count %d\n", count);
 			count = 0;
@@ -680,7 +803,7 @@ SYSCALL_DEFINE0(mycall_m_search)
 		return -1;
 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &m_list_head, list){
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
 		// printk(KERN_INFO "m list: %lx %lx\n",itr->pa, itr->va);
 		size = sprintf(buf, "%lx %lx\n",itr->va, itr->num);
 		kernel_write(file, buf, size, &pos);
@@ -931,7 +1054,7 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
-	list_for_each_entry(itr, &ds_list_head, list){
+	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 		if(itr->limit <= va_start){
 			continue; // not hit yet
 		}else if(va_end < itr->base){
@@ -1127,7 +1250,7 @@ static long recover_all_pgtable(void)
 
 					// pte = ptep_new;
 
-					// list_for_each_entry(itr, &ds_list_head, list){
+					// list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 					// 	if(itr->limit <= va_start){
 					// 		continue; // not hit yet
 					// 	}else if(va_end < itr->base){
@@ -1199,7 +1322,7 @@ static long recover_all_pgtable(void)
 
 					// pte = ptep_new;
 					
-					// list_for_each_entry(itr, &ds_list_head, list){
+					// list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 					// 	if(itr->limit <= va_start){
 					// 		continue; // not hit yet
 					// 	}else if(va_end < itr->base){
@@ -1303,7 +1426,7 @@ static long recover_pgtable(unsigned long va)
 		// goto err;
 	// memset(buf, '\0', 100);
 
-	list_for_each_entry(itr, &m_list_head, list){
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
 		if(itr->va <= va && va < itr->va + 0x1000){
 			printk(KERN_INFO "pgtable found %lx\n",va);
 			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
@@ -1331,13 +1454,13 @@ static long delete_ds(void)
 	struct ds_list *itr;
 	int count=0;
 
-	while((&ds_list_head)->next != &ds_list_head){
-		itr = list_first_entry(&ds_list_head, typeof(*itr), list);
+	while((&ds_list->usr_ds_list)->next != &ds_list->usr_ds_list){
+		itr = list_first_entry(&ds_list->usr_ds_list, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	list_for_each_entry(itr, &ds_list_head, list){
+	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 		count++;
 	}
 	printk(KERN_INFO "delete ds count %d\n", count);
@@ -1355,16 +1478,18 @@ static long delete_m(void)
 	struct m_list *itr;
 	int count=0;
 
-	while((&m_list_head)->next != &m_list_head){
-		itr = list_first_entry(&m_list_head, typeof(*itr), list);
+	while((&m_list->usr_m_list)->next != &m_list->usr_m_list){
+		itr = list_first_entry(&m_list->usr_m_list, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	list_for_each_entry(itr, &m_list_head, list){
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
 		count++;
 	}
 	printk(KERN_INFO "delete m count %d\n", count);
+
+	free_list_head();
 
 	return 0;
 }
