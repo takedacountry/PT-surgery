@@ -524,6 +524,7 @@ static long make_ds_user(void)
 	
 	int num;
 	int count;
+	int flag=0;
 		
 	unsigned long pte_num;
 
@@ -536,6 +537,10 @@ static long make_ds_user(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
+						if(flag == 0){
+							vaddr = (unsigned long)ptep;
+							flag = 1;
+						}
 						if(make_usr_list(pte_num, ptep) < 0)
 							goto end;
 						
