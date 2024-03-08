@@ -794,8 +794,8 @@ SYSCALL_DEFINE0(mycall_ds_search)
 	memset(buf, '\0', 100);
 	
 	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
-		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, (unsigned long)itr);
-		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, (unsigned long)itr);
+		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
@@ -831,8 +831,8 @@ SYSCALL_DEFINE0(mycall_m_search)
 	memset(buf, '\0', 100);
 	
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		// printk(KERN_INFO "%lx %lx\n",itr->va, itr->num);
-		size = sprintf(buf, "%lx %lx\n",itr->va, itr->num);
+		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
