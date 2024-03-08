@@ -770,19 +770,36 @@ SYSCALL_DEFINE0(mycall_ds_search)
 {
 	struct ds_list *itr;
 	int count = 0;
-	int flag = 0;
+
+	struct file *file;
+	char *filename = "./ds_list_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return -1;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return -1;
+	memset(buf, '\0', 100);
+	
 	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
-		if(flag == 0 && itr->base >= 0x800000000){
-			printk(KERN_INFO "user ds count %d\n", count);
-			count = 0;
-			flag = 1;
-		}
-		// if(itr->limit != itr->base + 1){
-			// printk(KERN_INFO "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
-		// }
+		// printk(KERN_INFO "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
+		size = sprintf(buf, "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
+		kernel_write(file, buf, size, &pos);
+		vfs_fsync_range(file, 0, size, 1);
 		count++;
 	}
-	printk(KERN_INFO "kernel ds count %d\n", count);
+	// printk(KERN_INFO "user ds count %d\n", count);
+	size = sprintf(buf, "user ds count %d\n", count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
 	return 0;
 }
 
