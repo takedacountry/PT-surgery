@@ -794,13 +794,13 @@ SYSCALL_DEFINE0(mycall_ds_search)
 	memset(buf, '\0', 100);
 	
 	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
-		// printk(KERN_INFO "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
-		size = sprintf(buf, "%d %lx %lx %lx %lx", count, itr->base, itr->limit, itr->offset, itr->flag);
+		// printk(KERN_INFO "%d %lx %lx %lx %lx\n", count, itr->base, itr->limit, itr->offset, itr->flag);
+		size = sprintf(buf, "%d %lx %lx %lx %lx\n", count, itr->base, itr->limit, itr->offset, itr->flag);
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
 	}
-	// printk(KERN_INFO "user ds count %d\n", count);
+	printk(KERN_INFO "user ds count %d\n", count);
 	size = sprintf(buf, "user ds count %d\n", count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
@@ -831,7 +831,7 @@ SYSCALL_DEFINE0(mycall_m_search)
 	memset(buf, '\0', 100);
 	
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		// printk(KERN_INFO "m list: %lx %lx\n",itr->pa, itr->va);
+		// printk(KERN_INFO "%lx %lx\n",itr->va, itr->num);
 		size = sprintf(buf, "%lx %lx\n",itr->va, itr->num);
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
