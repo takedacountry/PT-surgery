@@ -188,7 +188,7 @@ struct m_list_head *m_list;
 struct ds_list_head *ds_list;
 
 void init_ds_list_head(){
-	ds_list = kmalloc(sizeof(struct ds_list->usr_ds_list), GFP_KERNEL);
+	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
 	if(!ds_list)
 		return;
 	INIT_LIST_HEAD(&ds_list->usr_ds_list);
@@ -196,7 +196,7 @@ void init_ds_list_head(){
 }
 
 void init_m_list_head(){
-	m_list = kmalloc(sizeof(struct m_list->usr_m_list), GFP_KERNEL);
+	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
 	if(!m_list)
 		return;
 	INIT_LIST_HEAD(&m_list->usr_m_list);
@@ -245,6 +245,174 @@ static struct m_list *make_m_node(unsigned long va, unsigned long num)
 	// list_add_tail(&list->list, &m_list->usr_m_list);
 	return list;
 }
+
+static bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
+{
+	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag)
+		return true;
+	else
+		return false;
+}
+
+static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
+{
+	if(is_ds_node_merge(prev, next)){
+		prev->limit = next->limit;
+		list_del(&next->list);
+		kfree(next);
+	}
+}
+
+static bool is_add_usr_m_node(unsigned long num)
+{
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num == num)
+			return false;
+		if(num < itr->num)
+			return true;
+	}
+}
+
+static int add_usr_m_node(unsigned long va, unsigned long num)
+{
+	struct m_list *mnode, *itr;
+
+	if((mnode = make_m_node(va, num)) == NULL)
+		return -ENOMEM;
+
+	if(list_empty(&m_list->usr_m_list)){ //no node
+		list_add(&mnode->list, &m_list->usr_m_list);
+	}else{
+		list_for_each_entry(itr, &m_list->usr_m_list, list){
+			if(num < itr->num){
+				list_add_tail(&mnode->list, &itr->list);
+				return 0;
+			}
+		}
+		list_add_tail(&mnode->list, &m_list->usr_m_list);
+	}
+	return 0;
+}
+
+static bool is_add_ker_m_node(unsigned long num)
+{
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->ker_m_list, list){
+		if(itr->num == num)
+			return false;
+		if(num < itr->num)
+			return true;
+	}
+}
+
+static int add_ker_m_node(unsigned long va, unsigned long num)
+{
+	struct m_list *mnode, *itr;
+
+	if((mnode = make_m_node(va, num)) == NULL)
+		return -ENOMEM;
+
+	if(list_empty(&m_list->ker_m_list)){ //no node
+		list_add(&mnode->list, &m_list->ker_m_list);
+	}else{
+		list_for_each_entry(itr, &m_list->ker_m_list, list){
+			if(num < itr->num){
+				list_add_tail(&mnode->list, &itr->list);
+				return 0;
+			}
+		}
+		list_add_tail(&mnode->list, &m_list->ker_m_list);
+	}
+	return 0;
+}
+
+static int make_usr_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *dnode, *next, *prev;
+	unsigned long pte_value = pte_pfn(*ptep);
+	unsigned long pte_flag = pte_flags(*ptep);
+
+	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+		return -ENOMEM;
+
+	if(is_add_usr_m_node(address & PT_PGTABLE_MASK_NOT))
+		add_usr_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+		
+	// incert dnode
+	if(list_empty(&ds_list->usr_ds_list)){ //no node
+		list_add(&dnode->list, &ds_list->usr_ds_list);
+	}else{
+		list_for_each_entry(next, &ds_list->usr_ds_list, list){
+			if(dnode->limit <= next->base){
+				list_add_tail(&dnode->list, &next->list);
+				if(list_is_first(&dnode->list, &ds_list->usr_ds_list)){
+					ds_node_merge(dnode, next);
+					goto end;
+				}
+				prev = list_prev_entry(dnode, list);
+				break;
+			}
+			if(list_is_last(&next->list, &ds_list->usr_ds_list)){
+				list_add_tail(&dnode->list, &ds_list->usr_ds_list);
+				prev = list_prev_entry(dnode, list);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
+		}
+		ds_node_merge(prev, dnode);
+		ds_node_merge(dnode, next);
+	}
+	// list marge
+end:
+	return 0;
+	
+}
+
+static int make_ker_list(unsigned long address, pte_t *ptep)
+{
+	struct ds_list *dnode, *next, *prev;
+	unsigned long pte_value = pte_pfn(*ptep);
+	unsigned long pte_flag = pte_flags(*ptep);
+
+	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+		return -ENOMEM;
+
+	if(is_add_ker_m_node(address & PT_PGTABLE_MASK_NOT))
+		add_ker_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+		
+	// incert dnode
+	if(list_empty(&ds_list->ker_ds_list)){ //no node
+		list_add(&dnode->list, &ds_list->ker_ds_list);
+	}else{
+		list_for_each_entry(next, &ds_list->ker_ds_list, list){
+			if(dnode->limit <= next->base){
+				list_add_tail(&dnode->list, &next->list);
+				if(list_is_first(&dnode->list, &ds_list->ker_ds_list)){
+					ds_node_merge(dnode, next);
+					goto end;
+				}
+				prev = list_prev_entry(dnode, list);
+				break;
+			}
+			if(list_is_last(&next->list, &ds_list->ker_ds_list)){
+				list_add_tail(&dnode->list, &ds_list->ker_ds_list);
+				prev = list_prev_entry(dnode, list);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
+		}
+		ds_node_merge(prev, dnode);
+		ds_node_merge(dnode, next);
+	}
+	// list marge
+end:
+	return 0;
+	
+}
+
 
 // static long make_ds_user(void)
 // {
@@ -592,174 +760,6 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	return ret;
 }
 
-static bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
-{
-	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag)
-		return true;
-	else
-		return false;
-}
-
-static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
-{
-	if(is_ds_node_merge(prev, next)){
-		prev->limit = next->limit;
-		list_del(&next->list);
-		kfree(next);
-	}
-}
-
-static bool is_add_usr_m_node(unsigned long num)
-{
-	struct m_list *itr;
-	
-	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		if(itr->num == num)
-			return false;
-		if(num < itr->num)
-			return true;
-	}
-}
-
-static int add_usr_m_node(unsigned long va, unsigned long num)
-{
-	struct m_list *mnode;
-
-	if((mnode = make_m_node(va, num)) == NULL)
-		return -ENOMEM;
-
-	if(list_empty(&m_list->usr_m_list)){ //no node
-		list_add(&mnode->list, &m_list->usr_m_list);
-	}else{
-		list_for_each_entry(itr, &m_list->usr_m_list, list){
-			if(num < itr->num){
-				list_add_tail(&mnode->list, &itr->list);
-				return 0;
-			}
-		}
-		list_add_tail(&mnode->list, &m_list->usr_m_list);
-	}
-	return 0;
-}
-
-static bool is_add_ker_m_node(unsigned long num)
-{
-	struct m_list *itr;
-	
-	list_for_each_entry(itr, &m_list->ker_m_list, list){
-		if(itr->num == num)
-			return false;
-		if(num < itr->num)
-			return true;
-	}
-}
-
-static int add_ker_m_node(unsigned long va, unsigned long num)
-{
-	struct m_list *mnode;
-
-	if((mnode = make_m_node(va, num)) == NULL)
-		return -ENOMEM;
-
-	if(list_empty(&m_list->ker_m_list)){ //no node
-		list_add(&mnode->list, &m_list->ker_m_list);
-	}else{
-		list_for_each_entry(itr, &m_list->ker_m_list, list){
-			if(num < itr->num){
-				list_add_tail(&mnode->list, &itr->list);
-				return 0;
-			}
-		}
-		list_add_tail(&mnode->list, &m_list->ker_m_list);
-	}
-	return 0;
-}
-
-static int make_usr_list(unsigned long address, pte_t *ptep)
-{
-	struct ds_list *dnode, *next, *prev;
-	struct m_list *mnode;
-	unsigned long pte_value = pte_pfn(*ptep);
-	unsigned long pte_flag = pte_flags(*ptep);
-
-	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
-		return -ENOMEM;
-
-	if(is_add_usr_m_node(address & PT_PGTABLE_MASK_NOT))
-		add_usr_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
-		
-	// incert dnode
-	if(list_empty(&ds_list->usr_ds_list)){ //no node
-		list_add(&dnode->list, &ds_list->usr_ds_list);
-	}else{
-		list_for_each_entry(next, &ds_list->usr_ds_list, list){
-			if(dnode->limit <= next->base){
-				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &ds_list->usr_ds_list)){
-					ds_node_merge(dnode, next);
-					goto end;
-				}
-				prev = list_prev_entry(dnode, list);
-				break;
-			}
-			if(list_is_last(&next->list, &ds_list->usr_ds_list)){
-				list_add_tail(&dnode->list, &ds_list->usr_ds_list);
-				prev = list_prev_entry(dnode, list);
-				ds_node_merge(prev, dnode);
-				goto end;
-			}
-		}
-		ds_node_merge(prev, dnode);
-		ds_node_merge(dnode, next);
-	}
-	// list marge
-end:
-	return 0;
-	
-}
-
-static int make_ker_list(unsigned long address, pte_t *ptep)
-{
-	struct ds_list *dnode, *next, *prev;
-	struct m_list *mnode;
-	unsigned long pte_value = pte_pfn(*ptep);
-	unsigned long pte_flag = pte_flags(*ptep);
-
-	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
-		return -ENOMEM;
-
-	if(is_add_ker_m_node(address & PT_PGTABLE_MASK_NOT))
-		add_ker_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
-		
-	// incert dnode
-	if(list_empty(&ds_list->ker_ds_list)){ //no node
-		list_add(&dnode->list, &ds_list->ker_ds_list);
-	}else{
-		list_for_each_entry(next, &ds_list->ker_ds_list, list){
-			if(dnode->limit <= next->base){
-				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &ds_list->ker_ds_list)){
-					ds_node_merge(dnode, next);
-					goto end;
-				}
-				prev = list_prev_entry(dnode, list);
-				break;
-			}
-			if(list_is_last(&next->list, &ds_list->ker_ds_list)){
-				list_add_tail(&dnode->list, &ds_list->ker_ds_list);
-				prev = list_prev_entry(dnode, list);
-				ds_node_merge(prev, dnode);
-				goto end;
-			}
-		}
-		ds_node_merge(prev, dnode);
-		ds_node_merge(dnode, next);
-	}
-	// list marge
-end:
-	return 0;
-	
-}
 
 SYSCALL_DEFINE0(mycall_ds_search)
 {
