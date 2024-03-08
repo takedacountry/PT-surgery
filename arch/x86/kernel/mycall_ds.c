@@ -187,7 +187,7 @@ struct m_list_head{
 struct m_list_head *m_list;
 struct ds_list_head *ds_list;
 
-static void init_ds_list_head()
+static void init_ds_list_head(void)
 {
 	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
 	if(!ds_list)
@@ -196,7 +196,7 @@ static void init_ds_list_head()
 	INIT_LIST_HEAD(&ds_list->ker_ds_list);
 }
 
-static void init_m_list_head()
+static void init_m_list_head(void)
 {
 	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
 	if(!m_list)
@@ -205,7 +205,7 @@ static void init_m_list_head()
 	INIT_LIST_HEAD(&m_list->ker_m_list);
 }
 
-static void free_list_head()
+static void free_list_head(void)
 {
 	kfree(ds_list);
 	kfree(m_list);
