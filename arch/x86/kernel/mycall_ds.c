@@ -771,13 +771,13 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 }
 
 
-SYSCALL_DEFINE0(mycall_ds_search)
+static int print_usr_ds(void)
 {
 	struct ds_list *itr;
 	int count = 0;
 
 	struct file *file;
-	char *filename = "./ds_list_txt";
+	char *filename = "./usr_ds_txt";
 	int size;
 	char *buf;
         loff_t pos = 0;
@@ -808,13 +808,57 @@ SYSCALL_DEFINE0(mycall_ds_search)
 	return 0;
 }
 
-SYSCALL_DEFINE0(mycall_m_search)
+static int print_ker_ds(void)
+{
+	struct ds_list *itr;
+	int count = 0;
+
+	struct file *file;
+	char *filename = "./ker_ds_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return -1;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return -1;
+	memset(buf, '\0', 100);
+	
+	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
+		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+		kernel_write(file, buf, size, &pos);
+		vfs_fsync_range(file, 0, size, 1);
+		count++;
+	}
+	printk(KERN_INFO "kernel ds count %d\n", count);
+	size = sprintf(buf, "kernel ds count %d\n", count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_ds_search)
+{
+	print_usr_ds();
+	print_ker_ds();
+	return 0;
+}
+
+static int print_usr_m(void)
 {
 	struct m_list *itr;
 	int count=0;
 	
 	struct file *file;
-	char *filename = "./m_list_txt";
+	char *filename = "./usr_m_txt";
 	int size;
 	char *buf;
         loff_t pos = 0;
@@ -837,11 +881,55 @@ SYSCALL_DEFINE0(mycall_m_search)
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
 	}
-	printk(KERN_INFO "m count %d\n", count);
-	size = sprintf(buf, "m count %d\n", count);
+	printk(KERN_INFO "user m count %d\n", count);
+	size = sprintf(buf, "user m count %d\n", count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
+	return 0;
+}
+
+static int print_ker_m(void)
+{
+	struct m_list *itr;
+	int count=0;
+	
+	struct file *file;
+	char *filename = "./ker_m_txt";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return -1;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return -1;
+	memset(buf, '\0', 100);
+	
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+		kernel_write(file, buf, size, &pos);
+		vfs_fsync_range(file, 0, size, 1);
+		count++;
+	}
+	printk(KERN_INFO "kernel m count %d\n", count);
+	size = sprintf(buf, "kernel m count %d\n", count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+	
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_m_search)
+{
+	print_usr_m();
+	print_ker_m();
 	return 0;
 }
 
