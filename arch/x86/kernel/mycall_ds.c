@@ -466,9 +466,6 @@ static long make_ds_user(void)
 		
 	unsigned long pte_num;
 
-	init_ds_list_head();
-	init_m_list_head();
-	
 	for(unsigned long a=0; a<USER_MAX; a++){
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
@@ -1565,8 +1562,6 @@ static long delete_m(void)
 		count++;
 	}
 	printk(KERN_INFO "delete kern m count %d\n", count);
-
-	free_list_head();
 
 	return 0;
 }
