@@ -7,7 +7,8 @@
 #include <linux/spinlock.h>
 #include <asm/current.h>
 #include <asm/io.h>
-#include <asm/ds.h>
+// #include <asm/ds.h>
+#include <linux/ds.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
