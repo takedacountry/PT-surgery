@@ -38,8 +38,8 @@
 #define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
 
 unsigned long vaddr;
-extern struct ds_list_head *ds_list;
-extern struct m_list_head *m_list;
+// extern struct ds_list_head *ds_list;
+// extern struct m_list_head *m_list;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
