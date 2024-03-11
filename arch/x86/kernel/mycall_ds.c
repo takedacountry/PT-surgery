@@ -1575,10 +1575,22 @@ static long delete_ds(void)
 		kfree(itr);
 	}
 
+	while((&ds_list->ker_ds_list)->next != &ds_list->ker_ds_list){
+		itr = list_first_entry(&ds_list->ker_ds_list, typeof(*itr), list);
+		list_del(&itr->list);
+		kfree(itr);
+	}
+
 	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
 		count++;
 	}
-	printk(KERN_INFO "delete ds count %d\n", count);
+	printk(KERN_INFO "delete user ds count %d\n", count);
+
+	count=0;
+	list_for_each_entry(itr, &ds_list->ker_ds_list, list){
+		count++;
+	}
+	printk(KERN_INFO "delete kern ds count %d\n", count);
 
 	return 0;
 }
@@ -1599,10 +1611,22 @@ static long delete_m(void)
 		kfree(itr);
 	}
 
+	while((&m_list->ker_m_list)->next != &m_list->ker_m_list){
+		itr = list_first_entry(&m_list->ker_m_list, typeof(*itr), list);
+		list_del(&itr->list);
+		kfree(itr);
+	}
+
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
 		count++;
 	}
-	printk(KERN_INFO "delete m count %d\n", count);
+	printk(KERN_INFO "delete user m count %d\n", count);
+
+	count=0;
+	list_for_each_entry(itr, &m_list->ker_m_list, list){
+		count++;
+	}
+	printk(KERN_INFO "delete kernel m count %d\n", count);
 
 	free_list_head();
 
