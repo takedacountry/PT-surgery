@@ -53,3 +53,5 @@ struct m_list_head{
 extern struct m_list_head *m_list;
 extern struct ds_list_head *ds_list;
 
+extern int make_usr_list(unsigned long address, pte_t *ptep);
+extern int make_ker_list(unsigned long address, pte_t *ptep);
