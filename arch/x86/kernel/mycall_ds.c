@@ -148,32 +148,6 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
-void init_ds_list_head(void)
-{
-	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
-	if(!ds_list)
-		return;
-	INIT_LIST_HEAD(&ds_list->usr_ds_list);
-	INIT_LIST_HEAD(&ds_list->ker_ds_list);
-}
-
-void init_m_list_head(void)
-{
-	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
-	if(!m_list)
-		return;
-	INIT_LIST_HEAD(&m_list->usr_m_list);
-	INIT_LIST_HEAD(&m_list->ker_m_list);
-}
-
-void free_list_head(void)
-{
-	kfree(ds_list);
-	kfree(m_list);
-}
-
-
-
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
 	unsigned long va = a << 27 | b << 18 | c << 9 | d;
