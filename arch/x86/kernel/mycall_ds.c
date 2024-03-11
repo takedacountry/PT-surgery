@@ -830,15 +830,15 @@ static int print_ker_ds(void)
 		return -1;
 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &ds_list->usr_ds_list, list){
+	list_for_each_entry(itr, &ds_list->ker_ds_list, list){
 		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
 		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
 	}
-	printk(KERN_INFO "kernel ds count %d\n", count);
-	size = sprintf(buf, "kernel ds count %d\n", count);
+	printk(KERN_INFO "kern ds count %d\n", count);
+	size = sprintf(buf, "kern ds count %d\n", count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
@@ -911,15 +911,15 @@ static int print_ker_m(void)
 		return -1;
 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &m_list->usr_m_list, list){
+	list_for_each_entry(itr, &m_list->ker_m_list, list){
 		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
 		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
 		vfs_fsync_range(file, 0, size, 1);
 		count++;
 	}
-	printk(KERN_INFO "kernel m count %d\n", count);
-	size = sprintf(buf, "kernel m count %d\n", count);
+	printk(KERN_INFO "kern m count %d\n", count);
+	size = sprintf(buf, "kern m count %d\n", count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
@@ -1626,7 +1626,7 @@ static long delete_m(void)
 	list_for_each_entry(itr, &m_list->ker_m_list, list){
 		count++;
 	}
-	printk(KERN_INFO "delete kernel m count %d\n", count);
+	printk(KERN_INFO "delete kern m count %d\n", count);
 
 	free_list_head();
 
