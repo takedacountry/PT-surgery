@@ -271,7 +271,7 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 	return 0;
 }
 
-static int make_usr_list(unsigned long address, pte_t *ptep)
+int make_usr_list(unsigned long address, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
@@ -313,7 +313,7 @@ end:
 	
 }
 
-static int make_ker_list(unsigned long address, pte_t *ptep)
+int make_ker_list(unsigned long address, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
