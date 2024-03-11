@@ -1,18 +1,3 @@
-#include <linux/kernel.h>
-#include <linux/syscalls.h>
-#include <linux/types.h>
-#include <linux/uaccess.h>
-#include <linux/fs.h>
-#include <linux/mm.h>
-#include <asm/io.h>
-#include <asm/page.h>
-#include <asm/pgtable.h>
-#include <asm/pgalloc.h>
-#include <asm/page_types.h>
-#include <asm/pgtable_types.h>
-#include <asm/paravirt.h>
-#include <asm-generic/pgalloc.h>
-
 struct ds_list{
 	unsigned long base;
 	unsigned long limit;
