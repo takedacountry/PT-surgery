@@ -7,6 +7,7 @@
 #include <linux/spinlock.h>
 #include <asm/current.h>
 #include <asm/io.h>
+#include <asm/ds.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -37,6 +38,8 @@
 #define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
 
 unsigned long vaddr;
+extern struct ds_list_head *ds_list;
+extern struct m_list_head *m_list;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -145,71 +148,6 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
-// want to make list every process
-		
-struct ds_list{
-	unsigned long base;
-	unsigned long limit;
-	long offset;
-	unsigned long flag;
-	struct list_head list;
-};
-
-// struct usr_ds_list_head{
-// 	int id;
-// 	struct list_head proc_list;
-// };
-
-struct ds_list_head{
-	struct list_head usr_ds_list;
-	struct list_head ker_ds_list;
-};
-
-struct m_list{
-	unsigned long va;
-	unsigned long num;
-	struct list_head list;
-};
-
-// struct usr_m_list_head{
-// 	int id;
-// 	struct list_head proc_list;
-// };
-		
-struct m_list_head{
-	struct list_head usr_m_list;
-	struct list_head ker_m_list;
-};
-
-// static LIST_HEAD(ds_list_head);
-// static LIST_HEAD(m_list_head);
-
-struct m_list_head *m_list;
-struct ds_list_head *ds_list;
-
-static void init_ds_list_head(void)
-{
-	ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
-	if(!ds_list)
-		return;
-	INIT_LIST_HEAD(&ds_list->usr_ds_list);
-	INIT_LIST_HEAD(&ds_list->ker_ds_list);
-}
-
-static void init_m_list_head(void)
-{
-	m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
-	if(!m_list)
-		return;
-	INIT_LIST_HEAD(&m_list->usr_m_list);
-	INIT_LIST_HEAD(&m_list->ker_m_list);
-}
-
-static void free_list_head(void)
-{
-	kfree(ds_list);
-	kfree(m_list);
-}
 
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
