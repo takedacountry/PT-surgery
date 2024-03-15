@@ -20,6 +20,8 @@
 
 #define USER_MAX 		0x100
 #define MAX 			0x200
+#define MAX_ADDRESS_SHIFT	47
+#define MAX_ADDRESS  		(_AT(long, 1) << MAX_ADDRESS_SHIFT)
 #define PT_PGTABLE_SHIFT 	9
 #define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SHIFT)
 #define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
@@ -368,6 +370,13 @@ int make_ker_list(unsigned long address, pte_t *ptep)
 end:
 	return 0;
 	
+}
+
+int make_ds_list(unsigned long address, pte_t *ptep)
+{
+	if(address < MAX_ADDRESS)
+		return make_usr_list(address, ptep);
+	return make_ker_list(address, ptep);
 }
 
 
