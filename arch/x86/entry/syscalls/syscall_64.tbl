@@ -385,6 +385,8 @@
 467     common  mycall_m_search         sys_mycall_m_search
 468     common  mycall_m_delete         sys_mycall_m_delete
 469     common  mycall_recover_pgtable  sys_mycall_recover_pgtable
+470     common  mycall_ds_init          sys_mycall_ds_init
+471     common  mycall_ds_free          sys_mycall_ds_free
 #
 # Due to a historical design error, certain syscalls are numbered differently
 # in x32 as compared to native x86_64.  These syscalls have numbers 512-547.
