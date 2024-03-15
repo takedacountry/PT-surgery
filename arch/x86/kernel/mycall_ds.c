@@ -150,16 +150,45 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
+struct m_list_head *m_list;
+struct ds_list_head *ds_list;
+
+void init_ds_list_head(struct ds_list_head *ds_list)
+{
+        ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
+        if(!ds_list)
+                return;
+        INIT_LIST_HEAD(&ds_list->usr_ds_list);
+        INIT_LIST_HEAD(&ds_list->ker_ds_list);
+        printk(KERN_INFO "init ds list head\n");
+}
+
+void init_m_list_head(struct m_list_head *m_list)
+{
+        m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
+        if(!m_list)
+                return;
+        INIT_LIST_HEAD(&m_list->usr_m_list);
+        INIT_LIST_HEAD(&m_list->ker_m_list);
+        printk(KERN_INFO "init m list head\n");
+}
+
+void free_list_head(struct ds_list_head *ds_list, struct m_list_head *m_list)
+{
+        kfree(ds_list);
+        kfree(m_list);
+}
+
 SYSCALL_DEFINE0(mycall_ds_init)
 {
-	init_ds_list_head();
-	init_m_list_head();
+	init_ds_list_head(ds_list);
+	init_m_list_head(m_list);
 	return 0;
 }
 
 SYSCALL_DEFINE0(mycall_ds_free)
 {
-	free_list_head();
+	free_list_head(ds_list, m_list);
 	return 0;		
 }
 
