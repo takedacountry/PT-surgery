@@ -20,6 +20,8 @@
 #define SYS_mycall_m_search 467
 #define SYS_mycall_m_delete 468
 #define SYS_mycall_recover_pgtable 469
+#define SYS_mycall_ds_init 470
+#define SYS_mycall_ds_free 471
 
 #define INDEX 1024*1024*1024 //1GB
 #define PGD 512
@@ -85,6 +87,7 @@ int main(void)
     printf("va: %p\n", mo); // print user va
     printf("va: %p\n", mp); // print user va
 
+    printf("%ld\n", syscall(SYS_mycall_ds_init));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     printf("%ld\n", syscall(SYS_mycall_ds_make_user));
@@ -144,6 +147,7 @@ int main(void)
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
+    printf("%ld\n", syscall(SYS_mycall_ds_free));
     
     return 0;
 }
