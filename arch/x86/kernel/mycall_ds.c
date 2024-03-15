@@ -181,14 +181,14 @@ void free_list_head(void)
 
 SYSCALL_DEFINE0(mycall_ds_init)
 {
-	init_ds_list_head(ds_list);
-	init_m_list_head(m_list);
+	init_ds_list_head();
+	init_m_list_head();
 	return 0;
 }
 
 SYSCALL_DEFINE0(mycall_ds_free)
 {
-	free_list_head(ds_list, m_list);
+	free_list_head();
 	return 0;		
 }
 
