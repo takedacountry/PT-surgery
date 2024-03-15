@@ -374,6 +374,7 @@ end:
 
 int make_ds_list(unsigned long address, pte_t *ptep)
 {
+	printk(KERN_INFO "va:%ld pteva:%ld",address, (unsigned long)ptep);
 	if(address < MAX_ADDRESS)
 		return make_usr_list(address, ptep);
 	return make_ker_list(address, ptep);
