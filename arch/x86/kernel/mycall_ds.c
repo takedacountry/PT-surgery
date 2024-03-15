@@ -289,12 +289,13 @@ int make_usr_list(unsigned long address, pte_t *ptep)
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
+	unsigned long addr = address >> PAGE_SHIFT;
 
-	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+	if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
 		return -ENOMEM;
 
-	if(is_add_usr_m_node(address & PT_PGTABLE_MASK_NOT))
-		add_usr_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+	if(is_add_usr_m_node(addr & PT_PGTABLE_MASK_NOT))
+		add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT);
 		
 	// incert dnode
 	if(list_empty(&ds_list->usr_ds_list)){ //no node
@@ -331,12 +332,13 @@ int make_ker_list(unsigned long address, pte_t *ptep)
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
+	unsigned long addr = address >> PAGE_SHIFT;
 
-	if((dnode = make_ds_node(address, address+1, make_ds_offset(address, pte_value), pte_flag)) == NULL)
+	if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
 		return -ENOMEM;
 
-	if(is_add_ker_m_node(address & PT_PGTABLE_MASK_NOT))
-		add_ker_m_node((unsigned long)ptep, address & PT_PGTABLE_MASK_NOT);
+	if(is_add_ker_m_node(addr & PT_PGTABLE_MASK_NOT))
+		add_ker_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT);
 		
 	// incert dnode
 	if(list_empty(&ds_list->ker_ds_list)){ //no node
@@ -488,7 +490,7 @@ static long make_ds_user(void)
 							vaddr = (unsigned long)ptep;
 							flag = 1;
 						}
-						if(make_usr_list(pte_num, ptep) < 0)
+						if(make_usr_list(pte_num << PAGE_SHIFT, ptep) < 0)
 							goto end;
 						
                         			count = num;
@@ -647,7 +649,7 @@ static long make_ds_kernel(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
-						if(make_ker_list(pte_num, ptep) < 0)
+						if(make_ker_list(pte_num << PAGE_SHIFT, ptep) < 0)
 							goto end;
 						
                         			count = num;
