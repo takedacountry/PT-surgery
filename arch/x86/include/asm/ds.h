@@ -63,3 +63,4 @@ void free_list_head(void)
 
 int make_usr_list(unsigned long address, pte_t *ptep);
 int make_ker_list(unsigned long address, pte_t *ptep);
+int make_ds_list(unsigned long address, pte_t *ptep);
