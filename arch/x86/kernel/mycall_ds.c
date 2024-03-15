@@ -153,7 +153,7 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
 struct m_list_head *m_list;
 struct ds_list_head *ds_list;
 
-void init_ds_list_head(struct ds_list_head *ds_list)
+void init_ds_list_head(void)
 {
         ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
         if(!ds_list)
@@ -163,7 +163,7 @@ void init_ds_list_head(struct ds_list_head *ds_list)
         printk(KERN_INFO "init ds list head\n");
 }
 
-void init_m_list_head(struct m_list_head *m_list)
+void init_m_list_head(void)
 {
         m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
         if(!m_list)
@@ -173,7 +173,7 @@ void init_m_list_head(struct m_list_head *m_list)
         printk(KERN_INFO "init m list head\n");
 }
 
-void free_list_head(struct ds_list_head *ds_list, struct m_list_head *m_list)
+void free_list_head(void)
 {
         kfree(ds_list);
         kfree(m_list);
