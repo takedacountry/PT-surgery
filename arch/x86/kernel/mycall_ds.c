@@ -7,8 +7,7 @@
 #include <linux/spinlock.h>
 #include <asm/current.h>
 #include <asm/io.h>
-// #include <asm/ds.h>
-#include <linux/ds.h>
+#include <asm/ds.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
@@ -147,6 +146,18 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
     		return 0;
   	}
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
+}
+
+struct ds_list_head *ds_list;
+struct m_list_head *m_list;
+
+
+
+SYSCALL_DEFINE0(mycall_ds_init)
+{
+	init_ds_list_head();
+	init_m_list_head();
+	return 0;
 }
 
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
