@@ -153,6 +153,8 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
 
 struct m_list_head *m_list;
 struct ds_list_head *ds_list;
+EXPORT_SYMBOL(ds_list);
+EXPORT_SYMBOL(m_list);
 
 void init_ds_list_head(void)
 {
