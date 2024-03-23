@@ -87,7 +87,7 @@ int main(void)
     printf("va: %p\n", mo); // print user va
     printf("va: %p\n", mp); // print user va
 
-    // printf("%ld\n", syscall(SYS_mycall_ds_init));
+    printf("%ld\n", syscall(SYS_mycall_ds_init));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     printf("%ld\n", syscall(SYS_mycall_ds_make_user));
