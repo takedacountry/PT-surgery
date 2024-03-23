@@ -330,7 +330,8 @@ static int make_usr_list(unsigned long address, pte_t *ptep)
 		return -ENOMEM;
 
 	if(is_add_usr_m_node(addr & PT_PGTABLE_MASK_NOT))
-		add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT);
+		if(add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT) < 0)
+			return -ENOMEM;
 		
 	// incert dnode
 	if(list_empty(&ds_list->usr_ds_list)){ //no node
@@ -353,10 +354,9 @@ static int make_usr_list(unsigned long address, pte_t *ptep)
 				goto end;
 			}
 		}
-		ds_node_merge(prev, dnode);
 		ds_node_merge(dnode, next);
+		ds_node_merge(prev, dnode);
 	}
-	// list marge
 end:
 	return 0;
 	
@@ -373,7 +373,8 @@ static int make_ker_list(unsigned long address, pte_t *ptep)
 		return -ENOMEM;
 
 	if(is_add_ker_m_node(addr & PT_PGTABLE_MASK_NOT))
-		add_ker_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT);
+		if(add_ker_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT) < 0)
+			return -ENOMEM;
 		
 	// incert dnode
 	if(list_empty(&ds_list->ker_ds_list)){ //no node
@@ -396,10 +397,9 @@ static int make_ker_list(unsigned long address, pte_t *ptep)
 				goto end;
 			}
 		}
-		ds_node_merge(prev, dnode);
 		ds_node_merge(dnode, next);
+		ds_node_merge(prev, dnode);
 	}
-	// list marge
 end:
 	return 0;
 	
