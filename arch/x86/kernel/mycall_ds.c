@@ -5,6 +5,7 @@
 #include <linux/fs.h>
 #include <linux/mm.h>
 #include <linux/spinlock.h>
+#include <linux/export.h>
 #include <asm/current.h>
 #include <asm/io.h>
 #include <asm/ds.h>
@@ -162,6 +163,7 @@ void init_ds_list_head(void)
         INIT_LIST_HEAD(&ds_list->ker_ds_list);
         printk(KERN_INFO "init ds list head\n");
 }
+EXPORT_SYMBOL_GPL(init_ds_list_head);
 
 void init_m_list_head(void)
 {
@@ -172,12 +174,14 @@ void init_m_list_head(void)
         INIT_LIST_HEAD(&m_list->ker_m_list);
         printk(KERN_INFO "init m list head\n");
 }
+EXPORT_SYMBOL_GPL(init_m_list_head);
 
 void free_list_head(void)
 {
         kfree(ds_list);
         kfree(m_list);
 }
+EXPORT_SYMBOL_GPL(free_list_head);
 
 SYSCALL_DEFINE0(mycall_ds_init)
 {
@@ -315,7 +319,7 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 	return 0;
 }
 
-int make_usr_list(unsigned long address, pte_t *ptep)
+static int make_usr_list(unsigned long address, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
@@ -358,7 +362,7 @@ end:
 	
 }
 
-int make_ker_list(unsigned long address, pte_t *ptep)
+static int make_ker_list(unsigned long address, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
@@ -409,6 +413,7 @@ int make_ds_list(unsigned long address, pte_t *ptep)
 	// return make_ker_list(address, ptep);
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_ds_list);
 
 
 // static long make_ds_user(void)
