@@ -35,10 +35,8 @@ struct m_list_head{
 extern struct m_list_head *m_list;
 extern struct ds_list_head *ds_list;
 
-void init_ds_list_head(void);
-void init_m_list_head(void);
-void free_list_head(void);
+extern void init_ds_list_head(void);
+extern void init_m_list_head(void);
+extern void free_list_head(void);
 
-int make_usr_list(unsigned long address, pte_t *ptep);
-int make_ker_list(unsigned long address, pte_t *ptep);
-int make_ds_list(unsigned long address, pte_t *ptep);
+extern int make_ds_list(unsigned long address, pte_t *ptep);
