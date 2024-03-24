@@ -27,6 +27,17 @@
 #define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SHIFT)
 #define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
 #define PT_PGTABLE_MASK_NOT	(~PT_PGTABLE_MASK)
+#define PGD_FLAG_SHIFT		0
+#define PGD_FLAG_MASK		(_AT(long, 1) << PGD_FLAG_SHIFT)
+#define P4D_FLAG_SHIFT		1
+#define P4D_FLAG_MASK		(_AT(long, 1) << P4D_FLAG_SHIFT)
+#define PUD_FLAG_SHIFT		2
+#define PUD_FLAG_MASK		(_AT(long, 1) << PUD_FLAG_SHIFT)
+#define PMD_FLAG_SHIFT		3
+#define PMD_FLAG_MASK		(_AT(long, 1) << PMD_FLAG_SHIFT)
+#define PTE_FLAG_SHIFT		4
+#define PTE_FLAG_MASK		(_AT(long, 1) << PTE_FLAG_SHIFT)
+
 #define SAME_ADDR_SHIFT 	16
 #define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
 #define SAME_ADDR_MASK_NOT 	(~(SAME_ADDR_MASK))
@@ -266,6 +277,17 @@ static bool is_add_usr_m_node(unsigned long num)
 	return true;
 }
 
+static bool is_add_usr_m_node_va(unsigned long va)
+{
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->va == va)
+			return false;
+	}
+	return true;
+}
+	
 static int add_usr_m_node(unsigned long va, unsigned long num)
 {
 	struct m_list *mnode, *itr;
@@ -300,6 +322,17 @@ static bool is_add_ker_m_node(unsigned long num)
 	return true;
 }
 
+static bool is_add_ker_m_node_va(unsigned long va)
+{
+	struct m_list *itr;
+	
+	list_for_each_entry(itr, &m_list->ker_m_list, list){
+		if(itr->va == va)
+			return false;
+	}
+	return true;
+}
+
 static int add_ker_m_node(unsigned long va, unsigned long num)
 {
 	struct m_list *mnode, *itr;
@@ -317,6 +350,97 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 			}
 		}
 		list_add_tail(&mnode->list, &m_list->ker_m_list);
+	}
+	return 0;
+}
+
+int make_pgd_m_list(unsigned long pgd_va)
+{
+	struct m_list *mnode;
+	unsigned long num = 0;
+
+	if(is_add_usr_m_node_va(pgd_va & PAGE_MASK)){
+		if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK) < 0){
+			return -ENOMEM;
+		}
+	}
+	return 0;
+}
+
+static unsigned long get_pgd_num(unsigned long va)
+{
+	struct m_list *itr;
+
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
+			return make_ds_va(((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0, 0);
+	}
+	return MAX;
+}
+
+int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
+{
+	struct m_list *mnode;
+	unsigned long num;
+
+	if(is_add_usr_m_node_va(pud_va & PAGE_MASK)){
+		if((num = get_pgd_num(pgd_va)) >= MAX)
+			return -1;
+	
+		if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK) < 0)
+			return -ENOMEM;
+	}
+	return 0;
+}
+
+static unsigned long get_pud_num(unsigned long va)
+{
+	struct m_list *itr;
+
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
+			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
+	}
+	return MAX;
+}
+
+int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
+{
+	struct m_list *mnode;
+	unsigned long num;
+
+	if(is_add_usr_m_node_va(pmd_va & PAGE_MASK)){
+		if((num = get_pud_num(pud_va)) >= MAX)
+			return -1;
+	
+		if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK) < 0)
+			return -ENOMEM;
+	}
+	return 0;
+}
+
+static unsigned long get_pmd_num(unsigned long va)
+{
+	struct m_list *itr;
+
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
+			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
+	}
+	return MAX;
+}
+
+int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
+{
+	struct m_list *mnode;
+	unsigned long num;
+
+	if(is_add_usr_m_node_va(pte_va & PAGE_MASK)){
+		if((num = get_pmd_num(pmd_va)) >= MAX)
+			return -1;
+	
+		if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK) < 0)
+			return -ENOMEM;
 	}
 	return 0;
 }
