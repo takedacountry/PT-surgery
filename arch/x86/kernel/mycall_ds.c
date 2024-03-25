@@ -367,6 +367,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 	}
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
 static unsigned long get_pgd_num(unsigned long va)
 {
@@ -392,6 +393,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 	}
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_pud_m_list);
 
 static unsigned long get_pud_num(unsigned long va)
 {
@@ -417,6 +419,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 	}
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
 static unsigned long get_pmd_num(unsigned long va)
 {
@@ -443,6 +446,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 	}
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_pte_m_list);
 
 static int make_usr_list(unsigned long address, pte_t *ptep)
 {
