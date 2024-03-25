@@ -21,8 +21,10 @@
 
 #define USER_MAX 		0x100
 #define MAX 			0x200
-#define MAX_ADDRESS_SHIFT	47
-#define MAX_ADDRESS  		(_AT(long, 1) << MAX_ADDRESS_SHIFT)
+#define USER_MAX_ADDRESS_SHIFT	47
+#define USER_MAX_ADDRESS  	(_AT(long, 1) << USER_MAX_ADDRESS_SHIFT)
+#define MAX_NUM_SHIFT		36
+#define MAX_NUM		  	(_AT(long, 1) << MAX_NUM_SHIFT)
 #define PT_PGTABLE_SHIFT 	9
 #define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SHIFT)
 #define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
@@ -356,7 +358,6 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 
 int make_pgd_m_list(unsigned long pgd_va)
 {
-	struct m_list *mnode;
 	unsigned long num = 0;
 
 	if(is_add_usr_m_node_va(pgd_va & PAGE_MASK)){
@@ -375,16 +376,15 @@ static unsigned long get_pgd_num(unsigned long va)
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
 			return make_ds_va(((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0, 0);
 	}
-	return MAX;
+	return MAX_NUM;
 }
 
 int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 {
-	struct m_list *mnode;
 	unsigned long num;
 
 	if(is_add_usr_m_node_va(pud_va & PAGE_MASK)){
-		if((num = get_pgd_num(pgd_va)) >= MAX)
+		if((num = get_pgd_num(pgd_va)) >= MAX_NUM)
 			return -1;
 	
 		if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK) < 0)
@@ -401,16 +401,15 @@ static unsigned long get_pud_num(unsigned long va)
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
 	}
-	return MAX;
+	return MAX_NUM;
 }
 
 int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 {
-	struct m_list *mnode;
 	unsigned long num;
 
 	if(is_add_usr_m_node_va(pmd_va & PAGE_MASK)){
-		if((num = get_pud_num(pud_va)) >= MAX)
+		if((num = get_pud_num(pud_va)) >= MAX_NUM)
 			return -1;
 	
 		if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK) < 0)
@@ -427,7 +426,7 @@ static unsigned long get_pmd_num(unsigned long va)
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
 	}
-	return MAX;
+	return MAX_NUM;
 }
 
 int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
@@ -436,7 +435,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 	unsigned long num;
 
 	if(is_add_usr_m_node_va(pte_va & PAGE_MASK)){
-		if((num = get_pmd_num(pmd_va)) >= MAX)
+		if((num = get_pmd_num(pmd_va)) >= MAX_NUM)
 			return -1;
 	
 		if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK) < 0)
@@ -534,7 +533,7 @@ end:
 int make_ds_list(unsigned long address, pte_t *ptep)
 {
 	printk(KERN_INFO "va:%ld pteva:%ld",address, (unsigned long)ptep);
-	if(address < MAX_ADDRESS)
+	if(address < USER_MAX_ADDRESS)
 		return make_usr_list(address, ptep);
 	// return make_ker_list(address, ptep);
 	return 0;
