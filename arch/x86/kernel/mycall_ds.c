@@ -534,6 +534,7 @@ int make_usr_ds_list(unsigned long va, pte_t pte)
 end:
 	return 0;
 }
+EXPORT_SYMBOL_GPL(make_usr_ds_list);
 
 static int make_usr_list(unsigned long address, pte_t *ptep)
 {
