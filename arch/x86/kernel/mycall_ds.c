@@ -164,8 +164,8 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
-// struct m_list_head *m_list;
-// struct ds_list_head *ds_list;
+struct m_list_head *m_list;
+struct ds_list_head *ds_list;
 // EXPORT_SYMBOL(ds_list);
 // EXPORT_SYMBOL(m_list);
 
@@ -359,6 +359,9 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 int make_pgd_m_list(unsigned long pgd_va)
 {
 	unsigned long num = 0;
+
+	init_ds_list_head();
+	init_m_list_head();
 
 	if(is_add_usr_m_node_va(pgd_va & PAGE_MASK)){
 		if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK) < 0){
