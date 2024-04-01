@@ -475,6 +475,8 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 	pmd_install(mm, pmd, &new);
 	if (new)
 		pte_free(mm, new);
+	// my code
+	make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(new));
 	return 0;
 }
 
