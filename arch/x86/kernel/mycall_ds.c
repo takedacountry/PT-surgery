@@ -266,6 +266,16 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
+static bool is_kernel_num_pgd(unsigned long va)
+{
+	struct m_list *itr;
+
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
+			return make_ds_va(((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0, 0);
+	}
+}
+
 static bool is_add_usr_m_node(unsigned long num)
 {
 	struct m_list *itr;
@@ -375,10 +385,16 @@ EXPORT_SYMBOL_GPL(make_pgd_m_list);
 static unsigned long get_pgd_num(unsigned long va)
 {
 	struct m_list *itr;
+	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
-			return make_ds_va(((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0, 0);
+		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = ((va - itr->va) / 64) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, 0, 0, 0);
+			}else{
+				printk(KERN_INFO "this pgd is in kernel pud\n");
+			}
+		}
 	}
 	return MAX_NUM;
 }
@@ -401,10 +417,16 @@ EXPORT_SYMBOL_GPL(make_pud_m_list);
 static unsigned long get_pud_num(unsigned long va)
 {
 	struct m_list *itr;
+	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
-			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
+		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
+			}else{
+				printk(KERN_INFO "this pgd is in kernel pmd\n");
+			}
+		}
 	}
 	return MAX_NUM;
 }
@@ -427,10 +449,16 @@ EXPORT_SYMBOL_GPL(make_pmd_m_list);
 static unsigned long get_pmd_num(unsigned long va)
 {
 	struct m_list *itr;
+	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_list->usr_m_list, list){
-		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE)
-			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
+		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
+			}else{
+				printk(KERN_INFO "this pgd is in kernel pte\n");
+			}
+		}
 	}
 	return MAX_NUM;
 }
