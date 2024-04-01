@@ -392,7 +392,7 @@ static unsigned long get_pgd_num(unsigned long va)
 			if((pgd_num = ((va - itr->va) / 64) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, 0, 0, 0);
 			}else{
-				printk(KERN_INFO "this pgd is in kernel pud\n");
+				printk(KERN_INFO "this pgd is in kernel\n");
 			}
 		}
 	}
@@ -424,7 +424,7 @@ static unsigned long get_pud_num(unsigned long va)
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
 			}else{
-				printk(KERN_INFO "this pgd is in kernel pmd\n");
+				printk(KERN_INFO "this pud is in kernel pmd\n");
 			}
 		}
 	}
@@ -456,7 +456,7 @@ static unsigned long get_pmd_num(unsigned long va)
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
 			}else{
-				printk(KERN_INFO "this pgd is in kernel pte\n");
+				printk(KERN_INFO "this pmd is in kernel pte\n");
 			}
 		}
 	}
@@ -477,6 +477,63 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
+
+static unsigned long get_pte_num(unsigned long va)
+{
+	struct m_list *itr;
+	unsigned long pgd_num;
+
+	list_for_each_entry(itr, &m_list->usr_m_list, list){
+		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK)
+			}else{
+				printk(KERN_INFO "this pte is in kernel pte\n");
+		}
+	}
+	return MAX_NUM;
+}
+
+int make_usr_ds_list(unsigned long va, pte_t pte)
+{
+	struct ds_list *dnode, *next, *prev;
+	unsigned long pte_value = pte_pfn(pte);
+	unsigned long pte_flag = pte_flags(pte);
+	unsigned long base;
+
+	if((base = get_pte_num(va)) >= MAX_NUM)
+		return -1;
+
+	if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
+		return -ENOMEM;
+	
+	// incert dnode
+	if(list_empty(&ds_list->usr_ds_list)){ //no node
+		list_add(&dnode->list, &ds_list->usr_ds_list);
+	}else{
+		list_for_each_entry(next, &ds_list->usr_ds_list, list){
+			if(dnode->limit <= next->base){
+				list_add_tail(&dnode->list, &next->list);
+				if(list_is_first(&dnode->list, &ds_list->usr_ds_list)){
+					ds_node_merge(dnode, next);
+					goto end;
+				}
+				prev = list_prev_entry(dnode, list);
+				break;
+			}
+			if(list_is_last(&next->list, &ds_list->usr_ds_list)){
+				list_add_tail(&dnode->list, &ds_list->usr_ds_list);
+				prev = list_prev_entry(dnode, list);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
+		}
+		ds_node_merge(dnode, next);
+		ds_node_merge(prev, dnode);
+	}
+end:
+	return 0;
+}
 
 static int make_usr_list(unsigned long address, pte_t *ptep)
 {
