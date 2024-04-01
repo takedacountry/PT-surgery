@@ -7,6 +7,9 @@
 #include <asm/fixmap.h>
 #include <asm/mtrr.h>
 
+// my code
+#include <asm/ds.h>
+
 #ifdef CONFIG_DYNAMIC_PHYSICAL_MASK
 phys_addr_t physical_mask __ro_after_init = (1ULL << __PHYSICAL_MASK_SHIFT) - 1;
 EXPORT_SYMBOL(physical_mask);
@@ -431,6 +434,11 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 
 	if (pgd == NULL)
 		goto out;
+
+	// my code
+	if(make_pgd_m_list((unsigned long)pgd) < 0){
+		printk(KERN_INFO "pgd m list failure\n");
+	}
 
 	mm->pgd = pgd;
 
