@@ -5293,7 +5293,7 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
 		p4d_populate(mm, p4d, new);
 
 		// my code
-		make_pud_m_list((unsigned long)p4d, (unsigned long)new);
+		// make_pud_m_list((unsigned long)p4d, (unsigned long)new);
 	} else	/* Another has populated it */
 		pud_free(mm, new);
 	spin_unlock(&mm->page_table_lock);
@@ -5320,7 +5320,7 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 		pud_populate(mm, pud, new);
 
 		// my code
-		make_pmd_m_list((unsigned long)pud, (unsigned long)new);
+		// make_pmd_m_list((unsigned long)pud, (unsigned long)new);
 	} else {	/* Another has populated it */
 		pmd_free(mm, new);
 	}
