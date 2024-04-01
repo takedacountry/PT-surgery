@@ -1,3 +1,5 @@
+#include <linux/types.h>
+
 struct ds_list{
 	unsigned long base;
 	unsigned long limit;
@@ -6,10 +8,10 @@ struct ds_list{
 	struct list_head list;
 };
 
-// struct usr_ds_list_head{
-// 	int id;
-// 	struct list_head proc_list;
-// };
+struct usr_ds_list_head{
+	pid_t pid;
+	struct list_head proc_list;
+};
 
 struct ds_list_head{
 	struct list_head usr_ds_list;
@@ -22,10 +24,10 @@ struct m_list{
 	struct list_head list;
 };
 
-// struct usr_m_list_head{
-// 	int id;
-// 	struct list_head proc_list;
-// };
+struct usr_m_list_head{
+	pid_t pid;
+	struct list_head proc_list;
+};
 		
 struct m_list_head{
 	struct list_head usr_m_list;
