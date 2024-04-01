@@ -489,6 +489,7 @@ static unsigned long get_pte_num(unsigned long va)
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK)
 			}else{
 				printk(KERN_INFO "this pte is in kernel pte\n");
+			}
 		}
 	}
 	return MAX_NUM;
