@@ -434,7 +434,6 @@ static unsigned long get_pmd_num(unsigned long va)
 
 int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 {
-	struct m_list *mnode;
 	unsigned long num;
 
 	if(is_add_usr_m_node_va(pte_va & PAGE_MASK)){
