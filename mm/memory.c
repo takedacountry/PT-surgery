@@ -88,7 +88,7 @@
 #include <asm/tlbflush.h>
 
 // my code
-// #include <asm/ds.h>
+#include <asm/ds.h>
 
 #include "pgalloc-track.h"
 #include "internal.h"
@@ -5289,6 +5289,9 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
 		mm_inc_nr_puds(mm);
 		smp_wmb(); /* See comment in pmd_install() */
 		p4d_populate(mm, p4d, new);
+
+		// my code
+		make_pud_m_list((unsigned long)p4d, (unsigned long)new);
 	} else	/* Another has populated it */
 		pud_free(mm, new);
 	spin_unlock(&mm->page_table_lock);
@@ -5313,6 +5316,9 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 		mm_inc_nr_pmds(mm);
 		smp_wmb(); /* See comment in pmd_install() */
 		pud_populate(mm, pud, new);
+
+		// my code
+		make_pmd_m_list((unsigned long)pud, (unsigned long)new);
 	} else {	/* Another has populated it */
 		pmd_free(mm, new);
 	}
