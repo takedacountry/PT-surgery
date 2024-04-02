@@ -8,15 +8,16 @@ struct ds_list{
 	struct list_head list;
 };
 
-struct usr_ds_list_head{
+struct usr_ds_head{
 	pid_t pid;
-	struct list_head proc_list;
+	struct list_head ds_head
+	struct list_head head_list;
 };
 
-struct ds_list_head{
-	struct list_head usr_ds_list;
-	struct list_head ker_ds_list;
-};
+// struct ds_list_head{
+// 	struct list_head usr_ds_list;
+// 	struct list_head ker_ds_list;
+// };
 
 struct m_list{
 	unsigned long va;
@@ -24,22 +25,23 @@ struct m_list{
 	struct list_head list;
 };
 
-struct usr_m_list_head{
+struct usr_m_head{
 	pid_t pid;
-	struct list_head proc_list;
+	struct list_head m_head;
+	struct list_head head_list;
 };
 		
-struct m_list_head{
-	struct list_head usr_m_list;
-	struct list_head ker_m_list;
-};
+// struct m_list_head{
+// 	struct list_head usr_m_list;
+// 	struct list_head ker_m_list;
+// };
 
 // extern struct m_list_head *m_list;
 // extern struct ds_list_head *ds_list;
-extern struct list_head usr_m_list;
-extern struct list_head ker_m_list;
-extern struct list_head usr_ds_list;
-extern struct list_head ker_ds_list;
+extern struct list_head usr_m_head;
+extern struct list_head ker_m_head;
+extern struct list_head usr_ds_head;
+extern struct list_head ker_ds_head;
 
 extern void init_ds_list_head(void);
 extern void init_m_list_head(void);
