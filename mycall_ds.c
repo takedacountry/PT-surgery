@@ -22,6 +22,7 @@
 #define SYS_mycall_recover_pgtable 469
 #define SYS_mycall_ds_init 470
 #define SYS_mycall_ds_free 471
+#define SYS_mycall_ds_register_pid 472
 
 #define INDEX 1024*1024*1024 //1GB
 #define PGD 512
