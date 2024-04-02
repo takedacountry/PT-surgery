@@ -34,8 +34,12 @@ struct m_list_head{
 	struct list_head ker_m_list;
 };
 
-extern struct m_list_head *m_list;
-extern struct ds_list_head *ds_list;
+// extern struct m_list_head *m_list;
+// extern struct ds_list_head *ds_list;
+extern struct list_head usr_m_list;
+extern struct list_head ker_m_list;
+extern struct list_head usr_ds_list;
+extern struct list_head ker_ds_list;
 
 extern void init_ds_list_head(void);
 extern void init_m_list_head(void);
