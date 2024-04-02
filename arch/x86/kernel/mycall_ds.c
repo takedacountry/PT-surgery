@@ -183,7 +183,7 @@ void init_ds_list_head(void)
         // INIT_LIST_HEAD(&ker_ds_head);
         // printk(KERN_INFO "init ds list head\n");
 }
-EXPORT_SYMBOL_GPL(init_ds_list_head);
+// EXPORT_SYMBOL_GPL(init_ds_list_head);
 
 void init_m_list_head(void)
 {
@@ -194,14 +194,14 @@ void init_m_list_head(void)
         // INIT_LIST_HEAD(&ker_m_head);
         // printk(KERN_INFO "init m list head\n");
 }
-EXPORT_SYMBOL_GPL(init_m_list_head);
+// EXPORT_SYMBOL_GPL(init_m_list_head);
 
 void free_list_head(void)
 {
         // kfree(ds_list);
         // kfree(m_list);
 }
-EXPORT_SYMBOL_GPL(free_list_head);
+// EXPORT_SYMBOL_GPL(free_list_head);
 
 SYSCALL_DEFINE0(mycall_ds_init)
 {
@@ -1218,7 +1218,7 @@ static long register_pid(pid_t pid)
 	return 0;
 }
 
-SYSCALL_DEFINE0(mycall_ds_register_pid_, pid_t, pid)
+SYSCALL_DEFINE1(mycall_ds_register_pid_, pid_t, pid)
 {
 	return register_pid(pid);
 }
