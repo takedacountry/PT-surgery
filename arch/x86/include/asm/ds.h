@@ -10,7 +10,7 @@ struct ds_list{
 
 struct ds_head_list{
 	pid_t pid;
-	struct list_head ds_head
+	struct list_head ds_head;
 	struct list_head head_list;
 };
 
