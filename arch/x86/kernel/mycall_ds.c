@@ -369,6 +369,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 		if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK) < 0){
 			return -ENOMEM;
 		}
+		printk(KERN_INFO "\n", (int)current->pid);
 	}
 	return 0;
 }
