@@ -164,23 +164,23 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
-struct m_list_head *m_list;
-struct ds_list_head *ds_list;
+// struct m_list_head *m_list;
+// struct ds_list_head *ds_list;
 // EXPORT_SYMBOL(ds_list);
 // EXPORT_SYMBOL(m_list);
 
-LIST_HEAD(usr_m_list);
-LIST_HEAD(ker_m_list);
-LIST_HEAD(usr_ds_list);
-LIST_HEAD(ker_ds_list);
+LIST_HEAD(usr_m_head);
+LIST_HEAD(ker_m_head);
+LIST_HEAD(usr_ds_head);
+LIST_HEAD(ker_ds_head);
 
 void init_ds_list_head(void)
 {
         ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
         if(!ds_list)
                 return;
-        INIT_LIST_HEAD(&usr_ds_list);
-        INIT_LIST_HEAD(&ker_ds_list);
+        INIT_LIST_HEAD(&usr_ds_head);
+        INIT_LIST_HEAD(&ker_ds_head);
         printk(KERN_INFO "init ds list head\n");
 }
 EXPORT_SYMBOL_GPL(init_ds_list_head);
@@ -190,8 +190,8 @@ void init_m_list_head(void)
         m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
         if(!m_list)
                 return;
-        INIT_LIST_HEAD(&usr_m_list);
-        INIT_LIST_HEAD(&ker_m_list);
+        INIT_LIST_HEAD(&usr_m_head);
+        INIT_LIST_HEAD(&ker_m_head);
         printk(KERN_INFO "init m list head\n");
 }
 EXPORT_SYMBOL_GPL(init_m_list_head);
@@ -238,7 +238,7 @@ static struct ds_list *make_ds_node(unsigned long base, unsigned long limit, lon
 	list->limit = limit;
 	list->offset = offset;
 	list->flag = flag;
-	// list_add_tail(&list->list, &usr_ds_list);
+	// list_add_tail(&list->list, &usr_ds_head);
 	return list;
 }
 
@@ -250,7 +250,7 @@ static struct m_list *make_m_node(unsigned long va, unsigned long num)
 
 	list->va = va & PAGE_MASK;
 	list->num = num;
-	// list_add_tail(&list->list, &usr_m_list);
+	// list_add_tail(&list->list, &usr_m_head);
 	return list;
 }
 
@@ -271,11 +271,11 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
-static bool is_add_usr_m_node(unsigned long num)
+static bool is_add_usr_m_node(unsigned long num, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->num == num)
 			return false;
 		if(num < itr->num)
@@ -284,108 +284,113 @@ static bool is_add_usr_m_node(unsigned long num)
 	return true;
 }
 
-static bool is_add_usr_m_node_va(unsigned long va)
+static bool is_add_usr_m_node_va(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->va == va)
 			return false;
 	}
 	return true;
 }
 	
-static int add_usr_m_node(unsigned long va, unsigned long num)
+static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_list *m_head)
 {
 	struct m_list *mnode, *itr;
 
 	if((mnode = make_m_node(va, num)) == NULL)
 		return -ENOMEM;
 
-	if(list_empty(&usr_m_list)){ //no node
-		list_add(&mnode->list, &usr_m_list);
+	if(list_empty(&m_head->head_list)){ //no node
+		list_add(&mnode->list, &m_head->head_list);
 	}else{
-		list_for_each_entry(itr, &usr_m_list, list){
+		list_for_each_entry(itr, &m_head->head_list, list){
 			if(num < itr->num){
 				list_add_tail(&mnode->list, &itr->list);
 				return 0;
 			}
 		}
-		list_add_tail(&mnode->list, &usr_m_list);
+		list_add_tail(&mnode->list, &m_head->head_list);
 	}
 	return 0;
 }
 
-static bool is_add_ker_m_node(unsigned long num)
-{
-	struct m_list *itr;
+// static bool is_add_ker_m_node(unsigned long num)
+// {
+// 	struct m_list *itr;
 	
-	list_for_each_entry(itr, &ker_m_list, list){
-		if(itr->num == num)
-			return false;
-		if(num < itr->num)
-			break;
-	}
-	return true;
-}
+// 	list_for_each_entry(itr, &ker_m_head, list){
+// 		if(itr->num == num)
+// 			return false;
+// 		if(num < itr->num)
+// 			break;
+// 	}
+// 	return true;
+// }
 
-static bool is_add_ker_m_node_va(unsigned long va)
-{
-	struct m_list *itr;
+// static bool is_add_ker_m_node_va(unsigned long va)
+// {
+// 	struct m_list *itr;
 	
-	list_for_each_entry(itr, &ker_m_list, list){
-		if(itr->va == va)
-			return false;
-	}
-	return true;
-}
+// 	list_for_each_entry(itr, &ker_m_head, list){
+// 		if(itr->va == va)
+// 			return false;
+// 	}
+// 	return true;
+// }
 
-static int add_ker_m_node(unsigned long va, unsigned long num)
-{
-	struct m_list *mnode, *itr;
+// static int add_ker_m_node(unsigned long va, unsigned long num)
+// {
+// 	struct m_list *mnode, *itr;
 
-	if((mnode = make_m_node(va, num)) == NULL)
-		return -ENOMEM;
+// 	if((mnode = make_m_node(va, num)) == NULL)
+// 		return -ENOMEM;
 
-	if(list_empty(&ker_m_list)){ //no node
-		list_add(&mnode->list, &ker_m_list);
-	}else{
-		list_for_each_entry(itr, &ker_m_list, list){
-			if(num < itr->num){
-				list_add_tail(&mnode->list, &itr->list);
-				return 0;
-			}
-		}
-		list_add_tail(&mnode->list, &ker_m_list);
-	}
-	return 0;
-}
+// 	if(list_empty(&ker_m_head)){ //no node
+// 		list_add(&mnode->list, &ker_m_head);
+// 	}else{
+// 		list_for_each_entry(itr, &ker_m_head, list){
+// 			if(num < itr->num){
+// 				list_add_tail(&mnode->list, &itr->list);
+// 				return 0;
+// 			}
+// 		}
+// 		list_add_tail(&mnode->list, &ker_m_head);
+// 	}
+// 	return 0;
+// }
 
 int make_pgd_m_list(unsigned long pgd_va)
 {
+	struct m_head_list *m_head;
 	unsigned long num = 0;
 
-	if(is_add_usr_m_node_va(pgd_va & PAGE_MASK)){
-		if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK) < 0){
-			return -ENOMEM;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node_va(pgd_va & PAGE_MASK, m_head)){
+				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0){
+					return -ENOMEM;
+				}
+				printk(KERN_INFO "add pgd m list pid: %d\n", (int)current->pid);
+			}
+			return 0;
 		}
-		printk(KERN_INFO "\n", (int)current->pid);
 	}
-	return 0;
+	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
-static unsigned long get_pgd_num(unsigned long va)
+static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = ((va - itr->va) / 64) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, 0, 0, 0);
-			}else{
-				printk(KERN_INFO "this pgd is in kernel\n");
 			}
 		}
 	}
@@ -394,30 +399,35 @@ static unsigned long get_pgd_num(unsigned long va)
 
 int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 {
+	struct m_head_list *m_head;
 	unsigned long num;
 
-	if(is_add_usr_m_node_va(pud_va & PAGE_MASK)){
-		if((num = get_pgd_num(pgd_va)) >= MAX_NUM)
-			return -1;
-	
-		if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK) < 0)
-			return -ENOMEM;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node_va(pud_va & PAGE_MASK, m_head)){
+				if((num = get_pgd_num(pgd_va, m_head)) >= MAX_NUM)
+					return -1;
+			
+				if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK, m_head) < 0)
+					return -ENOMEM;
+			}
+			return 0;
+		}
 	}
-	return 0;
+	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
-static unsigned long get_pud_num(unsigned long va)
+static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
-			}else{
-				printk(KERN_INFO "this pud is in kernel pmd\n");
 			}
 		}
 	}
@@ -426,30 +436,35 @@ static unsigned long get_pud_num(unsigned long va)
 
 int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 {
+	struct m_head_list *m_head;
 	unsigned long num;
 
-	if(is_add_usr_m_node_va(pmd_va & PAGE_MASK)){
-		if((num = get_pud_num(pud_va)) >= MAX_NUM)
-			return -1;
-	
-		if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK) < 0)
-			return -ENOMEM;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node_va(pmd_va & PAGE_MASK, m_head)){
+				if((num = get_pud_num(pud_va, m_head)) >= MAX_NUM)
+					return -1;
+			
+				if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK, m_head) < 0)
+					return -ENOMEM;
+			}
+			return 0;
+		}
 	}
-	return 0;
+	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
-static unsigned long get_pmd_num(unsigned long va)
+static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
-			}else{
-				printk(KERN_INFO "this pmd is in kernel pte\n");
 			}
 		}
 	}
@@ -458,30 +473,35 @@ static unsigned long get_pmd_num(unsigned long va)
 
 int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 {
+	struct m_head_list *m_head;
 	unsigned long num;
 
-	if(is_add_usr_m_node_va(pte_va & PAGE_MASK)){
-		if((num = get_pmd_num(pmd_va)) >= MAX_NUM)
-			return -1;
-	
-		if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK) < 0)
-			return -ENOMEM;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node_va(pte_va & PAGE_MASK, m_head)){
+				if((num = get_pmd_num(pmd_va, m_head)) >= MAX_NUM)
+					return -1;
+			
+				if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK, m_head) < 0)
+					return -ENOMEM;
+			}
+			return 0;
+		}
 	}
-	return 0;
+	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
-static unsigned long get_pte_num(unsigned long va)
+static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &m_head->head_list, list){
 		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK);
-			}else{
-				printk(KERN_INFO "this pte is in kernel pte\n");
 			}
 		}
 	}
@@ -490,41 +510,53 @@ static unsigned long get_pte_num(unsigned long va)
 
 int make_usr_ds_list(unsigned long va, pte_t pte)
 {
+	struct m_head_list *m_head;
+	struct ds_head_list *ds_head;
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
 	unsigned long base;
 
-	if((base = get_pte_num(va)) >= MAX_NUM)
-		return -1;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if((base = get_pte_num(va, m_head)) >= MAX_NUM)
+				return -1;
+		}
+	}
 
-	if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
-		return -ENOMEM;
-	
-	// incert dnode
-	if(list_empty(&usr_ds_list)){ //no node
-		list_add(&dnode->list, &usr_ds_list);
-	}else{
-		list_for_each_entry(next, &usr_ds_list, list){
-			if(dnode->limit <= next->base){
-				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &usr_ds_list)){
-					ds_node_merge(dnode, next);
-					goto end;
+	list_for_each_entry(ds_head, &usr_ds_head, head_list){
+		if(ds_head->pid == current->pid){		
+			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
+				return -ENOMEM;
+			
+			// incert dnode
+			if(list_empty(&ds_head->head_list)){ //no node
+				list_add(&dnode->list, &ds_head->head_list);
+			}else{
+				list_for_each_entry(next, &ds_head->head_list, list){
+					if(dnode->limit <= next->base){
+						list_add_tail(&dnode->list, &next->list);
+						if(list_is_first(&dnode->list, &ds_head->head_list)){
+							ds_node_merge(dnode, next);
+							goto end;
+						}
+						prev = list_prev_entry(dnode, list);
+						break;
+					}
+					if(list_is_last(&next->list, &ds_head->head_list)){
+						list_add_tail(&dnode->list, &ds_head->head_list);
+						prev = list_prev_entry(dnode, list);
+						ds_node_merge(prev, dnode);
+						goto end;
+					}
 				}
-				prev = list_prev_entry(dnode, list);
-				break;
-			}
-			if(list_is_last(&next->list, &usr_ds_list)){
-				list_add_tail(&dnode->list, &usr_ds_list);
-				prev = list_prev_entry(dnode, list);
+				ds_node_merge(dnode, next);
 				ds_node_merge(prev, dnode);
 				goto end;
 			}
 		}
-		ds_node_merge(dnode, next);
-		ds_node_merge(prev, dnode);
 	}
+	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
 end:
 	return 0;
 }
@@ -545,21 +577,21 @@ static int make_usr_list(unsigned long address, pte_t *ptep)
 			return -ENOMEM;
 		
 	// incert dnode
-	if(list_empty(&usr_ds_list)){ //no node
-		list_add(&dnode->list, &usr_ds_list);
+	if(list_empty(&usr_ds_head)){ //no node
+		list_add(&dnode->list, &usr_ds_head);
 	}else{
-		list_for_each_entry(next, &usr_ds_list, list){
+		list_for_each_entry(next, &usr_ds_head, list){
 			if(dnode->limit <= next->base){
 				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &usr_ds_list)){
+				if(list_is_first(&dnode->list, &usr_ds_head)){
 					ds_node_merge(dnode, next);
 					goto end;
 				}
 				prev = list_prev_entry(dnode, list);
 				break;
 			}
-			if(list_is_last(&next->list, &usr_ds_list)){
-				list_add_tail(&dnode->list, &usr_ds_list);
+			if(list_is_last(&next->list, &usr_ds_head)){
+				list_add_tail(&dnode->list, &usr_ds_head);
 				prev = list_prev_entry(dnode, list);
 				ds_node_merge(prev, dnode);
 				goto end;
@@ -588,21 +620,21 @@ static int make_ker_list(unsigned long address, pte_t *ptep)
 			return -ENOMEM;
 		
 	// incert dnode
-	if(list_empty(&ker_ds_list)){ //no node
-		list_add(&dnode->list, &ker_ds_list);
+	if(list_empty(&ker_ds_head)){ //no node
+		list_add(&dnode->list, &ker_ds_head);
 	}else{
-		list_for_each_entry(next, &ker_ds_list, list){
+		list_for_each_entry(next, &ker_ds_head, list){
 			if(dnode->limit <= next->base){
 				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &ker_ds_list)){
+				if(list_is_first(&dnode->list, &ker_ds_head)){
 					ds_node_merge(dnode, next);
 					goto end;
 				}
 				prev = list_prev_entry(dnode, list);
 				break;
 			}
-			if(list_is_last(&next->list, &ker_ds_list)){
-				list_add_tail(&dnode->list, &ker_ds_list);
+			if(list_is_last(&next->list, &ker_ds_head)){
+				list_add_tail(&dnode->list, &ker_ds_head);
 				prev = list_prev_entry(dnode, list);
 				ds_node_merge(prev, dnode);
 				goto end;
@@ -979,6 +1011,7 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 static int print_usr_ds(void)
 {
 	struct ds_list *itr;
+	struct ds_head_list *ds_head;
 	int count = 0;
 
 	struct file *file;
@@ -997,13 +1030,22 @@ static int print_usr_ds(void)
         if(!buf)
 		return -1;
 	memset(buf, '\0', 100);
-	
-	list_for_each_entry(itr, &usr_ds_list, list){
-		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-		kernel_write(file, buf, size, &pos);
-		vfs_fsync_range(file, 0, size, 1);
-		count++;
+
+	list_for_each_entry(ds_head, &usr_ds_head, head_list){
+		if(ds_head->pid == current->pid){
+			printk(KERN_INFO "ds pid: %d\n", (int)current->pid);
+			size = sprintf(buf, "ds pid: %d\n", (int)current->pid);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			list_for_each_entry(itr, &ds_head->head_list, list){
+				// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+				size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+				kernel_write(file, buf, size, &pos);
+				vfs_fsync_range(file, 0, size, 1);
+				count++;
+			}
+		}
 	}
 	printk(KERN_INFO "user ds count %d\n", count);
 	size = sprintf(buf, "user ds count %d\n", count);
@@ -1035,7 +1077,7 @@ static int print_ker_ds(void)
 		return -1;
 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &ker_ds_list, list){
+	list_for_each_entry(itr, &ker_ds_head, list){
 		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
 		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
@@ -1060,6 +1102,7 @@ SYSCALL_DEFINE0(mycall_ds_search)
 static int print_usr_m(void)
 {
 	struct m_list *itr;
+	struct m_head_list *m_head;
 	int count=0;
 	
 	struct file *file;
@@ -1078,13 +1121,22 @@ static int print_usr_m(void)
         if(!buf)
 		return -1;
 	memset(buf, '\0', 100);
-	
-	list_for_each_entry(itr, &usr_m_list, list){
-		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
-		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
-		kernel_write(file, buf, size, &pos);
-		vfs_fsync_range(file, 0, size, 1);
-		count++;
+
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			printk(KERN_INFO "m pid: %d\n", (int)current->pid);
+			size = sprintf(buf, "m pid: %d\n", (int)current->pid);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			list_for_each_entry(itr, &m_head->head_list, list){
+				// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+				size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+				kernel_write(file, buf, size, &pos);
+				vfs_fsync_range(file, 0, size, 1);
+				count++;
+			}
+		}
 	}
 	printk(KERN_INFO "user m count %d\n", count);
 	size = sprintf(buf, "user m count %d\n", count);
@@ -1116,7 +1168,7 @@ static int print_ker_m(void)
 		return -1;
 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &ker_m_list, list){
+	list_for_each_entry(itr, &ker_m_head, list){
 		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
 		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
 		kernel_write(file, buf, size, &pos);
@@ -1138,6 +1190,26 @@ SYSCALL_DEFINE0(mycall_m_search)
 	return 0;
 }
 
+static long register_pid(pid_t pid)
+{
+	struct usr_ds_head *ds_node = kmalloc(sizeof(struct usr_ds_head), GFP_KERNEL);
+	struct usr_m_head *m_node = kmalloc(sizeof(struct usr_m_head), GFP_KERNEL);
+	if(!ds_node || !m_node)
+		return -1;
+	ds_node->pid = pid;
+	m_node->pid = pid;
+	INIT_LIST_HEAD(&ds_node->ds_head);
+	INIT_LIST_HEAD(&m_node->m_head);
+	list_add(&ds_node->head_list, &usr_ds_head);
+	list_add(&m_node->head_list, &usr_m_head);
+
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_ds_register_pid_, pid_t, pid)
+{
+	return register_pid(pid);
+}
 
 
 static int get_pmd_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, pmd_t **pmdpp)
@@ -1374,7 +1446,7 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
-	list_for_each_entry(itr, &usr_ds_list, list){
+	list_for_each_entry(itr, &usr_ds_head, list){
 		if(itr->limit <= va_start){
 			continue; // not hit yet
 		}else if(va_end < itr->base){
@@ -1570,7 +1642,7 @@ static long recover_all_pgtable(void)
 
 					// pte = ptep_new;
 
-					// list_for_each_entry(itr, &usr_ds_list, list){
+					// list_for_each_entry(itr, &usr_ds_head, list){
 					// 	if(itr->limit <= va_start){
 					// 		continue; // not hit yet
 					// 	}else if(va_end < itr->base){
@@ -1642,7 +1714,7 @@ static long recover_all_pgtable(void)
 
 					// pte = ptep_new;
 					
-					// list_for_each_entry(itr, &usr_ds_list, list){
+					// list_for_each_entry(itr, &usr_ds_head, list){
 					// 	if(itr->limit <= va_start){
 					// 		continue; // not hit yet
 					// 	}else if(va_end < itr->base){
@@ -1746,7 +1818,7 @@ static long recover_pgtable(unsigned long va)
 		// goto err;
 	// memset(buf, '\0', 100);
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &usr_m_head, list){
 		if(itr->va <= va && va < itr->va + 0x1000){
 			printk(KERN_INFO "pgtable found %lx\n",va);
 			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
@@ -1774,25 +1846,25 @@ static long delete_ds(void)
 	struct ds_list *itr;
 	int count=0;
 
-	while((&usr_ds_list)->next != &usr_ds_list){
-		itr = list_first_entry(&usr_ds_list, typeof(*itr), list);
+	while((&usr_ds_head)->next != &usr_ds_head){
+		itr = list_first_entry(&usr_ds_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	while((&ker_ds_list)->next != &ker_ds_list){
-		itr = list_first_entry(&ker_ds_list, typeof(*itr), list);
+	while((&ker_ds_head)->next != &ker_ds_head){
+		itr = list_first_entry(&ker_ds_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	list_for_each_entry(itr, &usr_ds_list, list){
+	list_for_each_entry(itr, &usr_ds_head, list){
 		count++;
 	}
 	printk(KERN_INFO "delete user ds count %d\n", count);
 
 	count=0;
-	list_for_each_entry(itr, &ker_ds_list, list){
+	list_for_each_entry(itr, &ker_ds_head, list){
 		count++;
 	}
 	printk(KERN_INFO "delete kern ds count %d\n", count);
@@ -1810,25 +1882,25 @@ static long delete_m(void)
 	struct m_list *itr;
 	int count=0;
 
-	while((&usr_m_list)->next != &usr_m_list){
-		itr = list_first_entry(&usr_m_list, typeof(*itr), list);
+	while((&usr_m_head)->next != &usr_m_head){
+		itr = list_first_entry(&usr_m_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	while((&ker_m_list)->next != &ker_m_list){
-		itr = list_first_entry(&ker_m_list, typeof(*itr), list);
+	while((&ker_m_head)->next != &ker_m_head){
+		itr = list_first_entry(&ker_m_head, typeof(*itr), list);
 		list_del(&itr->list);
 		kfree(itr);
 	}
 
-	list_for_each_entry(itr, &usr_m_list, list){
+	list_for_each_entry(itr, &usr_m_head, list){
 		count++;
 	}
 	printk(KERN_INFO "delete user m count %d\n", count);
 
 	count=0;
-	list_for_each_entry(itr, &ker_m_list, list){
+	list_for_each_entry(itr, &ker_m_head, list){
 		count++;
 	}
 	printk(KERN_INFO "delete kern m count %d\n", count);
@@ -1840,3 +1912,4 @@ SYSCALL_DEFINE0(mycall_m_delete)
 {
 	return delete_m();
 }
+
