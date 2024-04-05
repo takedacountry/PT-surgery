@@ -377,7 +377,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
@@ -414,7 +414,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
@@ -451,7 +451,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
@@ -488,7 +488,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
@@ -519,7 +519,7 @@ int make_usr_ds_list(unsigned long va, pte_t pte)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM)
-				return -1;
+				return 0;
 		}
 	}
 
