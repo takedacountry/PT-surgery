@@ -57,6 +57,7 @@ unsigned long vaddr;
 // extern struct ds_list_head *ds_list;
 // extern struct m_list_head *m_list;
 
+
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
 	return (pte_t *)pmd_page_vaddr(*pmd) + index;
