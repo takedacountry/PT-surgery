@@ -1853,15 +1853,22 @@ SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
 	return ret;
 }
 
+
+// remake now
 static long delete_ds(void)
 {
 	struct ds_list *itr;
+	struct ds_head_list *ds_head;
 	int count=0;
 
-	while((&usr_ds_head)->next != &usr_ds_head){
-		itr = list_first_entry(&usr_ds_head, typeof(*itr), list);
-		list_del(&itr->list);
-		kfree(itr);
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == current->pid){
+			while((&ds_head->head)->next != &ds_head->head){
+				itr = list_first_entry(&ds_head->head, typeof(*itr), list);
+				list_del(&itr->list);
+				kfree(itr);
+			}
+		}
 	}
 
 	while((&ker_ds_head)->next != &ker_ds_head){
