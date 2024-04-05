@@ -445,8 +445,8 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 	// my code
-	if(make_usr_ds_list((unsigned long)ptep, pte) < 0)
-		printk(KERN_INFO "set pte failure\n");
+	// if(make_usr_ds_list((unsigned long)ptep, pte) < 0)
+		// printk(KERN_INFO "set pte failure\n");
 }
 
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
