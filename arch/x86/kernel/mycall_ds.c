@@ -176,30 +176,30 @@ LIST_HEAD(ker_ds_head);
 
 void init_ds_list_head(void)
 {
-        ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
-        if(!ds_list)
-                return;
-        INIT_LIST_HEAD(&usr_ds_head);
-        INIT_LIST_HEAD(&ker_ds_head);
-        printk(KERN_INFO "init ds list head\n");
+//        ds_list = kmalloc(sizeof(struct ds_list_head), GFP_KERNEL);
+//        if(!ds_list)
+//                return;
+//        INIT_LIST_HEAD(&usr_ds_head);
+//        INIT_LIST_HEAD(&ker_ds_head);
+//        printk(KERN_INFO "init ds list head\n");
 }
 EXPORT_SYMBOL_GPL(init_ds_list_head);
 
 void init_m_list_head(void)
 {
-        m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
-        if(!m_list)
-                return;
-        INIT_LIST_HEAD(&usr_m_head);
-        INIT_LIST_HEAD(&ker_m_head);
-        printk(KERN_INFO "init m list head\n");
+//        m_list = kmalloc(sizeof(struct m_list_head), GFP_KERNEL);
+//        if(!m_list)
+//                return;
+//        INIT_LIST_HEAD(&usr_m_head);
+//        INIT_LIST_HEAD(&ker_m_head);
+//        printk(KERN_INFO "init m list head\n");
 }
 EXPORT_SYMBOL_GPL(init_m_list_head);
 
 void free_list_head(void)
 {
-        kfree(ds_list);
-        kfree(m_list);
+//        kfree(ds_list);
+//        kfree(m_list);
 }
 EXPORT_SYMBOL_GPL(free_list_head);
 
@@ -316,18 +316,18 @@ static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_lis
 	return 0;
 }
 
-// static bool is_add_ker_m_node(unsigned long num)
-// {
-// 	struct m_list *itr;
+static bool is_add_ker_m_node(unsigned long num)
+{
+	struct m_list *itr;
 	
-// 	list_for_each_entry(itr, &ker_m_head, list){
-// 		if(itr->num == num)
-// 			return false;
-// 		if(num < itr->num)
-// 			break;
-// 	}
-// 	return true;
-// }
+ 	list_for_each_entry(itr, &ker_m_head, list){
+ 		if(itr->num == num)
+ 			return false;
+ 		if(num < itr->num)
+ 			break;
+ 	}
+ 	return true;
+}
 
 // static bool is_add_ker_m_node_va(unsigned long va)
 // {
@@ -340,26 +340,24 @@ static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_lis
 // 	return true;
 // }
 
-// static int add_ker_m_node(unsigned long va, unsigned long num)
-// {
-// 	struct m_list *mnode, *itr;
-
-// 	if((mnode = make_m_node(va, num)) == NULL)
-// 		return -ENOMEM;
-
-// 	if(list_empty(&ker_m_head)){ //no node
-// 		list_add(&mnode->list, &ker_m_head);
-// 	}else{
-// 		list_for_each_entry(itr, &ker_m_head, list){
-// 			if(num < itr->num){
-// 				list_add_tail(&mnode->list, &itr->list);
-// 				return 0;
-// 			}
-// 		}
-// 		list_add_tail(&mnode->list, &ker_m_head);
-// 	}
-// 	return 0;
-// }
+static int add_ker_m_node(unsigned long va, unsigned long num)
+{
+ 	struct m_list *mnode, *itr;
+ 	if((mnode = make_m_node(va, num)) == NULL)
+ 		return -ENOMEM;
+ 	if(list_empty(&ker_m_head)){ //no node
+ 		list_add(&mnode->list, &ker_m_head);
+ 	}else{
+ 		list_for_each_entry(itr, &ker_m_head, list){
+ 			if(num < itr->num){
+ 				list_add_tail(&mnode->list, &itr->list);
+ 				return 0;
+ 			}
+ 		}
+ 		list_add_tail(&mnode->list, &ker_m_head);
+ 	}
+ 	return 0;
+}
 
 int make_pgd_m_list(unsigned long pgd_va)
 {
@@ -564,41 +562,54 @@ EXPORT_SYMBOL_GPL(make_usr_ds_list);
 
 static int make_usr_list(unsigned long address, pte_t *ptep)
 {
+	struct m_head_list *m_head;
+	struct ds_head_list *ds_head;
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
 	unsigned long addr = address >> PAGE_SHIFT;
 
-	if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
-		return -ENOMEM;
-
-	if(is_add_usr_m_node(addr & PT_PGTABLE_MASK_NOT))
-		if(add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT) < 0)
-			return -ENOMEM;
-		
-	// incert dnode
-	if(list_empty(&usr_ds_head)){ //no node
-		list_add(&dnode->list, &usr_ds_head);
-	}else{
-		list_for_each_entry(next, &usr_ds_head, list){
-			if(dnode->limit <= next->base){
-				list_add_tail(&dnode->list, &next->list);
-				if(list_is_first(&dnode->list, &usr_ds_head)){
-					ds_node_merge(dnode, next);
-					goto end;
-				}
-				prev = list_prev_entry(dnode, list);
-				break;
+	list_for_each_entry(m_head, &usr_m_head, head_list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node(addr & PT_PGTABLE_MASK_NOT, m_head)){
+				if(add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT, m_head) < 0)
+					return -ENOMEM;
 			}
-			if(list_is_last(&next->list, &usr_ds_head)){
-				list_add_tail(&dnode->list, &usr_ds_head);
-				prev = list_prev_entry(dnode, list);
+		}
+	}
+
+
+	list_for_each_entry(ds_head, &usr_ds_head, head_list){
+		if(ds_head->pid == current->pid){
+			if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
+				return -ENOMEM;
+
+			// incert dnode
+			if(list_empty(&ds_head->head_list)){ //no node
+				list_add(&dnode->list, &ds_head->head_list);
+			}else{
+				list_for_each_entry(next, &ds_head->head_list, list){
+					if(dnode->limit <= next->base){
+						list_add_tail(&dnode->list, &next->list);
+						if(list_is_first(&dnode->list, &ds_head->head_list)){
+							ds_node_merge(dnode, next);
+							goto end;
+						}
+						prev = list_prev_entry(dnode, list);
+						break;
+					}
+					if(list_is_last(&next->list, &ds_head->head_list)){
+						list_add_tail(&dnode->list, &ds_head->head_list);
+						prev = list_prev_entry(dnode, list);
+						ds_node_merge(prev, dnode);
+						goto end;
+					}
+				}
+				ds_node_merge(dnode, next);
 				ds_node_merge(prev, dnode);
 				goto end;
 			}
 		}
-		ds_node_merge(dnode, next);
-		ds_node_merge(prev, dnode);
 	}
 end:
 	return 0;
@@ -1192,16 +1203,16 @@ SYSCALL_DEFINE0(mycall_m_search)
 
 static long register_pid(pid_t pid)
 {
-	struct usr_ds_head *ds_node = kmalloc(sizeof(struct usr_ds_head), GFP_KERNEL);
-	struct usr_m_head *m_node = kmalloc(sizeof(struct usr_m_head), GFP_KERNEL);
+	struct ds_head_list *ds_node = kmalloc(sizeof(struct ds_head_list), GFP_KERNEL);
+	struct m_head_list *m_node = kmalloc(sizeof(struct m_head_list), GFP_KERNEL);
 	if(!ds_node || !m_node)
 		return -1;
 	ds_node->pid = pid;
 	m_node->pid = pid;
-	INIT_LIST_HEAD(&ds_node->ds_head);
-	INIT_LIST_HEAD(&m_node->m_head);
-	list_add(&ds_node->head_list, &usr_ds_head);
-	list_add(&m_node->head_list, &usr_m_head);
+	INIT_LIST_HEAD(&ds_node->head);
+	INIT_LIST_HEAD(&m_node->head);
+	list_add(&ds_node->list, &usr_ds_head);
+	list_add(&m_node->list, &usr_m_head);
 
 	return 0;
 }
