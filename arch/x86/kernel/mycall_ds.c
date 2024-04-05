@@ -1218,7 +1218,7 @@ static long register_pid(pid_t pid)
 	return 0;
 }
 
-SYSCALL_DEFINE0(mycall_ds_register_pid_, pid_t, pid)
+SYSCALL_DEFINE1(mycall_ds_register_pid_, pid_t, pid)
 {
 	return register_pid(pid);
 }
