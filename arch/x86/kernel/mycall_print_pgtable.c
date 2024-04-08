@@ -171,6 +171,7 @@ static long make_user_pgtable(void)
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
+							va_past = (unsigned long)ptep;
 						}
 						pte_value = pte_pfn(*ptep);
 						pte_flag = pte_flags(*ptep);
@@ -179,8 +180,6 @@ static long make_user_pgtable(void)
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 
-						va_past = (unsigned long)ptep;
-						
                         			count = num;
                     			}else if(num == 0){ // error
 						goto end;
