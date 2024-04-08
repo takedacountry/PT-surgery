@@ -57,6 +57,8 @@ unsigned long vaddr;
 // extern struct ds_list_head *ds_list;
 // extern struct m_list_head *m_list;
 
+static long register_pid(pid_t pid);
+
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -364,6 +366,9 @@ int make_pgd_m_list(unsigned long pgd_va)
 {
 	struct m_head_list *m_head;
 	unsigned long num = 0;
+
+	if(register_pid(current->pid) < 0)
+		printk(KERN_INFO "init ds/m failure\n");
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
@@ -1214,6 +1219,8 @@ static long register_pid(pid_t pid)
 	INIT_LIST_HEAD(&m_node->head);
 	list_add(&ds_node->list, &usr_ds_head);
 	list_add(&m_node->list, &usr_m_head);
+
+	printk(KERN_INFO "init pid %d\n",pid);
 
 	return 0;
 }
