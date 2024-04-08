@@ -175,7 +175,7 @@ static long make_user_pgtable(void)
 						pte_value = pte_pfn(*ptep);
 						pte_flag = pte_flags(*ptep);
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep, ((unsigned long)ptep - va_past)/64);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep, ((unsigned long)ptep - va_past)/0x8);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 
