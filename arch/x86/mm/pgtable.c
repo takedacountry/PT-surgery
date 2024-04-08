@@ -436,9 +436,9 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 		goto out;
 
 	// my code
-	if(make_pgd_m_list((unsigned long)pgd) < 0){
-		printk(KERN_INFO "pgd m list failure\n");
-	}
+	// if(make_pgd_m_list((unsigned long)pgd) < 0){
+	// 	printk(KERN_INFO "pgd m list failure\n");
+	// }
 
 	mm->pgd = pgd;
 
