@@ -1868,22 +1868,19 @@ static long delete_ds(void)
 	struct ds_head_list *ds_head;
 	int count=0;
 
-	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == current->pid){
-			while((&ds_head->head)->next != &ds_head->head){
-				itr = list_first_entry(&ds_head->head, typeof(*itr), list);
-				list_del(&itr->list);
-				kfree(itr);
-			}
-			list_for_each_entry(itr, &ds_head->head, list){
-				count++;
-			}
-			printk(KERN_INFO "delete user ds count %d\n", count);
-
-			list_del(&ds_head->list);
-			kfree(ds_head);
-			break;
+	while((&usr_ds_head)->next != &usr_ds_head){
+		while((&ds_head->head)->next != &ds_head->head){
+			itr = list_first_entry(&ds_head->head, typeof(*itr), list);
+			list_del(&itr->list);
+			kfree(itr);
 		}
+		list_for_each_entry(itr, &ds_head->head, list){
+			count++;
+		}
+		printk(KERN_INFO "delete user ds count %d, pid %d\n", count, ds_head->pid);
+
+		list_del(&ds_head->list);
+		kfree(ds_head);
 	}
 
 	// while((&ker_ds_head)->next != &ker_ds_head){
@@ -1911,22 +1908,19 @@ static long delete_m(void)
 	struct m_head_list *m_head;
 	int count=0;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
-			while((&m_head->head)->next != &m_head->head){
-				itr = list_first_entry(&m_head->head, typeof(*itr), list);
-				list_del(&itr->list);
-				kfree(itr);
-			}
-			list_for_each_entry(itr, &m_head->head, list){
-				count++;
-			}
-			printk(KERN_INFO "delete user m count %d\n", count);
-
-			list_del(&m_head->list);
-			kfree(m_head);
-			break;
+	while((&usr_m_head)->next != &usr_m_head){
+		while((&m_head->head)->next != &m_head->head){
+			itr = list_first_entry(&m_head->head, typeof(*itr), list);
+			list_del(&itr->list);
+			kfree(itr);
 		}
+		list_for_each_entry(itr, &m_head->head, list){
+			count++;
+		}
+		printk(KERN_INFO "delete user m count %d\n", count);
+
+		list_del(&m_head->list);
+		kfree(m_head);
 	}
 
 	// while((&ker_m_head)->next != &ker_m_head){
