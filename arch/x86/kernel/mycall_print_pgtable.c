@@ -142,6 +142,8 @@ static long make_user_pgtable(void)
 	unsigned long pte_flag;
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
+
+	unsigned long va_past = 0;
 	
 	struct file *file;
 	char *filename = "./user_pgtable";
@@ -173,9 +175,11 @@ static long make_user_pgtable(void)
 						pte_value = pte_pfn(*ptep);
 						pte_flag = pte_flags(*ptep);
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep, ((unsigned long)ptep - va_past)/64);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
+
+						va_past = (unsigned long)ptep;
 						
                         			count = num;
                     			}else if(num == 0){ // error
