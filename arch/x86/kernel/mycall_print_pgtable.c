@@ -16,8 +16,6 @@
 #define USER_MAX 0x100
 #define MAX 0x200
 
-static unsigned long pte_value;
-static unsigned long pte_flag;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -48,21 +46,20 @@ static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
 }
 
 
-static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
+	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
     		return 4;
   	}
-	pte_value = pte_pfn(*ptep);
-	pte_flag = pte_flags(*ptep);
 	
   	return 1;
 }
 
-static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
 
@@ -75,10 +72,10 @@ static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pmd_flags(*pmdp);
   //   		return 2;
   // 	}
-  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte, ptepp);
 }
 
-static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
 	  
@@ -91,10 +88,10 @@ static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pud_flags(*pudp);
   //   		return 3;
   // 	}
-  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte);  
+  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte, ptepp);  
 }
 
-static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	p4d_t *p4dp = p4d_offset_index(pgdp, pgd);
 	
@@ -102,7 +99,7 @@ static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, u
 	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
     		return 7;
   	}
-  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte, ptepp);
 }
 
 static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
@@ -116,7 +113,7 @@ static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
   	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte);
 }
 
-static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	struct mm_struct *mm = current->mm;
 
@@ -124,7 +121,7 @@ static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned
     		printk(KERN_INFO "error: The numbers are not appropriate.\n");
     		return 0;
   	}
-  	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte);
+  	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 }
 
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
@@ -135,10 +132,14 @@ static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsign
 
 static long make_user_pgtable(void)
 {
+	pte_t *ptep;
+		
 	int num;
 	int count;
 	int entry_count = 0;
 		
+	unsigned long pte_value;
+	unsigned long pte_flag;
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 	
@@ -163,14 +164,16 @@ static long make_user_pgtable(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
 						}
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 						
@@ -212,10 +215,14 @@ end:
 
 static long make_user_pgtable2(void)
 {
+	pte_t *ptep;
+
 	int num;
 	int count;
 	int entry_count = 0;
 		
+	unsigned long pte_value;
+	unsigned long pte_flag;
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 	
@@ -240,14 +247,16 @@ static long make_user_pgtable2(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
 						}
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 						
@@ -289,10 +298,14 @@ end:
 
 static long make_kernel_pgtable(void)
 {
+	pte_t *ptep;
+	
 	int num;
 	int count;
 	int entry_count = 0;
-	
+
+	unsigned long pte_value;
+	unsigned long pte_flag;
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 
@@ -318,14 +331,16 @@ static long make_kernel_pgtable(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
 						}
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
 
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 						
@@ -367,10 +382,14 @@ end:
 
 static long make_kernel_pgtable2(void)
 {
+	pte_t *ptep;
+	
 	int num;
 	int count;
 	int entry_count = 0;
-	
+
+	unsigned long pte_value;
+	unsigned long pte_flag;
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 
@@ -396,14 +415,16 @@ static long make_kernel_pgtable2(void)
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d)) > 0 && num < 4){ //pte hit
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, 0); // first entry num
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
 						}
+						pte_value = pte_pfn(*ptep);
+						pte_flag = pte_flags(*ptep);
 
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx\n", a, b, c, d, pte_value, pte_flag);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 						
