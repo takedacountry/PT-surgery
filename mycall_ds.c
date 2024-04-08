@@ -36,7 +36,7 @@ int main(void)
     long size;
     long count;
 
-    printf("%ld\n", syscall(SYS_mycall_ds_register_pid, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_ds_register_pid, getpid()));
     
     char *ma = (char*)malloc(INDEX);
     char *mb = (char*)malloc(INDEX);
