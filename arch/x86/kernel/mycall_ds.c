@@ -1025,7 +1025,7 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 }
 
 
-static int print_usr_ds(void)
+static int print_usr_ds(pid_t pid)
 {
 	struct ds_list *itr;
 	struct ds_head_list *ds_head;
@@ -1049,9 +1049,9 @@ static int print_usr_ds(void)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, head){
-		if(ds_head->pid == current->pid){
-			printk(KERN_INFO "ds pid: %d\n", (int)current->pid);
-			size = sprintf(buf, "ds pid: %d\n", (int)current->pid);
+		if(ds_head->pid == pid){
+			printk(KERN_INFO "ds pid: %d\n", pid);
+			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
@@ -1064,8 +1064,8 @@ static int print_usr_ds(void)
 			}
 		}
 	}
-	printk(KERN_INFO "user ds count %d\n", count);
-	size = sprintf(buf, "user ds count %d\n", count);
+	printk(KERN_INFO "user ds count %d, pid %d\n", count, pid);
+	size = sprintf(buf, "user ds count %d, pid %d\n", count, pid);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
@@ -1109,14 +1109,14 @@ static int print_ker_ds(void)
 	return 0;
 }
 
-SYSCALL_DEFINE0(mycall_ds_search)
+SYSCALL_DEFINE1(mycall_ds_search, pid_t, pid)
 {
-	print_usr_ds();
+	print_usr_ds(pid);
 	print_ker_ds();
 	return 0;
 }
 
-static int print_usr_m(void)
+static int print_usr_m(pid_t pid)
 {
 	struct m_list *itr;
 	struct m_head_list *m_head;
@@ -1140,9 +1140,9 @@ static int print_usr_m(void)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, head){
-		if(m_head->pid == current->pid){
-			printk(KERN_INFO "m pid: %d\n", (int)current->pid);
-			size = sprintf(buf, "m pid: %d\n", (int)current->pid);
+		if(m_head->pid == pid){
+			printk(KERN_INFO "m pid: %d\n", pid);
+			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
@@ -1155,8 +1155,8 @@ static int print_usr_m(void)
 			}
 		}
 	}
-	printk(KERN_INFO "user m count %d\n", count);
-	size = sprintf(buf, "user m count %d\n", count);
+	printk(KERN_INFO "user m count %d, pid %d\n", count, pid);
+	size = sprintf(buf, "user m count %d pid %d\n", count, pid);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
 	
@@ -1200,9 +1200,9 @@ static int print_ker_m(void)
 	return 0;
 }
 
-SYSCALL_DEFINE0(mycall_m_search)
+SYSCALL_DEFINE1(mycall_m_search, pid_t, pid)
 {
-	print_usr_m();
+	print_usr_m(pid);
 	print_ker_m();
 	return 0;
 }
