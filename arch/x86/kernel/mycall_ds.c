@@ -362,42 +362,47 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
  	return 0;
 }
 
-int make_pgd_m_list(unsigned long pgd_va)
-{
-	struct m_head_list *m_head;
-	unsigned long num = 0;
+// int make_pgd_m_list(unsigned long pgd_va)
+// {
+// 	struct m_head_list *m_head;
+// 	unsigned long num = 0;
 
-	// if(register_pid(current->pid) < 0)
-	// 	printk(KERN_INFO "init ds/m failure\n");
+// 	// if(register_pid(current->pid) < 0)
+// 	// 	printk(KERN_INFO "init ds/m failure\n");
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pgd_va & PAGE_MASK, m_head)){
-				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0){
-					return -ENOMEM;
-				}
-				printk(KERN_INFO "add pgd m list pid: %d\n", (int)current->pid);
-			}
-			return 0;
-		}
-	}
-	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(make_pgd_m_list);
+// 	list_for_each_entry(m_head, &usr_m_head, list){
+// 		if(m_head->pid == current->pid){
+// 			if(is_add_usr_m_node_va(pgd_va & PAGE_MASK, m_head)){
+// 				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0){
+// 					return -ENOMEM;
+// 				}
+// 				printk(KERN_INFO "add pgd m list pid: %d\n", (int)current->pid);
+// 			}
+// 			return 0;
+// 		}
+// 	}
+// 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+// 	return 0;
+// }
+// EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
 static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 {
-	struct m_list *itr;
+	// struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
-				return make_ds_va(pgd_num, 0, 0, 0);
-			}
-		}
+	// list_for_each_entry(itr, &m_head->head, list){
+	// 	if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+	// 		if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
+	// 			return make_ds_va(pgd_num, 0, 0, 0);
+	// 		}
+	// 	}
+	// }
+
+	if((pgd_num = ((va & PAGE_MASK) / 0x8) & PT_PGTABLE_MASK) < MAX){
+		return make_ds_va(pgd_num, 0, 0, 0);
 	}
+	
 	return MAX_NUM;
 }
 
