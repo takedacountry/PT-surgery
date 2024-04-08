@@ -367,8 +367,8 @@ int make_pgd_m_list(unsigned long pgd_va)
 	struct m_head_list *m_head;
 	unsigned long num = 0;
 
-	if(register_pid(current->pid) < 0)
-		printk(KERN_INFO "init ds/m failure\n");
+	// if(register_pid(current->pid) < 0)
+	// 	printk(KERN_INFO "init ds/m failure\n");
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
