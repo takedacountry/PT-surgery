@@ -1209,8 +1209,22 @@ SYSCALL_DEFINE0(mycall_m_search)
 
 static long register_pid(pid_t pid)
 {
-	struct ds_head_list *ds_node = kmalloc(sizeof(struct ds_head_list), GFP_KERNEL);
-	struct m_head_list *m_node = kmalloc(sizeof(struct m_head_list), GFP_KERNEL);
+	struct ds_head_list *ds_node;
+	struct m_head_list *m_node;
+
+	list_for_each_entry(ds_node, &usr_ds_head, list){
+		if(ds_node->pid == pid){
+			goto end;
+		}
+	}
+	list_for_each_entry(m_node, &usr_m_head, list){
+		if(m_node->pid == pid){
+			goto end;
+		}
+	}
+
+	ds_node = kmalloc(sizeof(struct ds_head_list), GFP_KERNEL);
+	m_node = kmalloc(sizeof(struct m_head_list), GFP_KERNEL);
 	if(!ds_node || !m_node)
 		return -1;
 	ds_node->pid = pid;
@@ -1221,7 +1235,7 @@ static long register_pid(pid_t pid)
 	list_add(&m_node->list, &usr_m_head);
 
 	printk(KERN_INFO "init pid %d\n",pid);
-
+end:
 	return 0;
 }
 
