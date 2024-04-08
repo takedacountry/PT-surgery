@@ -1883,6 +1883,7 @@ static long delete_ds(void)
 	int count=0;
 
 	while((&usr_ds_head)->next != &usr_ds_head){
+		ds_head = list_first_entry(&usr_ds_head, typeof(*ds_head), list);
 		while((&ds_head->head)->next != &ds_head->head){
 			itr = list_first_entry(&ds_head->head, typeof(*itr), list);
 			list_del(&itr->list);
@@ -1923,6 +1924,7 @@ static long delete_m(void)
 	int count=0;
 
 	while((&usr_m_head)->next != &usr_m_head){
+		m_head = list_first_entry(&usr_m_head, typeof(*m_head), list);
 		while((&m_head->head)->next != &m_head->head){
 			itr = list_first_entry(&m_head->head, typeof(*itr), list);
 			list_del(&itr->list);
