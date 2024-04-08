@@ -1868,25 +1868,27 @@ static long delete_ds(void)
 				list_del(&itr->list);
 				kfree(itr);
 			}
+			list_for_each_entry(itr, &ds_head->head, list){
+				count++;
+			}
+			printk(KERN_INFO "delete user ds count %d\n", count);
+
+			list_del(&ds_head->list);
+			kfree(ds_head);
+			break;
 		}
 	}
 
-	while((&ker_ds_head)->next != &ker_ds_head){
-		itr = list_first_entry(&ker_ds_head, typeof(*itr), list);
-		list_del(&itr->list);
-		kfree(itr);
-	}
+	// while((&ker_ds_head)->next != &ker_ds_head){
+	// 	itr = list_first_entry(&ker_ds_head, typeof(*itr), list);
+	// 	list_del(&itr->list);
+	// 	kfree(itr);
+	// }
 
-	list_for_each_entry(itr, &usr_ds_head, list){
-		count++;
-	}
-	printk(KERN_INFO "delete user ds count %d\n", count);
-
-	count=0;
-	list_for_each_entry(itr, &ker_ds_head, list){
-		count++;
-	}
-	printk(KERN_INFO "delete kern ds count %d\n", count);
+	// list_for_each_entry(itr, &ker_ds_head, list){
+	// 	count++;
+	// }
+	// printk(KERN_INFO "delete kern ds count %d\n", count);
 
 	return 0;
 }
@@ -1899,30 +1901,35 @@ SYSCALL_DEFINE0(mycall_ds_delete)
 static long delete_m(void)
 {
 	struct m_list *itr;
+	struct m_head_list *m_head;
 	int count=0;
 
-	while((&usr_m_head)->next != &usr_m_head){
-		itr = list_first_entry(&usr_m_head, typeof(*itr), list);
-		list_del(&itr->list);
-		kfree(itr);
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			while((&m_head->head)->next != &m_head->head){
+				itr = list_first_entry(&m_head->head, typeof(*itr), list);
+				list_del(&itr->list);
+				kfree(itr);
+			}
+			list_for_each_entry(itr, &m_head->head, list){
+				count++;
+			}
+			printk(KERN_INFO "delete user m count %d\n", count);
+
+			list_del(&m_head->list);
+			kfree(m_head);
+			break;
 	}
 
-	while((&ker_m_head)->next != &ker_m_head){
-		itr = list_first_entry(&ker_m_head, typeof(*itr), list);
-		list_del(&itr->list);
-		kfree(itr);
-	}
-
-	list_for_each_entry(itr, &usr_m_head, list){
-		count++;
-	}
-	printk(KERN_INFO "delete user m count %d\n", count);
-
-	count=0;
-	list_for_each_entry(itr, &ker_m_head, list){
-		count++;
-	}
-	printk(KERN_INFO "delete kern m count %d\n", count);
+	// while((&ker_m_head)->next != &ker_m_head){
+	// 	itr = list_first_entry(&ker_m_head, typeof(*itr), list);
+	// 	list_del(&itr->list);
+	// 	kfree(itr);
+	// }
+	// list_for_each_entry(itr, &ker_m_head, list){
+	// 	count++;
+	// }
+	// printk(KERN_INFO "delete kern m count %d\n", count);
 
 	return 0;
 }
