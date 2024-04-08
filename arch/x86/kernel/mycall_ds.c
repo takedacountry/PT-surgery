@@ -1919,6 +1919,7 @@ static long delete_m(void)
 			list_del(&m_head->list);
 			kfree(m_head);
 			break;
+		}
 	}
 
 	// while((&ker_m_head)->next != &ker_m_head){
