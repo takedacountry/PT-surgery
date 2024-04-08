@@ -393,7 +393,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = ((va - itr->va) / 64) & PT_PGTABLE_MASK) < MAX){
+			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
 				return make_ds_va(pgd_num, 0, 0, 0);
 			}
 		}
@@ -431,7 +431,7 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				return make_ds_va(pgd_num, ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0, 0);
+				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 			}
 		}
 	}
@@ -468,7 +468,7 @@ static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 64) & PT_PGTABLE_MASK, 0);
+				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
 			}
 		}
 	}
@@ -505,7 +505,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 64) & PT_PGTABLE_MASK);
+				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 			}
 		}
 	}
@@ -1933,7 +1933,7 @@ static long delete_m(void)
 		list_for_each_entry(itr, &m_head->head, list){
 			count++;
 		}
-		printk(KERN_INFO "delete user m count %d\n", count);
+		printk(KERN_INFO "delete user m count %d, pid %d\n", count, m_head->pid);
 
 		list_del(&m_head->list);
 		kfree(m_head);
