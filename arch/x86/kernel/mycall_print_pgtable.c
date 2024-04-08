@@ -102,7 +102,7 @@ static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, u
   	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte, ptepp);
 }
 
-static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte)
+static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
@@ -110,7 +110,7 @@ static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
     		return 7;
   	}
-  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte);
+  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte, ptepp);
 }
 
 static int search_pgtable_get_pfn(unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
