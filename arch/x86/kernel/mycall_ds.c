@@ -44,6 +44,19 @@
 #define OFFSET_MASK		(OFFSET_SIZE - 1)
 #define OFFSET_MASK_NOT		(~OFFSET_MASK)
 
+#define SAME_ADDR_SHIFT 	16
+#define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
+#define SAME_ADDR_MASK_NOT 	(~(SAME_ADDR_MASK))
+#define HIT_FLAG_SHIFT 		0
+#define CONTI_FLAG_SHIFT 	1
+#define SAME_FLAG_SHIFT 	2
+#define HIT_FLAG_MASK 		(_AT(int, 1) << HIT_FLAG_SHIFT)
+#define CONTI_FLAG_MASK 	(_AT(int, 1) << CONTI_FLAG_SHIFT)
+#define SAME_FLAG_MASK		(_AT(int, 1) << SAME_FLAG_SHIFT)
+#define HIT_FLAG_MASK_NOT 	(~(HIT_FLAG_MASK))
+#define CONTI_FLAG_MASK_NOT 	(~(CONTI_FLAG_MASK))
+#define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
+
 unsigned long vaddr;
 // extern struct ds_list_head *ds_list;
 // extern struct m_list_head *m_list;
