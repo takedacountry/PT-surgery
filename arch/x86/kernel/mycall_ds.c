@@ -564,7 +564,7 @@ int make_usr_ds_list_only_pte(unsigned long va, pte_t pte)
 end:
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_usr_ds_list);
+EXPORT_SYMBOL_GPL(make_usr_ds_list_only_pte);
 
 static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 {
