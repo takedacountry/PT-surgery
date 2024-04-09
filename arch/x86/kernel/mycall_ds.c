@@ -854,7 +854,7 @@ static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
   	return pgdp;
 }
 
-long make_ds_user(void)
+static long make_ds_user(void)
 {
 	pgd_t *pgdp;
 	// p4d_t *p4dp;
