@@ -434,8 +434,8 @@ EXPORT_SYMBOL_GPL(make_pud_m_list);
 
 static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 {
-	struct m_list *itr;
-	unsigned long pgd_num;
+	// struct m_list *itr;
+	// unsigned long pgd_num;
 
 	// list_for_each_entry(itr, &m_head->head, list){
 	// 	if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
