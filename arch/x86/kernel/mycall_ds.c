@@ -569,7 +569,7 @@ int make_usr_ds_list_only_pte(unsigned long va, pte_t pte)
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
 end:
-	printk(KERN_INFO "make ds base: %ld\n", base);
+	// printk(KERN_INFO "make ds base: %ld\n", base);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_usr_ds_list_only_pte);
