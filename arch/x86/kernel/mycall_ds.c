@@ -625,7 +625,7 @@ static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 		}
 	}
 end:
-	printk(KERN_INFO "make ds base: %ld\n", base);
+	printk(KERN_INFO "make ds base: %ld\n", addr);
 	return 0;
 	
 }
@@ -668,7 +668,7 @@ static int make_ker_ds_list(unsigned long addr, pte_t *ptep)
 		ds_node_merge(prev, dnode);
 	}
 end:
-	printk(KERN_INFO "make ds base: %ld\n", base);
+	printk(KERN_INFO "make ds base: %ld\n", addr);
 	return 0;
 	
 }
