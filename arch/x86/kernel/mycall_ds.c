@@ -39,19 +39,10 @@
 #define PMD_FLAG_MASK		(_AT(long, 1) << PMD_FLAG_SHIFT)
 #define PTE_FLAG_SHIFT		4
 #define PTE_FLAG_MASK		(_AT(long, 1) << PTE_FLAG_SHIFT)
-
-#define SAME_ADDR_SHIFT 	16
-#define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
-#define SAME_ADDR_MASK_NOT 	(~(SAME_ADDR_MASK))
-#define HIT_FLAG_SHIFT 		0
-#define CONTI_FLAG_SHIFT 	1
-#define SAME_FLAG_SHIFT 	2
-#define HIT_FLAG_MASK 		(_AT(int, 1) << HIT_FLAG_SHIFT)
-#define CONTI_FLAG_MASK 	(_AT(int, 1) << CONTI_FLAG_SHIFT)
-#define SAME_FLAG_MASK		(_AT(int, 1) << SAME_FLAG_SHIFT)
-#define HIT_FLAG_MASK_NOT 	(~(HIT_FLAG_MASK))
-#define CONTI_FLAG_MASK_NOT 	(~(CONTI_FLAG_MASK))
-#define SAME_FLAG_MASK_NOT 	(~(SAME_FLAG_MASK))
+#define OFFSET_SHIFT 		12
+#define OFFSET_SIZE		(_AT(long, 1) << OFFSET_SHIFT)
+#define OFFSET_MASK		(OFFSET_SIZE - 1)
+#define OFFSET_MASK_NOT		(~OFFSET_MASK)
 
 unsigned long vaddr;
 // extern struct ds_list_head *ds_list;
@@ -399,7 +390,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 	// 	}
 	// }
 
-	if((pgd_num = ((va & PAGE_MASK) / 0x8) & PT_PGTABLE_MASK) < MAX){
+	if((pgd_num = ((va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK) < MAX){
 		return make_ds_va(pgd_num, 0, 0, 0);
 	}
 	
@@ -423,7 +414,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 			return 0;
 		}
 	}
-	printk(KERN_INFO "pud no pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "pud no pid: %d\n", (int)current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
