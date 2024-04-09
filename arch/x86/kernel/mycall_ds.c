@@ -423,7 +423,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 			return 0;
 		}
 	}
-	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	printk(KERN_INFO "pud no pid: %d\n", (int)current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
