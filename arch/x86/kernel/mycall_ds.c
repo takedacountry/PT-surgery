@@ -366,47 +366,37 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
  	return 0;
 }
 
-// int make_pgd_m_list(unsigned long pgd_va)
-// {
-// 	struct m_head_list *m_head;
-// 	unsigned long num = 0;
+int make_pgd_m_list(unsigned long pgd_va)
+{
+	struct m_head_list *m_head;
+	unsigned long num = 0;
 
-// 	// if(register_pid(current->pid) < 0)
-// 	// 	printk(KERN_INFO "init ds/m failure\n");
-
-// 	list_for_each_entry(m_head, &usr_m_head, list){
-// 		if(m_head->pid == current->pid){
-// 			if(is_add_usr_m_node_va(pgd_va, m_head)){
-// 				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0){
-// 					return -ENOMEM;
-// 				}
-// 				printk(KERN_INFO "add pgd m list pid: %d\n", (int)current->pid);
-// 			}
-// 			return 0;
-// 		}
-// 	}
-// 	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
-// 	return 0;
-// }
-// EXPORT_SYMBOL_GPL(make_pgd_m_list);
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			if(is_add_usr_m_node_va(pgd_va, m_head)){
+				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0)
+					return -ENOMEM;
+			}
+			return 0;
+		}
+	}
+	// printk(KERN_INFO "pgd no pid: %d\n", (int)current->pid);
+	return 0;
+}
+EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
 static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 {
-	// struct m_list *itr;
+	struct m_list *itr;
 	unsigned long pgd_num;
 
-	// list_for_each_entry(itr, &m_head->head, list){
-	// 	if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-	// 		if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
-	// 			return make_ds_va(pgd_num, 0, 0, 0);
-	// 		}
-	// 	}
-	// }
-
-	if((pgd_num = ((va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK) < MAX){
-		return make_ds_va(pgd_num, 0, 0, 0);
+	list_for_each_entry(itr, &m_head->head, list){
+		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, 0, 0, 0);
+			}
+		}
 	}
-	
 	return MAX_NUM;
 }
 
@@ -434,18 +424,18 @@ EXPORT_SYMBOL_GPL(make_pud_m_list);
 
 static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 {
-	// struct m_list *itr;
-	// unsigned long pgd_num;
+	struct m_list *itr;
+	unsigned long pgd_num;
 
-	// list_for_each_entry(itr, &m_head->head, list){
-	// 	if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-	// 		if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-	// 			return make_ds_va(0, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
-	// 		}
-	// 	}
-	// }
-	// return MAX_NUM;
-	return make_ds_va(0, ((va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, 0);
+	list_for_each_entry(itr, &m_head->head, list){
+		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
+			}
+		}
+	}
+	return MAX_NUM;
+	// return make_ds_va(0, ((va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 }
 
 int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
@@ -522,7 +512,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	return MAX_NUM;
 }
 
-int make_usr_ds_list(unsigned long va, pte_t pte)
+int make_usr_ds_list_only_pte(unsigned long va, pte_t pte)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
@@ -534,7 +524,7 @@ int make_usr_ds_list(unsigned long va, pte_t pte)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM)
-				return 0;
+				return -1;
 		}
 	}
 
@@ -576,14 +566,13 @@ end:
 }
 EXPORT_SYMBOL_GPL(make_usr_ds_list);
 
-static int make_usr_list(unsigned long address, pte_t *ptep)
+static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
-	unsigned long addr = address >> PAGE_SHIFT;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
@@ -632,12 +621,11 @@ end:
 	
 }
 
-static int make_ker_list(unsigned long address, pte_t *ptep)
+static int make_ker_ds_list(unsigned long addr, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
 	unsigned long pte_flag = pte_flags(*ptep);
-	unsigned long addr = address >> PAGE_SHIFT;
 
 	if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
 		return -ENOMEM;
@@ -679,8 +667,8 @@ int make_ds_list(unsigned long address, pte_t *ptep)
 {
 	printk(KERN_INFO "va:%ld pteva:%ld",address, (unsigned long)ptep);
 	if(address < USER_MAX_ADDRESS)
-		return make_usr_list(address, ptep);
-	// return make_ker_list(address, ptep);
+		return make_usr_ds_list(address, ptep);
+	// return make_ker_ds_list(address, ptep);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_ds_list);
@@ -785,29 +773,28 @@ EXPORT_SYMBOL_GPL(make_ds_list);
 // 	return 0;
 // }
 
-static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+static pte_t *get_ptep(pmd_t *pmdp, unsigned long pte)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
-	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
-    		return 4;
+    		return NULL;
   	}
 
 	if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0)
 		printk(KERN_INFO "pte m list failure\n");
 		
-  	return 1;
+  	return ptep;
 }
 
-static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
 
   	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
     		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
-    		return 5;
+    		return NULL;
   	}
 
 	if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0)
@@ -818,16 +805,16 @@ static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pmd_flags(*pmdp);
   //   		return 2;
   // 	}
-  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte, ptepp);
+  	return pmdp;
 }
 
-static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
 	  
   	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
 	    	// printk(KERN_INFO "pud %lu is not present", pud);
-	    	return 6;
+	    	return NULL;
   	}
 
 	if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0)
@@ -838,84 +825,75 @@ static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, u
 		// pte_flag = pud_flags(*pudp);
   //   		return 3;
   // 	}
-  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte, ptepp);  
+  	return pudp;  
 }
 
-static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
-{
-  	p4d_t *p4dp = p4d_offset_index(pgdp, pgd);
+// static p4d_t *get_p4dp(pgd_t *pgdp, unsigned long p4d)
+// {
+//   	p4d_t *p4dp = p4d_offset_index(pgdp, p4d);
 	
-	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
-	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
-    		return 7;
-  	}
-  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte, ptepp);
-}
+// 	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
+// 	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
+//     		return NULL;
+//   	}
+//   	return p4dp;
+// }
 
-static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
-    		return 7;
+    		return NULL;
   	}
-  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte, ptepp);
+
+	if(make_pgd_m_list((unsigned long)pgdp) < 0)
+		printk(KERN_INFO "pgd m list failure\n");
+	
+  	return pgdp;
 }
 
-static long make_ds_user(void)
+long make_ds_user(void)
 {
 	pgd_t *pgdp;
-	p4d_t *p4dp;
+	// p4d_t *p4dp;
 	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
 	
-	int num;
-	int count;
 	int flag=0;
-		
 	unsigned long pte_num;
 
-	for(unsigned long a=0; a<USER_MAX; a++){
-		
-        	for(unsigned long b=0; b<MAX; b++){
-            		for(unsigned long c=0; c<MAX; c++){
-                		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, d);
-						if(flag == 0){
-							vaddr = (unsigned long)ptep;
-							flag = 1;
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
+		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
+	        	for(unsigned long pud=0; pud<MAX; pud++){
+				if((pudp = get_pudp(pgdp, pud)) !=NULL){
+		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
+						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
+			                		for(unsigned long pte=0; pte<MAX; pte++){
+			                    			if((ptep = get_ptep(pmdp, pte)) != NULL){
+									if(flag == 0){
+										vaddr = (unsigned long)ptep;
+										flag = 1;
+									}
+									// make_ds from num
+									// pte_num = make_ds_va(pgd, pud, pmd, pte);
+									// if(make_usr_ds_list(pte_num, ptep) < 0){
+									// 	goto end;
+
+									// make_ds from ptep
+									if(make_usr_ds_list_only_pte((unsigned long)ptep, *ptep) < 0)
+										printk(KERN_INFO "pte ds list failure\n");
+			                    			}
+			                		}
 						}
-						if(make_usr_list(pte_num << PAGE_SHIFT, ptep) < 0)
-							goto end;
-						
-                        			count = num;
-                    			}else if(num == 0){ // error
-						goto end;
-					}else{
-                        			count = num - 3;
-                    			}
-                    			num = 0;
-                    			if(--count > 0)
-                        			break;
-                    			count = 0;
-                		}
-                		if(--count > 0)
-                  			break;
-                		count = 0;
-            		}
-            		if(--count > 0)
-              			break;
-            		count = 0;
-        	}
-        	if(--count > 0)
-          		break;
-        	count = 0;
+		            		}
+				}
+	        	}
+		}
     	}
 end:
-	
 	return 0;
 }
 
@@ -1028,7 +1006,6 @@ end:
 //         	count = 0;
 //     	}
 // end:
-	
 // 	return 0;
 // }
 
@@ -1047,7 +1024,7 @@ static long make_ds_kernel(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
-						if(make_ker_list(pte_num << PAGE_SHIFT, ptep) < 0)
+						if(make_ker_ds_list(pte_num, ptep) < 0)
 							goto end;
 						
                         			count = num;
@@ -1074,7 +1051,6 @@ static long make_ds_kernel(void)
         	count = 0;
     	}
 end:
-	
 	return 0;
 }
 
