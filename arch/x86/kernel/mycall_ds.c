@@ -863,12 +863,12 @@ static long make_ds_user(void)
 	pte_t *ptep;
 	
 	int flag=0;
-	unsigned long pte_num;
+	// unsigned long pte_num;
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
 	        	for(unsigned long pud=0; pud<MAX; pud++){
-				if((pudp = get_pudp(pgdp, pud)) !=NULL){
+				if((pudp = get_pudp((p4d_t *)pgdp, pud)) !=NULL){
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
 						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
 			                		for(unsigned long pte=0; pte<MAX; pte++){
@@ -883,8 +883,10 @@ static long make_ds_user(void)
 									// 	goto end;
 
 									// make_ds from ptep
-									if(make_usr_ds_list_only_pte((unsigned long)ptep, *ptep) < 0)
+									if(make_usr_ds_list_only_pte((unsigned long)ptep, *ptep) < 0){
 										printk(KERN_INFO "pte ds list failure\n");
+										goto end;
+									}
 			                    			}
 			                		}
 						}
