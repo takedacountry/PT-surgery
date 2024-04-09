@@ -437,14 +437,14 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 	struct m_list *itr;
 	unsigned long pgd_num;
 
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
-			}
-		}
-	}
-	return MAX_NUM;
+	// list_for_each_entry(itr, &m_head->head, list){
+		// if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			// if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				return make_ds_va(0, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
+			// }
+		// }
+	// }
+	// return MAX_NUM;
 }
 
 int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
