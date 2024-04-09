@@ -1977,7 +1977,13 @@ static long delete_ds(void)
 
 		list_del(&ds_head->list);
 		kfree(ds_head);
+		count = 0;
 	}
+
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		count++;
+	}
+	printk(KERN_INFO "delete user ds head count %d\n", count);
 
 	// while((&ker_ds_head)->next != &ker_ds_head){
 	// 	itr = list_first_entry(&ker_ds_head, typeof(*itr), list);
@@ -2018,7 +2024,13 @@ static long delete_m(void)
 
 		list_del(&m_head->list);
 		kfree(m_head);
+		count = 0;
 	}
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		count++;
+	}
+	printk(KERN_INFO "delete user m head count %d\n", count);
 
 	// while((&ker_m_head)->next != &ker_m_head){
 	// 	itr = list_first_entry(&ker_m_head, typeof(*itr), list);
