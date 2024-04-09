@@ -102,7 +102,6 @@ static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, u
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
     		return 4;
   	}
-		
   	return 1;
 }
 
@@ -294,7 +293,8 @@ static bool is_add_usr_m_node(unsigned long num, struct m_head_list *m_head)
 static bool is_add_usr_m_node_va(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
-	
+
+	va &= PAGE_MASK;
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->va == va)
 			return false;
@@ -376,7 +376,7 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
 
 // 	list_for_each_entry(m_head, &usr_m_head, list){
 // 		if(m_head->pid == current->pid){
-// 			if(is_add_usr_m_node_va(pgd_va & PAGE_MASK, m_head)){
+// 			if(is_add_usr_m_node_va(pgd_va, m_head)){
 // 				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0){
 // 					return -ENOMEM;
 // 				}
@@ -417,7 +417,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pud_va & PAGE_MASK, m_head)){
+			if(is_add_usr_m_node_va(pud_va, m_head)){
 				if((num = get_pgd_num(pgd_va, m_head)) >= MAX_NUM)
 					return -1;
 			
@@ -455,7 +455,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pmd_va & PAGE_MASK, m_head)){
+			if(is_add_usr_m_node_va(pmd_va, m_head)){
 				if((num = get_pud_num(pud_va, m_head)) >= MAX_NUM)
 					return -1;
 			
@@ -492,7 +492,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pte_va & PAGE_MASK, m_head)){
+			if(is_add_usr_m_node_va(pte_va, m_head)){
 				if((num = get_pmd_num(pmd_va, m_head)) >= MAX_NUM)
 					return -1;
 			
@@ -785,8 +785,90 @@ EXPORT_SYMBOL_GPL(make_ds_list);
 // 	return 0;
 // }
 
+static int get_pfn_scan_pte(pmd_t *pmdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+{
+  	pte_t *ptep = pte_offset_index(pmdp, pte);
+	*(ptepp) = ptep;
+
+  	if(pte_none(*ptep) || !pte_present(*ptep)) {
+    		// printk(KERN_INFO "pte %lu is not present.\n", pte);
+    		return 4;
+  	}
+
+	if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0)
+		printk(KERN_INFO "pte m list failure\n");
+		
+  	return 1;
+}
+
+static int get_pfn_scan_pmd(pud_t *pudp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+{
+  	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
+
+  	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
+    		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
+    		return 5;
+  	}
+
+	if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0)
+		printk(KERN_INFO "pmd m list failure\n");
+	
+  // 	if(pmd_large(*pmdp)){
+  //   		pte_value = pmd_pfn(*pmdp);
+		// pte_flag = pmd_flags(*pmdp);
+  //   		return 2;
+  // 	}
+  	return get_pfn_scan_pte(pmdp, pgd, pud, pmd, pte, ptepp);
+}
+
+static int get_pfn_scan_pud(p4d_t *p4dp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+{
+  	pud_t *pudp = pud_offset_index(p4dp, pud);
+	  
+  	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
+	    	// printk(KERN_INFO "pud %lu is not present", pud);
+	    	return 6;
+  	}
+
+	if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0)
+		printk(KERN_INFO "pud m list failure\n");
+	
+  // 	if(pud_large(*pudp)){
+  //   		pte_value = pud_pfn(*pudp);
+		// pte_flag = pud_flags(*pudp);
+  //   		return 3;
+  // 	}
+  	return get_pfn_scan_pmd(pudp, pgd, pud, pmd, pte, ptepp);  
+}
+
+static int get_pfn_scan_p4d(pgd_t *pgdp, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+{
+  	p4d_t *p4dp = p4d_offset_index(pgdp, pgd);
+	
+	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
+	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
+    		return 7;
+  	}
+  	return get_pfn_scan_pud(p4dp, pgd, pud, pmd, pte, ptepp);
+}
+
+static int get_pfn_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned long pud, unsigned long pmd, unsigned long pte, pte_t **ptepp)
+{
+  	pgd_t *pgdp = pgd_offset_index(mm, pgd);
+
+  	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
+	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
+    		return 7;
+  	}
+  	return get_pfn_scan_p4d(pgdp, pgd, pud, pmd, pte, ptepp);
+}
+
 static long make_ds_user(void)
 {
+	pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
 	pte_t *ptep;
 	
 	int num;
@@ -796,6 +878,7 @@ static long make_ds_user(void)
 	unsigned long pte_num;
 
 	for(unsigned long a=0; a<USER_MAX; a++){
+		
         	for(unsigned long b=0; b<MAX; b++){
             		for(unsigned long c=0; c<MAX; c++){
                 		for(unsigned long d=0; d<MAX; d++){
