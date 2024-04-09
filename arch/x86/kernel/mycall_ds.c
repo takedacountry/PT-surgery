@@ -376,11 +376,12 @@ int make_pgd_m_list(unsigned long pgd_va)
 			if(is_add_usr_m_node_va(pgd_va, m_head)){
 				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
+				printk(KERN_INFO "make pgd pid: %d\n", current->pid);
 			}
 			return 0;
 		}
 	}
-	// printk(KERN_INFO "pgd no pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
@@ -413,11 +414,13 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 			
 				if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
+				
+				printk(KERN_INFO "make pud pid: %d\n", current->pid);
 			}
 			return 0;
 		}
 	}
-	// printk(KERN_INFO "pud no pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "pud no pid: %d\n", current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
@@ -451,11 +454,13 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 			
 				if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
+
+				printk(KERN_INFO "make pmd pid: %d\n", current->pid);
 			}
 			return 0;
 		}
 	}
-	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "no m pid: %d\n", current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
@@ -488,11 +493,13 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 			
 				if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
+
+				printk(KERN_INFO "make pte pid: %d\n", current->pid);
 			}
 			return 0;
 		}
 	}
-	// printk(KERN_INFO "no m pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "no m pid: %d\n", current->pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
@@ -562,6 +569,7 @@ int make_usr_ds_list_only_pte(unsigned long va, pte_t pte)
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
 end:
+	printk(KERN_INFO "make ds base: %ld\n", base);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_usr_ds_list_only_pte);
@@ -617,6 +625,7 @@ static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 		}
 	}
 end:
+	printk(KERN_INFO "make ds base: %ld\n", base);
 	return 0;
 	
 }
@@ -659,6 +668,7 @@ static int make_ker_ds_list(unsigned long addr, pte_t *ptep)
 		ds_node_merge(prev, dnode);
 	}
 end:
+	printk(KERN_INFO "make ds base: %ld\n", base);
 	return 0;
 	
 }
