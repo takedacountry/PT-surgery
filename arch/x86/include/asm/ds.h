@@ -51,6 +51,6 @@ extern int make_pgd_m_list(unsigned long pgd_va);
 extern int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va);
 extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va);
 extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va);
-extern int make_usr_ds_list(unsigned long va, pte_t pte);
+extern int make_usr_ds_list_only_pte(unsigned long va, pte_t pte);
 
 extern int make_ds_list(unsigned long address, pte_t *ptep);
