@@ -309,6 +309,7 @@ static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_lis
 	if((mnode = make_m_node(va, num)) == NULL)
 		return -ENOMEM;
 
+	printk(KERN_INFO "make m va %ld, num %ld\n", va, num);
 	if(list_empty(&m_head->head)){ //no node
 		list_add(&mnode->list, &m_head->head);
 	}else{
@@ -394,7 +395,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pgd num %ld\n",pgd_num);
+				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
 				return make_ds_va(pgd_num, 0, 0, 0);
 			}
 		}
@@ -434,7 +435,7 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pud num %ld\n",pgd_num);
+				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
 				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 			}
 		}
@@ -475,6 +476,7 @@ static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
 			}
 		}
@@ -514,6 +516,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 			}
 		}
