@@ -797,6 +797,7 @@ static pte_t *get_ptep(pmd_t *pmdp, unsigned long pte)
     		return NULL;
   	}
 
+	printk(KERN_INFO "pte %ld, addr %ld\n", pte, (unsigned long)ptep);
 	if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0)
 		printk(KERN_INFO "pte m list failure\n");
 		
@@ -812,6 +813,7 @@ static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
     		return NULL;
   	}
 
+	printk(KERN_INFO "pmd %ld, addr %ld\n", pmd, (unsigned long)pmdp);
 	if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0)
 		printk(KERN_INFO "pmd m list failure\n");
 	
@@ -832,6 +834,7 @@ static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
 	    	return NULL;
   	}
 
+	printk(KERN_INFO "pud %ld, addr %ld\n", pud, (unsigned long)pudp);
 	if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0)
 		printk(KERN_INFO "pud m list failure\n");
 	
@@ -863,6 +866,7 @@ static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
     		return NULL;
   	}
 
+	printk(KERN_INFO "pgd %ld, addr %ld \n", pgd, (unsigned long)pgdp);
 	if(make_pgd_m_list((unsigned long)pgdp) < 0)
 		printk(KERN_INFO "pgd m list failure\n");
 	
@@ -882,7 +886,7 @@ static long make_ds_user(void)
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
-			printk(KERN_INFO "pgd %ld ,addr %ld \n", pgd, (unsigned long)pgdp);
+			printk(KERN_INFO "pgd %ld, addr %ld \n", pgd, (unsigned long)pgdp);
 	        	for(unsigned long pud=0; pud<MAX; pud++){
 				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
 					printk(KERN_INFO "pud %ld, addr %ld\n", pud, (unsigned long)pudp);
