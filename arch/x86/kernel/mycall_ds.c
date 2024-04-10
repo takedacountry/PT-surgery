@@ -395,7 +395,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
+				printk(KERN_INFO "pgd va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
 				return make_ds_va(pgd_num, 0, 0, 0);
 			}
 		}
@@ -435,7 +435,7 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
+				printk(KERN_INFO "pud va %ld itr->va %ld\n",va, itr->va);
 				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 			}
 		}
@@ -476,7 +476,7 @@ static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
+				printk(KERN_INFO "pmd va %ld itr->va %ld\n",va, itr->va);
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
 			}
 		}
@@ -516,7 +516,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
+				printk(KERN_INFO "pte va %ld itr->va %ld\n",va, itr->va);
 				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 			}
 		}
@@ -882,12 +882,16 @@ static long make_ds_user(void)
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
+			printk(KERN_INFO "pgd %ld ,addr %ld \n", pgd, (unsigned long)pgdp);
 	        	for(unsigned long pud=0; pud<MAX; pud++){
 				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
+					printk(KERN_INFO "pud %ld, addr %ld\n", pud, (unsigned long)pudp);
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
 						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
+							printk(KERN_INFO "pmd %ld, addr %ld\n", pmd, (unsigned long)pmdp);
 			                		for(unsigned long pte=0; pte<MAX; pte++){
 			                    			if((ptep = get_ptep(pmdp, pte)) != NULL){
+									printk(KERN_INFO "pte %ld, addr %ld\n", pte, (unsigned long)ptep);
 									if(flag == 0){
 										vaddr = (unsigned long)ptep;
 										flag = 1;
