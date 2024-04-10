@@ -376,7 +376,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 			if(is_add_usr_m_node_va(pgd_va, m_head)){
 				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
-				printk(KERN_INFO "make pgd %ld, pid %d\n", num,  current->pid);
+				printk(KERN_INFO "make pgd %ld, pid %d\n", num | PGD_FLAG_MASK,  current->pid);
 			}
 			return 0;
 		}
@@ -394,6 +394,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
+				printk(KERN_INFO "pgd num %ld\n",pgd_num);
 				return make_ds_va(pgd_num, 0, 0, 0);
 			}
 		}
@@ -415,7 +416,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 				if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 				
-				printk(KERN_INFO "make pud %ld, pid %d\n", num, current->pid);
+				printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
@@ -433,6 +434,7 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
+				printk(KERN_INFO "pud num %ld\n",pgd_num);
 				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 			}
 		}
@@ -455,7 +457,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 				if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 
-				printk(KERN_INFO "make pmd %ld, pid %d\n", num, current->pid);
+				printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
@@ -494,7 +496,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 				if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 
-				printk(KERN_INFO "make pte %ld, pid %d\n", num, current->pid);
+				printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
