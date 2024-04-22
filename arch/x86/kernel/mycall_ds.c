@@ -916,6 +916,55 @@ SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
 	return make_ds_usr_from_pgtable();
 }
 
+static long make_usr_ds(void)
+{
+	pte_t *ptep;
+	
+	int num;
+	int count;
+	// int flag=0;
+		
+	unsigned long pte_num;
+	for(unsigned long a=0; a<USER_MAX; a++){
+        	for(unsigned long b=0; b<MAX; b++){
+            		for(unsigned long c=0; c<MAX; c++){
+                		for(unsigned long d=0; d<MAX; d++){
+                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+						pte_num = make_ds_va(a, b, c, d);
+						// if(flag == 0){
+						// 	vaddr = (unsigned long)ptep;
+						// 	flag = 1;
+						// }
+						if(make_usr_ds_list(pte_num, ptep) < 0)
+							goto end;
+						
+                        			count = num;
+                    			}else if(num == 0){ // error
+						goto end;
+					}else{
+                        			count = num - 3;
+                    			}
+                    			num = 0;
+                    			if(--count > 0)
+                        			break;
+                    			count = 0;
+                		}
+                		if(--count > 0)
+                  			break;
+                		count = 0;
+            		}
+            		if(--count > 0)
+              			break;
+            		count = 0;
+        	}
+        	if(--count > 0)
+          		break;
+        	count = 0;
+    	}
+end:
+	
+	return 0;
+}
 
 // static long make_ds_kernel(void)
 // {
