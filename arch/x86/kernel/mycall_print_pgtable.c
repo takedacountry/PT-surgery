@@ -338,7 +338,19 @@ static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
   	return 1;  
 }
 
-static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp)
+static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
+{
+  	p4d_t *p4dp = p4d_offset_index(pgdp, p4d);
+	*(p4dpp) = p4dp;
+	
+	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
+	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
+    		return 0;
+  	}
+  	return 1;
+}
+
+static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp, p4d_t **p4dpp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 	*(pgdpp) = pgdp;
@@ -348,13 +360,16 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp)
     		return 0;
   	}
 
-  	return 1;
+	if(get_p4dp(pgdp, pgd, p4dpp) > 0)
+		return 1;
+	
+	return 0;
 }
 
 static long make_user_pgtable2(void)
 {
 	pgd_t *pgdp;
-	// p4d_t *p4dp;
+	p4d_t *p4dp;
 	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
@@ -379,9 +394,13 @@ static long make_user_pgtable2(void)
 	memset(buf, '\0', 100);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if(get_pgdp(current->mm, pgd, &pgdp) > 0){
+		if(get_pgdp(current->mm, pgd, &pgdp, &p4dp) > 0){
 			
 			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+
+			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, p4d_pfn(*pgdp), p4d_flags(*pgdp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
