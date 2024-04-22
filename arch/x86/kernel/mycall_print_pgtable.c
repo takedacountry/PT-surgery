@@ -377,14 +377,14 @@ static long make_user_pgtable2(void)
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
 			
-			size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, 0, 0, 0, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
+			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
 			for(unsigned long pud=0; pud<MAX; pud++){
 				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
 
-					size = sprintf(buf, "    %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, 0, 0, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
+					size = sprintf(buf, "    %ld-%ld-0-0  %lx %lx  %lx\n", pgd, pud, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 			
@@ -392,7 +392,7 @@ static long make_user_pgtable2(void)
 						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
 							entry_count++;
 
-							size = sprintf(buf, "        %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, pmd, 0, pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
+							size = sprintf(buf, "        %ld-%ld-%ld-0  %lx %lx  %lx\n", pgd, pud, pmd, pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 
