@@ -299,52 +299,56 @@ end:
 // 	return 0;
 // }
 
-static pte_t *get_ptep(pmd_t *pmdp, unsigned long pte)
+static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
+	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
-    		return NULL;
+    		return 0;
   	}
 		
-  	return ptep;
+  	return 1;
 }
 
-static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
+static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
+	*(pmdp) = pmdp;
 
   	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
     		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
-    		return NULL;
+    		return 0;
   	}
 
-	return pmdp;
+	return 1;
 }
 
-static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
+static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
+	*(pudpp) = pudp;
 	  
   	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
 	    	// printk(KERN_INFO "pud %lu is not present", pud);
-	    	return NULL;
+	    	return 0;
   	}
 
-  	return pudp;  
+  	return 1;  
 }
 
-static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
+static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
+	*(pgdpp) = pgdp;
 
   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
-    		return NULL;
+    		return 0;
   	}
 
-  	return pgdp;
+  	return 1;
 }
 
 static long make_user_pgtable2(void)
@@ -375,21 +379,21 @@ static long make_user_pgtable2(void)
 	memset(buf, '\0', 100);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
+		if(get_pgdp(current->mm, pgd, &pgdp) > 0){
 			
 			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
 			for(unsigned long pud=0; pud<MAX; pud++){
-				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
+				if(get_pudp((p4d_t *)pgdp, pud, &pudp) > 0){
 
 					size = sprintf(buf, "    %ld-%ld-0-0  %lx %lx  %lx\n", pgd, pud, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 			
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
-						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
+						if(get_pmdp(pudp, pmd, &pmdp) > 0){
 							entry_count++;
 
 							size = sprintf(buf, "        %ld-%ld-%ld-0  %lx %lx  %lx\n", pgd, pud, pmd, pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
@@ -397,7 +401,7 @@ static long make_user_pgtable2(void)
 							vfs_fsync_range(file, 0, size, 1);
 
 							for(unsigned long pte=0; pte<MAX; pte++){
-			                    			if((ptep = get_ptep(pmdp, pte)) != NULL){
+			                    			if(get_ptep(pmdp, pte, &ptep) > 0){
 
 									size = sprintf(buf, "            %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, pmd, pte, pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
 									kernel_write(file, buf, size, &pos);
