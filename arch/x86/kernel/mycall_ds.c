@@ -911,6 +911,11 @@ end:
 	return 0;
 }
 
+SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
+{
+	return make_ds_usr_from_pgtable();
+}
+
 
 // static long make_ds_kernel(void)
 // {
@@ -1023,7 +1028,7 @@ end:
 // 	return 0;
 // }
 
-static long make_ds_ker_from_pgtable(void)
+static long make_ker_ds(void)
 {
 	pte_t *ptep;
 	
@@ -1071,8 +1076,8 @@ end:
 SYSCALL_DEFINE0(mycall_ds_make)
 {
 	long ret1, ret2;
-	ret1 = make_ds_usr_from_pgtable();
-	ret2 = make_ds_ker_from_pgtable();
+	ret1 = make_usr_ds();
+	ret2 = make_ker_ds();
 	
 	if(ret1 == ret2)
 		return 0;
@@ -1085,7 +1090,7 @@ SYSCALL_DEFINE0(mycall_ds_make_user)
 	ktime_t start, end;
 
 	start = ktime_get();
-	ret = make_ds_usr_from_pgtable();
+	ret = make_usr_ds();
 	end = ktime_get();
 
 	printk(KERN_INFO "make_ds_usr time: %lld\n", ktime_sub(end, start));
@@ -1099,7 +1104,7 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	ktime_t start, end;
 
 	start = ktime_get();
-	ret = make_ds_ker_from_pgtable();
+	ret = make_ker_ds();
 	end = ktime_get();
 
 	printk(KERN_INFO "make_ds_ker time: %lld\n", ktime_sub(end, start));
