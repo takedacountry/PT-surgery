@@ -1546,6 +1546,7 @@ static void print_pte(pmd_t *pmdp)
 static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
 {
 	struct ds_list *itr;
+	struct ds_head_list *ds_head;
 	unsigned long va_end;
 	int flag = 0;
 	
@@ -1561,21 +1562,26 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", (va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, va_start, va_end);
 	kernel_write(file, buf, size, pos);
 	vfs_fsync_range(file, 0, size, 1);
-	
-	list_for_each_entry(itr, &usr_ds_head, list){
-		if(itr->limit <= va_start){
-			continue; // not hit yet
-		}else if(va_end < itr->base){
-			break; // already finished
-		}else{ // recover pgtable from ds
-			// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-			size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-			kernel_write(file, buf, size, pos);
-			vfs_fsync_range(file, 0, size, 1);
-			
-			dup_pte(&pte, itr, va_start, va_end);
-			va_start = itr->limit;
-			flag = 1;
+
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == current->pid){
+			list_for_entry(itr, &ds_head->head, list){
+				if(itr->limit <= va_start){
+					continue; // not hit yet
+				}else if(va_end < itr->base){
+					break; // already finished
+				}else{ // recover pgtable from ds
+					// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+					kernel_write(file, buf, size, pos);
+					vfs_fsync_range(file, 0, size, 1);
+					
+					dup_pte(&pte, itr, va_start, va_end);
+					va_start = itr->limit;
+					flag = 1;
+				}
+			}
+			break;
 		}
 	}
 	return flag;
@@ -1915,6 +1921,7 @@ SYSCALL_DEFINE0(mycall_recover_all_pgtable)
 static long recover_pgtable(unsigned long va)
 {
 	struct m_list *itr;
+	struct m_head_list *m_head;
 	int count;
 	
 	struct file *file;
@@ -1934,13 +1941,17 @@ static long recover_pgtable(unsigned long va)
 		// goto err;
 	// memset(buf, '\0', 100);
 
-	list_for_each_entry(itr, &usr_m_head, list){
-		if(itr->va <= va && va < itr->va + 0x1000){
-			printk(KERN_INFO "pgtable found %lx\n",va);
-			if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
-				goto err;
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(itr, &m_head->head, list){
+				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + 0x1000){
+					printk(KERN_INFO "pgtable found %lx\n",va);
+					if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
+						goto err;
+					}
+					return 0;
+				}
 			}
-			return 0;
 		}
 	}
 err:
