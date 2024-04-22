@@ -216,19 +216,147 @@ end:
 	return 0;
 }
 
+// static long make_user_pgtable2(void)
+// {
+// 	pte_t *ptep;
+
+// 	int num;
+// 	int count;
+// 	int entry_count = 0;
+		
+// 	unsigned long pte_value;
+// 	unsigned long pte_flag;
+// 	unsigned long pte_num;
+// 	unsigned long pte_num_pre = 0;
+	
+// 	struct file *file;
+// 	char *filename = "./user_pgtable2";
+// 	int size;
+// 	char *buf;
+//         loff_t pos = 0;
+
+// 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+// 	if(IS_ERR(file)){
+// 		printk("pre_file open err=%ld", PTR_ERR(file));
+// 		goto end;
+// 	}
+	
+//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
+//         if(!buf)
+// 		goto end;
+// 	memset(buf, '\0', 100);
+
+// 	for(unsigned long a=0; a<USER_MAX; a++){
+//         	for(unsigned long b=0; b<MAX; b++){
+//             		for(unsigned long c=0; c<MAX; c++){
+//                 		for(unsigned long d=0; d<MAX; d++){
+//                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
+// 						pte_num = make_ds_va(a, b, c, 0); // first entry num
+// 						if(pte_num_pre != pte_num){
+// 							entry_count++;
+// 							pte_num_pre = pte_num;
+// 						}
+// 						pte_value = pte_pfn(*ptep);
+// 						pte_flag = pte_flags(*ptep);
+						
+// 						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
+// 						kernel_write(file, buf, size, &pos);
+// 						vfs_fsync_range(file, 0, size, 1);
+						
+//                         			count = num;
+//                     			}else if(num == 0){ // error
+// 						goto end;
+// 					}else{ // pte miss
+//                         			count = num - 3;
+//                     			}
+//                     			num = 0;
+//                     			if(--count > 0)
+//                         			break;
+//                     			count = 0;
+//                 		}
+//                 		if(--count > 0)
+//                   			break;
+//                 		count = 0;
+//             		}
+//             		if(--count > 0)
+//               			break;
+//             		count = 0;
+//         	}
+//         	if(--count > 0)
+//           		break;
+//         	count = 0;
+//     	}
+// end:
+// 	printk(KERN_INFO "user PT count: %d", entry_count);
+	
+// 	size = sprintf(buf, "user PT count: %d", entry_count);
+// 	kernel_write(file, buf, size, &pos);
+// 	vfs_fsync_range(file, 0, size, 1);
+	
+// 	kfree(buf);
+// 	filp_close(file, NULL);
+	
+// 	return 0;
+// }
+
+static pte_t *get_ptep(pmd_t *pmdp, unsigned long pte)
+{
+  	pte_t *ptep = pte_offset_index(pmdp, pte);
+
+  	if(pte_none(*ptep) || !pte_present(*ptep)) {
+    		// printk(KERN_INFO "pte %lu is not present.\n", pte);
+    		return NULL;
+  	}
+		
+  	return ptep;
+}
+
+static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
+{
+  	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
+
+  	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
+    		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
+    		return NULL;
+  	}
+
+	return pmdp;
+}
+
+static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
+{
+  	pud_t *pudp = pud_offset_index(p4dp, pud);
+	  
+  	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
+	    	// printk(KERN_INFO "pud %lu is not present", pud);
+	    	return NULL;
+  	}
+
+  	return pudp;  
+}
+
+static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
+{
+  	pgd_t *pgdp = pgd_offset_index(mm, pgd);
+
+  	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
+	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
+    		return NULL;
+  	}
+
+  	return pgdp;
+}
+
 static long make_user_pgtable2(void)
 {
+	pgd_t *pgdp;
+	// p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
 	pte_t *ptep;
-
-	int num;
-	int count;
-	int entry_count = 0;
-		
-	unsigned long pte_value;
-	unsigned long pte_flag;
-	unsigned long pte_num;
-	unsigned long pte_num_pre = 0;
 	
+	int entry_count = 0;
+
 	struct file *file;
 	char *filename = "./user_pgtable2";
 	int size;
@@ -246,45 +374,42 @@ static long make_user_pgtable2(void)
 		goto end;
 	memset(buf, '\0', 100);
 
-	for(unsigned long a=0; a<USER_MAX; a++){
-        	for(unsigned long b=0; b<MAX; b++){
-            		for(unsigned long c=0; c<MAX; c++){
-                		for(unsigned long d=0; d<MAX; d++){
-                    			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-						pte_num = make_ds_va(a, b, c, 0); // first entry num
-						if(pte_num_pre != pte_num){
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
+		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
+			
+			size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, 0, 0, 0, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++){
+				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
+
+					size = sprintf(buf, "    %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, 0, 0, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
+						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
 							entry_count++;
-							pte_num_pre = pte_num;
+
+							size = sprintf(buf, "        %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, pmd, 0, pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+
+							for(unsigned long pte=0; pte<MAX; pte++){
+			                    			if((ptep = get_ptep(pmdp, pte)) != NULL){
+
+									size = sprintf(buf, "            %ld-%ld-%ld-%ld  %lx %lx  %lx\n", pgd, pud, pmd, pte, pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+									kernel_write(file, buf, size, &pos);
+									vfs_fsync_range(file, 0, size, 1);
+									
+			                    			}
+			                		}
 						}
-						pte_value = pte_pfn(*ptep);
-						pte_flag = pte_flags(*ptep);
-						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
-						kernel_write(file, buf, size, &pos);
-						vfs_fsync_range(file, 0, size, 1);
-						
-                        			count = num;
-                    			}else if(num == 0){ // error
-						goto end;
-					}else{ // pte miss
-                        			count = num - 3;
-                    			}
-                    			num = 0;
-                    			if(--count > 0)
-                        			break;
-                    			count = 0;
-                		}
-                		if(--count > 0)
-                  			break;
-                		count = 0;
-            		}
-            		if(--count > 0)
-              			break;
-            		count = 0;
-        	}
-        	if(--count > 0)
-          		break;
-        	count = 0;
+		            		}
+				}
+	        	}
+		}
     	}
 end:
 	printk(KERN_INFO "user PT count: %d", entry_count);
