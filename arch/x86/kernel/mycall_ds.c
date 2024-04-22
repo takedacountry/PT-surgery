@@ -1565,7 +1565,7 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
 		if(ds_head->pid == current->pid){
-			list_for_entry(itr, &ds_head->head, list){
+			list_for_each_entry(itr, &ds_head->head, list){
 				if(itr->limit <= va_start){
 					continue; // not hit yet
 				}else if(va_end < itr->base){
