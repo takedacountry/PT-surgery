@@ -400,7 +400,7 @@ static long make_user_pgtable2(void)
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 
-			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, p4d_pfn(*pgdp), p4d_flags(*pgdp), (unsigned long)p4dp);
+			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
