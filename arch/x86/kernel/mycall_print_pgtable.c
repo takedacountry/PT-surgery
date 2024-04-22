@@ -143,8 +143,6 @@ static long make_user_pgtable(void)
 	unsigned long pte_num;
 	unsigned long pte_num_pre = 0;
 
-	unsigned long va_past = 0;
-	
 	struct file *file;
 	char *filename = "./user_pgtable";
 	int size;
@@ -171,12 +169,11 @@ static long make_user_pgtable(void)
 						if(pte_num_pre != pte_num){
 							entry_count++;
 							pte_num_pre = pte_num;
-							va_past = (unsigned long)ptep;
 						}
 						pte_value = pte_pfn(*ptep);
 						pte_flag = pte_flags(*ptep);
 						
-						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep, ((unsigned long)ptep - va_past)/0x8);
+						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
 						kernel_write(file, buf, size, &pos);
 						vfs_fsync_range(file, 0, size, 1);
 
@@ -350,10 +347,9 @@ static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
   	return 1;
 }
 
-static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp, p4d_t **p4dpp)
+static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
-	*(pgdpp) = pgdp;
 
   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
@@ -368,7 +364,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, pgd_t **pgdpp, p4d_
 
 static long make_user_pgtable2(void)
 {
-	pgd_t *pgdp;
+	// pgd_t *pgdp;
 	p4d_t *p4dp;
 	pud_t *pudp;
 	pmd_t *pmdp;
@@ -394,18 +390,14 @@ static long make_user_pgtable2(void)
 	memset(buf, '\0', 100);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if(get_pgdp(current->mm, pgd, &pgdp, &p4dp) > 0){
+		if(get_pgdp(current->mm, pgd, &p4dp) > 0){
 			
-			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, pgd_pfn(*pgdp), pgd_flags(*pgdp), (unsigned long)pgdp);
-			kernel_write(file, buf, size, &pos);
-			vfs_fsync_range(file, 0, size, 1);
-
 			size = sprintf(buf, "%ld-0-0-0  %lx %lx  %lx\n", pgd, p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
 			for(unsigned long pud=0; pud<MAX; pud++){
-				if(get_pudp((p4d_t *)pgdp, pud, &pudp) > 0){
+				if(get_pudp((p4dp, pud, &pudp) > 0){
 
 					size = sprintf(buf, "    %ld-%ld-0-0  %lx %lx  %lx\n", pgd, pud, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
