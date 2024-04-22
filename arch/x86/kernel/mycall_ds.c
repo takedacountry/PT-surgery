@@ -563,7 +563,7 @@ end:
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
-/*
+
 static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 {
 	struct m_head_list *m_head;
@@ -672,7 +672,7 @@ int make_ds_list(unsigned long address, pte_t *ptep)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_ds_list);
-*/
+
 
 // static long make_ds_user(void)
 // {
@@ -1038,7 +1038,7 @@ static long make_ds_ker_from_pgtable(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
-						if(make_ds_list_ker(pte_num, ptep) < 0)
+						if(make_ker_ds_list(pte_num, ptep) < 0)
 							goto end;
 						
                         			count = num;
