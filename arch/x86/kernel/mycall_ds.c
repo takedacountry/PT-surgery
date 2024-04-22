@@ -277,7 +277,7 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
-static bool is_add_usr_m_node(unsigned long num, struct m_head_list *m_head)
+static bool is_add_m_node_usr(unsigned long num, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 	
@@ -290,7 +290,7 @@ static bool is_add_usr_m_node(unsigned long num, struct m_head_list *m_head)
 	return true;
 }
 
-static bool is_add_usr_m_node_va(unsigned long va, struct m_head_list *m_head)
+static bool is_add_m_node_va_usr(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 
@@ -302,14 +302,13 @@ static bool is_add_usr_m_node_va(unsigned long va, struct m_head_list *m_head)
 	return true;
 }
 	
-static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_list *m_head)
+static int add_m_node_usr(unsigned long va, unsigned long num, struct m_head_list *m_head)
 {
 	struct m_list *mnode, *itr;
 
 	if((mnode = make_m_node(va, num)) == NULL)
 		return -ENOMEM;
 
-	printk(KERN_INFO "make m va %ld, num %ld\n", va, num);
 	if(list_empty(&m_head->head)){ //no node
 		list_add(&mnode->list, &m_head->head);
 	}else{
@@ -324,7 +323,7 @@ static int add_usr_m_node(unsigned long va, unsigned long num, struct m_head_lis
 	return 0;
 }
 
-static bool is_add_ker_m_node(unsigned long num)
+static bool is_add_m_node_ker(unsigned long num)
 {
 	struct m_list *itr;
 	
@@ -348,9 +347,10 @@ static bool is_add_ker_m_node(unsigned long num)
 // 	return true;
 // }
 
-static int add_ker_m_node(unsigned long va, unsigned long num)
+static int add_m_node_ker(unsigned long va, unsigned long num)
 {
  	struct m_list *mnode, *itr;
+	
  	if((mnode = make_m_node(va, num)) == NULL)
  		return -ENOMEM;
  	if(list_empty(&ker_m_head)){ //no node
@@ -367,17 +367,17 @@ static int add_ker_m_node(unsigned long va, unsigned long num)
  	return 0;
 }
 
-int make_pgd_m_list(unsigned long pgd_va)
+int make_p4d_m_list(unsigned long p4d_va)
 {
 	struct m_head_list *m_head;
 	unsigned long num = 0;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pgd_va, m_head)){
-				if(add_usr_m_node(pgd_va, num | PGD_FLAG_MASK, m_head) < 0)
+			if(is_add_m_node_va_usr(p4d_va, m_head)){
+				if(add_m_node_usr(p4d_va, num | P4D_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
-				printk(KERN_INFO "make pgd %ld, pid %d\n", num | PGD_FLAG_MASK,  current->pid);
+				// printk(KERN_INFO "make pgd %ld, pid %d\n", num | P4D_FLAG_MASK,  current->pid);
 			}
 			return 0;
 		}
@@ -385,39 +385,35 @@ int make_pgd_m_list(unsigned long pgd_va)
 	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_pgd_m_list);
+EXPORT_SYMBOL_GPL(make_p4d_m_list);
 
-static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
+static unsigned long get_p4d_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
-	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = ((va - itr->va) / 0x8) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pgd va %ld itr->va %ld num %ld\n",va, itr->va, pgd_num);
-				return make_ds_va(pgd_num, 0, 0, 0);
-			}
+		if(itr->num & P4D_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+			return make_ds_va((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, 0);
 		}
 	}
 	return MAX_NUM;
 }
 
-int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
+int make_pud_m_list(unsigned long p4d_va, unsigned long pud_va)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pud_va, m_head)){
-				if((num = get_pgd_num(pgd_va, m_head)) >= MAX_NUM)
+			if(is_add_m_node_va_usr(pud_va, m_head)){
+				if((num = get_pgd_num(p4d_va, m_head)) >= MAX_NUM)
 					return -1;
 			
-				if(add_usr_m_node(pud_va, num | PUD_FLAG_MASK, m_head) < 0)
+				if(add_m_node_usr(pud_va, num | PUD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 				
-				printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, current->pid);
+				// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
@@ -430,14 +426,10 @@ EXPORT_SYMBOL_GPL(make_pud_m_list);
 static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
-	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pud va %ld itr->va %ld\n",va, itr->va);
-				return make_ds_va(pgd_num, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
-			}
+			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 		}
 	}
 	return MAX_NUM;
@@ -451,14 +443,14 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pmd_va, m_head)){
+			if(is_add_m_node_va_usr(pmd_va, m_head)){
 				if((num = get_pud_num(pud_va, m_head)) >= MAX_NUM)
 					return -1;
 			
-				if(add_usr_m_node(pmd_va, num | PMD_FLAG_MASK, m_head) < 0)
+				if(add_m_node_usr(pmd_va, num | PMD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 
-				printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, current->pid);
+				// printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
@@ -471,14 +463,10 @@ EXPORT_SYMBOL_GPL(make_pmd_m_list);
 static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
-	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PMD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pmd va %ld itr->va %ld\n",va, itr->va);
-				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
-			}
+			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
 		}
 	}
 	return MAX_NUM;
@@ -491,14 +479,14 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node_va(pte_va, m_head)){
+			if(is_add_m_node_va_usr(pte_va, m_head)){
 				if((num = get_pmd_num(pmd_va, m_head)) >= MAX_NUM)
 					return -1;
 			
-				if(add_usr_m_node(pte_va, num | PTE_FLAG_MASK, m_head) < 0)
+				if(add_m_node_usr(pte_va, num | PTE_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 
-				printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, current->pid);
+				// printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, current->pid);
 			}
 			return 0;
 		}
@@ -511,20 +499,16 @@ EXPORT_SYMBOL_GPL(make_pte_m_list);
 static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
-	unsigned long pgd_num;
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			if((pgd_num = (itr->num >> 27) & PT_PGTABLE_MASK) < MAX){
-				printk(KERN_INFO "pte va %ld itr->va %ld\n",va, itr->va);
-				return make_ds_va(pgd_num, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
-			}
+			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 		}
 	}
 	return MAX_NUM;
 }
 
-int make_usr_ds_list_only_pte(unsigned long va, pte_t pte)
+int make_ds_list_usr(unsigned long va, pte_t pte)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
@@ -577,8 +561,9 @@ end:
 	// printk(KERN_INFO "make ds base %ld\n", base);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_usr_ds_list_only_pte);
+EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
+/*
 static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 {
 	struct m_head_list *m_head;
@@ -589,8 +574,8 @@ static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			if(is_add_usr_m_node(addr & PT_PGTABLE_MASK_NOT, m_head)){
-				if(add_usr_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT, m_head) < 0)
+			if(is_add_m_node_usr(addr & PT_PGTABLE_MASK_NOT, m_head)){
+				if(add_m_node_usr((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT, m_head) < 0)
 					return -ENOMEM;
 			}
 		}
@@ -644,8 +629,8 @@ static int make_ker_ds_list(unsigned long addr, pte_t *ptep)
 	if((dnode = make_ds_node(addr, addr+1, make_ds_offset(addr, pte_value), pte_flag)) == NULL)
 		return -ENOMEM;
 
-	if(is_add_ker_m_node(addr & PT_PGTABLE_MASK_NOT))
-		if(add_ker_m_node((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT) < 0)
+	if(is_add_m_node_ker(addr & PT_PGTABLE_MASK_NOT))
+		if(add_m_node_ker((unsigned long)ptep, addr & PT_PGTABLE_MASK_NOT) < 0)
 			return -ENOMEM;
 		
 	// incert dnode
@@ -687,7 +672,7 @@ int make_ds_list(unsigned long address, pte_t *ptep)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_ds_list);
-
+*/
 
 // static long make_ds_user(void)
 // {
@@ -788,32 +773,32 @@ EXPORT_SYMBOL_GPL(make_ds_list);
 // 	return 0;
 // }
 
-static pte_t *get_ptep(pmd_t *pmdp, unsigned long pte)
+static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
+	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
-    		return NULL;
+    		return 0;
   	}
 
-	printk(KERN_INFO "pte %ld, addr %ld\n", pte, (unsigned long)ptep);
 	if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0)
 		printk(KERN_INFO "pte m list failure\n");
 		
-  	return ptep;
+  	return 1;
 }
 
-static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
+static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
+	*(pmdpp) = pmdp;
 
   	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
     		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
-    		return NULL;
+    		return 0;
   	}
 
-	printk(KERN_INFO "pmd %ld, addr %ld\n", pmd, (unsigned long)pmdp);
 	if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0)
 		printk(KERN_INFO "pmd m list failure\n");
 	
@@ -822,19 +807,19 @@ static pmd_t *get_pmdp(pud_t *pudp, unsigned long pmd)
 		// pte_flag = pmd_flags(*pmdp);
   //   		return 2;
   // 	}
-  	return pmdp;
+  	return 1;
 }
 
-static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
+static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
-	  
+	*(pudpp) = pudp;
+	
   	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
 	    	// printk(KERN_INFO "pud %lu is not present", pud);
-	    	return NULL;
+	    	return 0;
   	}
 
-	printk(KERN_INFO "pud %ld, addr %ld\n", pud, (unsigned long)pudp);
 	if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0)
 		printk(KERN_INFO "pud m list failure\n");
 	
@@ -843,40 +828,45 @@ static pud_t *get_pudp(p4d_t *p4dp, unsigned long pud)
 		// pte_flag = pud_flags(*pudp);
   //   		return 3;
   // 	}
-  	return pudp;  
+  	return 1;  
 }
 
-// static p4d_t *get_p4dp(pgd_t *pgdp, unsigned long p4d)
-// {
-//   	p4d_t *p4dp = p4d_offset_index(pgdp, p4d);
+static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
+{
+  	p4d_t *p4dp = p4d_offset_index(pgdp, p4d);
+	*(p4dpp) = p4dp;
 	
-// 	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
-// 	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
-//     		return NULL;
-//   	}
-//   	return p4dp;
-// }
+	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
+	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
+    		return 0;
+  	}
 
-static pgd_t *get_pgdp(struct mm_struct *mm, unsigned long pgd)
+	if(make_p4d_m_list((unsigned long)p4dp) < 0)
+		printk(KERN_INFO "p4d m list failure\n");
+	
+  	return 1;
+}
+
+static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
 	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
-    		return NULL;
+    		return 0;
   	}
 
-	printk(KERN_INFO "pgd %ld, addr %ld \n", pgd, (unsigned long)pgdp);
-	if(make_pgd_m_list((unsigned long)pgdp) < 0)
-		printk(KERN_INFO "pgd m list failure\n");
+	if(get_p4dp(pgdp, pgd, p4dpp) == 0){
+		return 0;
+	}
 	
-  	return pgdp;
+  	return 1;
 }
 
-static long make_ds_user(void)
+static long make_ds_usr_from_pgtable(void)
 {
-	pgd_t *pgdp;
-	// p4d_t *p4dp;
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
 	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
@@ -884,18 +874,18 @@ static long make_ds_user(void)
 	int flag=0;
 	// unsigned long pte_num;
 
-	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if((pgdp = get_pgdp(current->mm, pgd)) != NULL){
-			printk(KERN_INFO "pgd %ld, addr %ld \n", pgd, (unsigned long)pgdp);
+	for(unsigned long p4d=0; p4d<USER_MAX; p4d++){
+		if(get_pgdp(current->mm, p4d, &p4dp) > 0){
+			
 	        	for(unsigned long pud=0; pud<MAX; pud++){
-				if((pudp = get_pudp((p4d_t *)pgdp, pud)) != NULL){
-					printk(KERN_INFO "pud %ld, addr %ld\n", pud, (unsigned long)pudp);
+				if(get_pudp(p4dp, pud, &pudp) > 0){
+					
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
-						if((pmdp = get_pmdp(pudp, pmd)) != NULL){
-							printk(KERN_INFO "pmd %ld, addr %ld\n", pmd, (unsigned long)pmdp);
-			                		for(unsigned long pte=0; pte<MAX; pte++){
-			                    			if((ptep = get_ptep(pmdp, pte)) != NULL){
-									printk(KERN_INFO "pte %ld, addr %ld\n", pte, (unsigned long)ptep);
+						if(get_pmdp(pudp, pmd, &pmdp) > 0){
+
+							for(unsigned long pte=0; pte<MAX; pte++){
+			                    			if(get_ptep(pmdp, pte, &ptep) > 0){
+									
 									if(flag == 0){
 										vaddr = (unsigned long)ptep;
 										flag = 1;
@@ -906,7 +896,7 @@ static long make_ds_user(void)
 									// 	goto end;
 
 									// make_ds from ptep
-									if(make_usr_ds_list_only_pte((unsigned long)ptep, *ptep) < 0){
+									if(make_ds_list_usr((unsigned long)ptep, *ptep) < 0){
 										printk(KERN_INFO "pte ds list failure\n");
 										goto end;
 									}
@@ -1034,7 +1024,7 @@ end:
 // 	return 0;
 // }
 
-static long make_ds_kernel(void)
+static long make_ds_ker_from_pgtable(void)
 {
 	pte_t *ptep;
 	
@@ -1082,8 +1072,8 @@ end:
 SYSCALL_DEFINE0(mycall_ds_make)
 {
 	long ret1, ret2;
-	ret1 = make_ds_user();
-	ret2 = make_ds_kernel();
+	ret1 = make_ds_usr_from_pgtable();
+	ret2 = make_ds_ker_from_pgtable();
 	
 	if(ret1 == ret2)
 		return 0;
@@ -1096,10 +1086,10 @@ SYSCALL_DEFINE0(mycall_ds_make_user)
 	ktime_t start, end;
 
 	start = ktime_get();
-	ret = make_ds_user();
+	ret = make_ds_usr_from_pgtable();
 	end = ktime_get();
 
-	printk(KERN_INFO "ds_make_user time: %lld\n", ktime_sub(end, start));
+	printk(KERN_INFO "make_ds_usr time: %lld\n", ktime_sub(end, start));
 	
 	return ret;
 }
@@ -1110,10 +1100,10 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	ktime_t start, end;
 
 	start = ktime_get();
-	ret = make_ds_kernel();
+	ret = make_ds_ker_from_pgtable();
 	end = ktime_get();
 
-	printk(KERN_INFO "ds_make_kernel time: %lld\n", ktime_sub(end, start));
+	printk(KERN_INFO "make_ds_ker time: %lld\n", ktime_sub(end, start));
 	
 	return ret;
 }
