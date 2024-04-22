@@ -385,7 +385,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_p4d_m_list);
+EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
 static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 {
@@ -393,7 +393,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PGD_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
-			return make_ds_va((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, 0);
+			return make_ds_va(((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, 0);
 		}
 	}
 	return MAX_NUM;
@@ -1038,7 +1038,7 @@ static long make_ds_ker_from_pgtable(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
-						if(make_ker_ds_list(pte_num, ptep) < 0)
+						if(make_ds_list_ker(pte_num, ptep) < 0)
 							goto end;
 						
                         			count = num;
