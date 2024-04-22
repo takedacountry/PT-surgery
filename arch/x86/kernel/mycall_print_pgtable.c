@@ -397,7 +397,7 @@ static long make_user_pgtable2(void)
 			vfs_fsync_range(file, 0, size, 1);
 			
 			for(unsigned long pud=0; pud<MAX; pud++){
-				if(get_pudp((p4dp, pud, &pudp) > 0){
+				if(get_pudp(p4dp, pud, &pudp) > 0){
 
 					size = sprintf(buf, "    %ld-%ld-0-0  %lx %lx  %lx\n", pgd, pud, pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
