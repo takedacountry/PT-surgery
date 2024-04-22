@@ -315,7 +315,7 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
 static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
-	*(pmdp) = pmdp;
+	*(pmdpp) = pmdp;
 
   	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
     		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
