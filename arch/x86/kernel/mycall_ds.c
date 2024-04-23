@@ -564,7 +564,7 @@ end:
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
 
-static int make_usr_ds_list(unsigned long addr, pte_t *ptep)
+static int make_list_usr_from_pgtable(unsigned long addr, pte_t *ptep)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
@@ -620,7 +620,7 @@ end:
 	
 }
 
-static int make_ker_ds_list(unsigned long addr, pte_t *ptep)
+static int make_list_ker_from_pgtable(unsigned long addr, pte_t *ptep)
 {
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(*ptep);
@@ -663,15 +663,15 @@ end:
 	
 }
 
-int make_ds_list(unsigned long address, pte_t *ptep)
+int make_list_from_pgtable(unsigned long address, pte_t *ptep)
 {
 	printk(KERN_INFO "va:%ld pteva:%ld",address, (unsigned long)ptep);
 	if(address < USER_MAX_ADDRESS)
-		return make_usr_ds_list(address, ptep);
-	// return make_ker_ds_list(address, ptep);
+		return make_list_usr_from_pgtable(address, ptep);
+	// return make_list_ker_from_pgtable(address, ptep);
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_ds_list);
+EXPORT_SYMBOL_GPL(make_list_from_pgtable);
 
 
 // static long make_ds_user(void)
@@ -862,7 +862,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
   	return 1;
 }
 
-static long make_ds_usr_from_pgtable(void)
+static long make_ds_list_usr_from_pgtable(void)
 {
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
@@ -913,7 +913,7 @@ end:
 
 SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
 {
-	return make_ds_usr_from_pgtable();
+	return make_ds_list_usr_from_pgtable();
 }
 
 static long make_usr_ds(void)
@@ -935,7 +935,7 @@ static long make_usr_ds(void)
 						// 	vaddr = (unsigned long)ptep;
 						// 	flag = 1;
 						// }
-						if(make_usr_ds_list(pte_num, ptep) < 0)
+						if(make_list_usr_from_pgtable(pte_num, ptep) < 0)
 							goto end;
 						
                         			count = num;
@@ -1092,7 +1092,7 @@ static long make_ker_ds(void)
                 		for(unsigned long d=0; d<MAX; d++){
                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
 						pte_num = make_ds_va(a, b, c, d);
-						if(make_ker_ds_list(pte_num, ptep) < 0)
+						if(make_list_ker_from_pgtable(pte_num, ptep) < 0)
 							goto end;
 						
                         			count = num;
@@ -1519,64 +1519,72 @@ static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsi
 
 	if(itr->base <= start && end < itr->limit){
 		// recover pgtable from one ds
-		if(itr->flag & SAME_ADDR_MASK){
-			flag = itr->flag & SAME_ADDR_MASK_NOT;
-			for(count=start; count <= end; count++){
-				set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
-				pte++;
-			}
-		}else{
-			for(count=start; count <= end; count++){
-				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
-				pte++;
-			}
-		}		
+		// if(itr->flag & SAME_ADDR_MASK){
+			// flag = itr->flag & SAME_ADDR_MASK_NOT;
+		// 	for(count=start; count <= end; count++){
+		// 		set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
+		// 		pte++;
+		// 	}
+		// }else{
+		
+		for(count=start; count <= end; count++){
+			set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			pte++;
+		}
+		
+		// }		
 	}else if(itr->base <= start && itr->limit <= end){
 		// first recover
-		if(itr->flag & SAME_ADDR_MASK){
-			flag = itr->flag & SAME_ADDR_MASK_NOT;
-			for(count=start; count < itr->limit; count++){
-				set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
-				pte++;
-			}
-		}else{
-			for(count=start; count < itr->limit; count++){
-				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
-				pte++;
-			}
+		// if(itr->flag & SAME_ADDR_MASK){
+		// 	flag = itr->flag & SAME_ADDR_MASK_NOT;
+		// 	for(count=start; count < itr->limit; count++){
+		// 		set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
+		// 		pte++;
+		// 	}
+		// }else{
+		
+		for(count=start; count < itr->limit; count++){
+			set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			pte++;
 		}
+		
+		// }
 	}else if(start < itr->base && end < itr->limit){
 		// last recover
-		if(itr->flag & SAME_ADDR_MASK){
-			flag = itr->flag & SAME_ADDR_MASK_NOT;
-			for(count=start; count <= end; count++){
-				if(count >= itr->base)
-					set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
-				pte++;
-			}
-		}else{
-			for(count=start; count <= end; count++){
-				if(count >= itr->base)
-					set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
-				pte++;
-			}
+		// if(itr->flag & SAME_ADDR_MASK){
+		// 	flag = itr->flag & SAME_ADDR_MASK_NOT;
+		// 	for(count=start; count <= end; count++){
+		// 		if(count >= itr->base)
+		// 			set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
+		// 		pte++;
+		// 	}
+		// }else{
+		
+		for(count=start; count <= end; count++){
+			if(count >= itr->base)
+				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			pte++;
 		}
+		
+		// }
 	}else if(start < itr->base && itr->limit <= end){
 		// second ~ last-1 recover
-		if(itr->flag & SAME_ADDR_MASK){
-			flag = itr->flag & SAME_ADDR_MASK_NOT;
-			for(count=start; count < itr->limit; count++){
-				if(count >= itr->base)
-					set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
-				pte++;
-			}
-		}else{
-			for(count=start; count < itr->limit; count++){
-				if(count >= itr->base)
-					set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
-				pte++;
-			}
+		// if(itr->flag & SAME_ADDR_MASK){
+		// 	flag = itr->flag & SAME_ADDR_MASK_NOT;
+		// 	for(count=start; count < itr->limit; count++){
+		// 		if(count >= itr->base)
+		// 			set_pte(pte, __pte(((pteval_t)(itr->base - itr->offset) << PAGE_SHIFT) | flag));
+		// 		pte++;
+		// 	}
+		// }else{
+	
+		for(count=start; count < itr->limit; count++){
+			if(count >= itr->base)
+				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			pte++;
 		}
+		
+		// }
 	}
 	*(ptep) = pte;
 }
@@ -1597,7 +1605,7 @@ static void print_pte(pmd_t *pmdp)
 }
 */
 
-static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
+static int update_pgtable_usr(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
 {
 	struct ds_list *itr;
 	struct ds_head_list *ds_head;
@@ -1641,6 +1649,44 @@ static int update_pgtable(unsigned long va_start, pte_t *pte, struct file *file,
 	return flag;
 }
 
+static int update_pgtable_ker(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
+{
+	struct ds_list *itr;
+	unsigned long va_end;
+	int flag = 0;
+	
+	int size;
+	char *buf;
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+	memset(buf, '\0', 100);
+
+	va_end = va_start | PT_PGTABLE_MASK;
+
+	// printk(KERN_INFO "%ld-%ld-%ld-0  %lx %lx\n", (va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, va_start, va_end);
+	size = sprintf(buf, "%ld-%ld-%ld-0  %lx %lx\n", (va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, va_start, va_end);
+	kernel_write(file, buf, size, pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	list_for_each_entry(itr, &ker_ds_head, list){
+		if(itr->limit <= va_start){
+			continue; // not hit yet
+		}else if(va_end < itr->base){
+			break; // already finished
+		}else{ // recover pgtable from ds
+			// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+			size = sprintf(buf, "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+			kernel_write(file, buf, size, pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			dup_pte(&pte, itr, va_start, va_end);
+			va_start = itr->limit;
+			flag = 1;
+		}
+	}
+	return flag;
+}
+
 static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *pos)
 {
 	pmd_t *pmdp;
@@ -1673,7 +1719,7 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 			goto err;
 		}
 		
-		if(update_pgtable(va_start, ptep_new, file, pos) == 1){
+		if(update_pgtable_usr(va_start, ptep_new, file, pos) == 1){
 			pmd_reinstall(current->mm, pmdp, ptep_new);
 
 			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -1712,7 +1758,7 @@ static int __recover_pgtable(unsigned long va_start, struct file *file, loff_t *
 			goto err;
 		}
 		
-		if(update_pgtable(va_start, ptep_new, file, pos) == 1){
+		if(update_pgtable_ker(va_start, ptep_new, file, pos) == 1){
 			pmd_reinstall_kernel(pmdp, ptep_new, file, pos);
 			
 			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -1976,7 +2022,6 @@ static long recover_pgtable(unsigned long va)
 {
 	struct m_list *itr;
 	struct m_head_list *m_head;
-	int count;
 	
 	struct file *file;
 	char *filename = "./write_log_txt";
@@ -1998,9 +2043,9 @@ static long recover_pgtable(unsigned long va)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			list_for_each_entry(itr, &m_head->head, list){
-				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + 0x1000){
+				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 					printk(KERN_INFO "pgtable found %lx\n",va);
-					if((count = __recover_pgtable(itr->num, file, &pos)) < 0){
+					if(__recover_pgtable(itr->num, file, &pos) < 0){
 						goto err;
 					}
 					return 0;
