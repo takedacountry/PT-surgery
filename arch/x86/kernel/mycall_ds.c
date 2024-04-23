@@ -1514,7 +1514,7 @@ static pte_t *pte_realloc_kernel(void)
 static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsigned long end)
 {
 	unsigned long count;
-	unsigned long flag;
+	// unsigned long flag;
 	pte_t *pte = *(ptep);
 
 	if(itr->base <= start && end < itr->limit){
