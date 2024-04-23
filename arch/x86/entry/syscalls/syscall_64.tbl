@@ -388,7 +388,7 @@
 470     common  mycall_ds_init          sys_mycall_ds_init
 471     common  mycall_ds_free          sys_mycall_ds_free
 472     common  mycall_ds_register_pid  sys_mycall_ds_register_pid
-473     common  mycall_make_ds_usr_from_pgtable  sys_make_ds_usr_from_pgtable
+473     common  mycall_make_ds_usr_from_pgtable  sys_mycall_make_ds_usr_from_pgtable
 #
 # Due to a historical design error, certain syscalls are numbered differently
 # in x32 as compared to native x86_64.  These syscalls have numbers 512-547.
