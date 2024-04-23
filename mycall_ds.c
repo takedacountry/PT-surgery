@@ -23,6 +23,7 @@
 #define SYS_mycall_ds_init 470
 #define SYS_mycall_ds_free 471
 #define SYS_mycall_ds_register_pid 472
+#define SYS_mycall_make_ds_usr_from_pgtable 473
 
 #define INDEX 1024*1024*1024 //1GB
 #define PGD 512
@@ -96,7 +97,8 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
-    printf("%ld\n", syscall(SYS_mycall_ds_make_user));
+    // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
+    printf("%ld\n", syscall(SYS_SYS_mycall_make_ds_usr_from_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
