@@ -98,7 +98,7 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
-    printf("%ld\n", syscall(SYS_SYS_mycall_make_ds_usr_from_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
