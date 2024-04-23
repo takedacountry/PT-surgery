@@ -2045,7 +2045,7 @@ static long recover_pgtable(unsigned long va)
 			list_for_each_entry(itr, &m_head->head, list){
 				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
 					printk(KERN_INFO "pgtable found %lx\n",va);
-					if(__recover_pgtable(itr->num, file, &pos) < 0){
+					if(__recover_pgtable(itr->num & PT_PGTABLE_MASK_NOT, file, &pos) < 0){
 						goto err;
 					}
 					return 0;
