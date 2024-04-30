@@ -477,7 +477,7 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 		pte_free(mm, new);
 	// my code
 	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(new)) < 0)
-		printk(KERN_INFO "pte m list failure\n");
+		printk(KERN_INFO "pte m list failure at pte_alloc\n");
 	return 0;
 }
 
@@ -5295,7 +5295,7 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
 
 		// my code
 		if(make_pud_m_list((unsigned long)p4d, (unsigned long)new) < 0)
-			printk(KERN_INFO "pud m list failure\n");
+			printk(KERN_INFO "pud m list failure at pud_alloc\n");
 	} else	/* Another has populated it */
 		pud_free(mm, new);
 	spin_unlock(&mm->page_table_lock);
@@ -5323,7 +5323,7 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 
 		// my code
 		if(make_pmd_m_list((unsigned long)pud, (unsigned long)new) < 0)
-			printk(KERN_INFO "pmd m list failure\n");
+			printk(KERN_INFO "pmd m list failure at pmd_alloc\n");
 	} else {	/* Another has populated it */
 		pmd_free(mm, new);
 	}
