@@ -472,12 +472,13 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 	if (!new)
 		return -ENOMEM;
 
+	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(new)) >= 0)
+		printk(KERN_INFO "make pte m list %ld\n",(unsigned long)page_address(new));
+	
 	pmd_install(mm, pmd, &new);
 	if (new)
 		pte_free(mm, new);
-	// my code
-	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(new)) >= 0)
-		printk(KERN_INFO "make pte m list %ld\n",(unsigned long)page_address(new));
+	
 	return 0;
 }
 
