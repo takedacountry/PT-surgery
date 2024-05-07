@@ -536,13 +536,14 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 			// incert dnode
 			if(list_empty(&ds_head->head)){ //no node
 				list_add(&dnode->list, &ds_head->head);
+				goto end;
 			}else{
 				list_for_each_entry(next, &ds_head->head, list){
 					if(dnode->limit <= next->base){
 						list_add_tail(&dnode->list, &next->list);
 						if(list_is_first(&dnode->list, &ds_head->head)){
 							ds_node_merge(dnode, next);
-							return 0;
+							goto end;
 						}
 						prev = list_prev_entry(dnode, list);
 						break;
@@ -551,19 +552,20 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						list_add_tail(&dnode->list, &ds_head->head);
 						prev = list_prev_entry(dnode, list);
 						ds_node_merge(prev, dnode);
-						return 0;
+						goto end;
 					}
 				}
 				ds_node_merge(dnode, next);
 				ds_node_merge(prev, dnode);
-				return 0;
+				goto end;
 			}
 		}
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
-// end:
-	// printk(KERN_INFO "make ds base %ld\n", base);
 	return -1;
+end:
+	// printk(KERN_INFO "make ds base %ld\n", base);
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
