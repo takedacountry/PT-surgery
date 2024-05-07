@@ -383,7 +383,7 @@ int make_pgd_m_list(unsigned long pgd_va)
 		}
 	}
 	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
-	return 0;
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
@@ -420,7 +420,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 		}
 	}
 	// printk(KERN_INFO "pud no pid: %d\n", current->pid);
-	return 0;
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
@@ -458,7 +458,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", current->pid);
-	return 0;
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
@@ -495,7 +495,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", current->pid);
-	return 0;
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
@@ -542,7 +542,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						list_add_tail(&dnode->list, &next->list);
 						if(list_is_first(&dnode->list, &ds_head->head)){
 							ds_node_merge(dnode, next);
-							goto end;
+							return 0;
 						}
 						prev = list_prev_entry(dnode, list);
 						break;
@@ -551,19 +551,19 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						list_add_tail(&dnode->list, &ds_head->head);
 						prev = list_prev_entry(dnode, list);
 						ds_node_merge(prev, dnode);
-						goto end;
+						return 0;
 					}
 				}
 				ds_node_merge(dnode, next);
 				ds_node_merge(prev, dnode);
-				goto end;
+				return 0;
 			}
 		}
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
 end:
 	// printk(KERN_INFO "make ds base %ld\n", base);
-	return 0;
+	return -1;
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
