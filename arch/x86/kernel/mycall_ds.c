@@ -561,7 +561,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 		}
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
-end:
+// end:
 	// printk(KERN_INFO "make ds base %ld\n", base);
 	return -1;
 }
