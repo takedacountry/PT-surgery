@@ -362,11 +362,6 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 	return 0;
 }
 
-static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
-{
-	unsigned long va = a << 27 | b << 18 | c << 9 | d;
-	return va;	
-}
 
 static long make_user_pgtable(void)
 {
