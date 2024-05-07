@@ -396,7 +396,7 @@ static unsigned long get_pgd_num(unsigned long va, struct m_head_list *m_head)
 			return make_ds_va(((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, 0);
 		}
 	}
-	printk(KERN_INFO "no pgd m list va %ld\n",va);
+	// printk(KERN_INFO "no pgd m list va %ld\n",va);
 	return MAX_NUM;
 }
 
@@ -433,7 +433,7 @@ static unsigned long get_pud_num(unsigned long va, struct m_head_list *m_head)
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 		}
 	}
-	printk(KERN_INFO "no pud m list va %ld\n",va);
+	// printk(KERN_INFO "no pud m list va %ld\n",va);
 	return MAX_NUM;
 	// return make_ds_va(0, ((va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, 0);
 }
@@ -471,7 +471,7 @@ static unsigned long get_pmd_num(unsigned long va, struct m_head_list *m_head)
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0);
 		}
 	}
-	printk(KERN_INFO "no pmd m list va %ld\n",va);
+	// printk(KERN_INFO "no pmd m list va %ld\n",va);
 	return MAX_NUM;
 }
 
@@ -508,7 +508,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 		}
 	}
-	printk(KERN_INFO "no pte m list va %ld\n",va);
+	// printk(KERN_INFO "no pte m list va %ld\n",va);
 	return MAX_NUM;
 }
 
