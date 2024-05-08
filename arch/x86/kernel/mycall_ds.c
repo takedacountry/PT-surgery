@@ -6,6 +6,8 @@
 #include <linux/mm.h>
 #include <linux/spinlock.h>
 #include <linux/export.h>
+	kfree(buf);
+	filp_close(file, NULL);
 #include <asm/current.h>
 #include <asm/io.h>
 #include <asm/ds.h>
@@ -1807,7 +1809,7 @@ err:
 static long recover_all_pgtable(void)
 {
 	struct m_list *itr;
-	struct m_list_head *m_head;
+	struct m_head_list *m_head;
 	
 	unsigned long va_start;
 	
