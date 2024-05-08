@@ -449,6 +449,11 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 		printk(KERN_INFO "pte ds list failure at set_pte\n");
 }
 
+static inline void set_pte_recover(pte_t *ptep, pte_t pte)
+{
+	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
+}
+
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
 	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
