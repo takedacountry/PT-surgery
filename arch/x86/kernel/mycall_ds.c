@@ -379,11 +379,11 @@ int make_pgd_m_list(unsigned long pgd_va)
 					return -ENOMEM;
 				// printk(KERN_INFO "make pgd %ld, pid %d\n", num | P4D_FLAG_MASK,  current->pid);
 			}
-			return 0;
+			return 1;
 		}
 	}
 	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
@@ -416,11 +416,11 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 				
 				// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, current->pid);
 			}
-			return 0;
+			return 1;
 		}
 	}
 	// printk(KERN_INFO "pud no pid: %d\n", current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
@@ -454,11 +454,11 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 
 				// printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, current->pid);
 			}
-			return 0;
+			return 1;
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
@@ -491,11 +491,11 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 
 				// printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, current->pid);
 			}
-			return 0;
+			return 1;
 		}
 	}
 	// printk(KERN_INFO "no m pid: %d\n", current->pid);
-	return -1;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
@@ -562,10 +562,10 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 		}
 	}
 	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
-	return -1;
+	return 0;
 end:
 	// printk(KERN_INFO "make ds base %ld\n", base);
-	return 0;
+	return 1;
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
@@ -903,7 +903,7 @@ static long make_ds_list_usr_from_pgtable(void)
 									// make_ds from ptep
 									if(make_ds_list_usr((unsigned long)ptep, *ptep) < 0){
 										printk(KERN_INFO "pte ds list failure\n");
-										goto end;
+										// goto end;
 									}
 			                    			}
 			                		}
@@ -913,7 +913,7 @@ static long make_ds_list_usr_from_pgtable(void)
 	        	}
 		}
     	}
-end:
+// end:
 	return 0;
 }
 
