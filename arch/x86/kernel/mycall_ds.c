@@ -1810,17 +1810,11 @@ static long recover_all_pgtable(void)
 	struct m_head_list *m_head;
 	
 	unsigned long va_start;
-	unsigend long num;
-	
-	// int num;
+	unsigned long num;
 	int count = 0;
-	// int flag = 0;
-	// struct ds_list *itr;
 
 	struct file *file;
 	char *filename = "./write_log_txt";
-	// int size;
-	// char *buf;
         loff_t pos = 0;
 
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
@@ -1829,10 +1823,6 @@ static long recover_all_pgtable(void)
 		goto err;
 	}
 	
-        // buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        // if(!buf)
-		// goto err;
-	// memset(buf, '\0', 100);
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			for(unsigned long a=0; a<USER_MAX; a++){
@@ -1864,11 +1854,9 @@ static long recover_all_pgtable(void)
 			}
 		}
 	}
-	// kfree(buf);
 	filp_close(file, NULL);
 	return 0;
 err:	
-	// kfree(buf);
 	filp_close(file, NULL);
 	return -1;	
 }
