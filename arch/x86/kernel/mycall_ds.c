@@ -1806,6 +1806,9 @@ err:
 
 static long recover_all_pgtable(void)
 {
+	struct m_list *itr;
+	struct m_list_head *m_head;
+	
 	unsigned long va_start;
 	
 	// int num;
