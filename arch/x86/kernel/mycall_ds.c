@@ -1534,7 +1534,7 @@ static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsi
 		// }else{
 		
 		for(count=start; count <= end; count++){
-			set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			set_pte_recover(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
 			pte++;
 		}
 		
@@ -1550,7 +1550,7 @@ static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsi
 		// }else{
 		
 		for(count=start; count < itr->limit; count++){
-			set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+			set_pte_recover(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
 			pte++;
 		}
 		
@@ -1568,7 +1568,7 @@ static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsi
 		
 		for(count=start; count <= end; count++){
 			if(count >= itr->base)
-				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+				set_pte_recover(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
 			pte++;
 		}
 		
@@ -1586,7 +1586,7 @@ static void dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsi
 	
 		for(count=start; count < itr->limit; count++){
 			if(count >= itr->base)
-				set_pte(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
+				set_pte_recover(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
 			pte++;
 		}
 		
