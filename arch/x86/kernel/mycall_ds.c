@@ -790,7 +790,7 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
   	}
 
 	if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0)
-		printk(KERN_INFO "pte m list failure\n");
+		printk(KERN_INFO "pte m list failure at get_ptep\n");
 		
   	return 1;
 }
@@ -806,7 +806,7 @@ static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
   	}
 
 	if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0)
-		printk(KERN_INFO "pmd m list failure\n");
+		printk(KERN_INFO "pmd m list failure at get_pmdp\n");
 	
   // 	if(pmd_large(*pmdp)){
   //   		pte_value = pmd_pfn(*pmdp);
@@ -827,7 +827,7 @@ static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
   	}
 
 	if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0)
-		printk(KERN_INFO "pud m list failure\n");
+		printk(KERN_INFO "pud m list failure at get_pudp\n");
 	
   // 	if(pud_large(*pudp)){
   //   		pte_value = pud_pfn(*pudp);
@@ -863,7 +863,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 	}
 
 	if(make_pgd_m_list((unsigned long)pgdp) < 0)
-		printk(KERN_INFO "pgd m list failure\n");
+		printk(KERN_INFO "pgd m list failure at get_pgdp\n");
 	
   	return 1;
 }
@@ -902,7 +902,7 @@ static long make_ds_list_usr_from_pgtable(void)
 
 									// make_ds from ptep
 									if(make_ds_list_usr((unsigned long)ptep, *ptep) < 0){
-										printk(KERN_INFO "pte ds list failure\n");
+										printk(KERN_INFO "pte ds list failure at from_pgtable\n");
 										// goto end;
 									}
 			                    			}
