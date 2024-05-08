@@ -6,8 +6,6 @@
 #include <linux/mm.h>
 #include <linux/spinlock.h>
 #include <linux/export.h>
-	kfree(buf);
-	filp_close(file, NULL);
 #include <asm/current.h>
 #include <asm/io.h>
 #include <asm/ds.h>
@@ -1812,6 +1810,7 @@ static long recover_all_pgtable(void)
 	struct m_head_list *m_head;
 	
 	unsigned long va_start;
+	unsigend long num;
 	
 	// int num;
 	int count = 0;
@@ -1842,11 +1841,12 @@ static long recover_all_pgtable(void)
 						va_start = make_ds_va(a, b, c, 0);
 		
 						list_for_each_entry(itr, &m_head->head, list){
-							if(itr->num & PT_PGTABLE_MASK_NOT == va_start){
+							num = itr->num & PT_PGTABLE_MASK_NOT;
+							if(num == va_start){
 								if((count =__recover_pgtable(va_start, itr, file, &pos)) < 0){
 									goto err;
 								}
-							}else if(va_start < itr->num & PT_PGTABLE_MASK_NOT){
+							}else if(va_start < num){
 								break;
 							}
 						}
