@@ -1922,9 +1922,98 @@ SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
 	return ret;
 }
 
+struct ds_list *delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
+{
+	struct ds_list *ret = NULL;
+	unsigned long count;
+
+	if(itr->base < start && end < itr->limit){ // base->start, end->limit
+		itr->limit = start;
+		make_ds_node()
+
+
+		if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
+				return -ENOMEM;
+			
+			// incert dnode
+			if(list_empty(&ds_head->head)){ //no node
+				list_add(&dnode->list, &ds_head->head);
+				goto end;
+			}else{
+				list_for_each_entry(next, &ds_head->head, list){
+					if(dnode->limit <= next->base){
+						list_add_tail(&dnode->list, &next->list);
+						if(list_is_first(&dnode->list, &ds_head->head)){
+							ds_node_merge(dnode, next);
+							goto end;
+						}
+						prev = list_prev_entry(dnode, list);
+						break;
+					}
+					if(list_is_last(&next->list, &ds_head->head)){
+						list_add_tail(&dnode->list, &ds_head->head);
+						prev = list_prev_entry(dnode, list);
+						ds_node_merge(prev, dnode);
+						goto end;
+					}
+				}
+				ds_node_merge(dnode, next);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
+	}else if(itr->base < start && itr->limit <= end){ // base->start
+		
+	}else if(start <= itr->base && end < itr->limit){ //end->limit
+		
+	}else if(start <= itr->base && itr->limit <= end){ // all delete
+		ret = list_next_entry()
+		list_del(&itr->list);
+	}
+	return ret;
+}
+
+void delete_ds_m_free_pte(unsigned long va)
+{
+	struct ds_list *ds_node, itr;
+	struct ds_head_list *ds_head;
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	unsigned long va_start, va_end;
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+					va_start = m_node->num;
+					va_end = va_start + PT_PGTABLE_SIZE;
+					list_del(&m_node->list);
+					kfree(itr);
+				}
+			}
+		}
+	}
+	
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == current->pid){
+			list_for_each_entry(ds_node, &ds_head->head, list){
+				if(ds_node->limit <= va_start){
+					continue;
+				}else if(va_end <= ds_node->base){
+					break;
+				}else{
+					delete_ds(ds_node, va_start, va_end;
+					base = ds_node->limit;
+					
+				}
+			}
+		}
+	}
+}
+
 
 // remake now
-static long delete_ds(void)
+static long delete_ds_all(void)
 {
 	struct ds_list *itr;
 	struct ds_head_list *ds_head;
@@ -1968,10 +2057,10 @@ static long delete_ds(void)
 
 SYSCALL_DEFINE0(mycall_ds_delete)
 {
-	return delete_ds();
+	return delete_ds_all();
 }
 
-static long delete_m(void)
+static long delete_m_all(void)
 {
 	struct m_list *itr;
 	struct m_head_list *m_head;
@@ -2014,6 +2103,6 @@ static long delete_m(void)
 
 SYSCALL_DEFINE0(mycall_m_delete)
 {
-	return delete_m();
+	return delete_m_all();
 }
 
