@@ -102,6 +102,12 @@ static inline void pte_free(struct mm_struct *mm, struct page *pte_page)
 	__free_page(pte_page);
 }
 
+static inline void pte_free_recover(struct mm_struct *mm, struct page *pte_page)
+{
+	pgtable_pte_page_dtor(pte_page);
+	__free_page(pte_page);
+}
+
 
 #if CONFIG_PGTABLE_LEVELS > 2
 
