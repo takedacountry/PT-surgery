@@ -1922,54 +1922,32 @@ SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)
 	return ret;
 }
 
-struct ds_list *delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
+void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
 {
-	struct ds_list *ret = NULL;
-	unsigned long count;
+	struct ds_list *next;
 
 	if(itr->base < start && end < itr->limit){ // base->start, end->limit
+		if((next = make_ds_node(end, itr->limit, itr->offset, itr->flag)) == NULL)
+			return NULL;
 		itr->limit = start;
-		make_ds_node()
-
-
-		if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
-				return -ENOMEM;
-			
-			// incert dnode
-			if(list_empty(&ds_head->head)){ //no node
-				list_add(&dnode->list, &ds_head->head);
-				goto end;
-			}else{
-				list_for_each_entry(next, &ds_head->head, list){
-					if(dnode->limit <= next->base){
-						list_add_tail(&dnode->list, &next->list);
-						if(list_is_first(&dnode->list, &ds_head->head)){
-							ds_node_merge(dnode, next);
-							goto end;
-						}
-						prev = list_prev_entry(dnode, list);
-						break;
-					}
-					if(list_is_last(&next->list, &ds_head->head)){
-						list_add_tail(&dnode->list, &ds_head->head);
-						prev = list_prev_entry(dnode, list);
-						ds_node_merge(prev, dnode);
-						goto end;
-					}
-				}
-				ds_node_merge(dnode, next);
-				ds_node_merge(prev, dnode);
-				goto end;
-			}
-	}else if(itr->base < start && itr->limit <= end){ // base->start
-		
-	}else if(start <= itr->base && end < itr->limit){ //end->limit
-		
-	}else if(start <= itr->base && itr->limit <= end){ // all delete
-		ret = list_next_entry()
-		list_del(&itr->list);
+		list_add(&next->list, &itr->list);
+		goto out;
 	}
-	return ret;
+
+	while(end <= itr->base){
+		next = list_next_entry(itr, list);
+		if(itr->base < start && itr->limit <= end){ // base->start
+			itr->limit = start;
+		}else if(start <= itr->base && end < itr->limit){ // end->limit
+			itr->base = end;
+		}else if(start <= itr->base && itr->limit <= end){ // all delete
+			list_del(&itr->list);
+			kfree(itr);
+		}
+		itr = next;
+	}
+out:
+	return;
 }
 
 void delete_ds_m_free_pte(unsigned long va)
@@ -2002,13 +1980,13 @@ void delete_ds_m_free_pte(unsigned long va)
 				}else if(va_end <= ds_node->base){
 					break;
 				}else{
-					delete_ds(ds_node, va_start, va_end;
-					base = ds_node->limit;
-					
+					delete_ds(ds_node, va_start, va_end);
+					break;					
 				}
 			}
 		}
 	}
+	return;
 }
 
 
