@@ -1261,7 +1261,63 @@ static int print_ker_ds(void)
 SYSCALL_DEFINE1(mycall_ds_search, pid_t, pid)
 {
 	print_usr_ds(pid);
-	print_ker_ds();
+	// print_ker_ds();
+	return 0;
+}
+
+static int print_usr_ds2(pid_t pid)
+{
+	struct ds_list *itr;
+	struct ds_head_list *ds_head;
+	int count = 0;
+
+	struct file *file;
+	char *filename = "./usr_ds_txt2";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return -1;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return -1;
+	memset(buf, '\0', 100);
+
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == pid){
+			printk(KERN_INFO "ds pid: %d\n", pid);
+			size = sprintf(buf, "ds pid: %d\n", pid);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			list_for_each_entry(itr, &ds_head->head, list){
+				// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+				size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+				kernel_write(file, buf, size, &pos);
+				vfs_fsync_range(file, 0, size, 1);
+				count++;
+			}
+		}
+	}
+	printk(KERN_INFO "user ds count %d, pid %d\n", count, pid);
+	size = sprintf(buf, "user ds count %d, pid %d\n", count, pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
+
+SYSCALL_DEFINE1(mycall_ds_search2, pid_t, pid)
+{
+	print_usr_ds2(pid);
 	return 0;
 }
 
@@ -1358,7 +1414,63 @@ static int print_ker_m(void)
 SYSCALL_DEFINE1(mycall_m_search, pid_t, pid)
 {
 	print_usr_m(pid);
-	print_ker_m();
+	// print_ker_m();
+	return 0;
+}
+
+static int print_usr_m2(pid_t pid)
+{
+	struct m_list *itr;
+	struct m_head_list *m_head;
+	int count=0;
+	
+	struct file *file;
+	char *filename = "./usr_m_txt2";
+	int size;
+	char *buf;
+        loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		return -1;
+	}
+	
+        buf = kmalloc(PATH_MAX, GFP_KERNEL);
+        if(!buf)
+		return -1;
+	memset(buf, '\0', 100);
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == pid){
+			printk(KERN_INFO "m pid: %d\n", pid);
+			size = sprintf(buf, "m pid: %d\n", pid);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			list_for_each_entry(itr, &m_head->head, list){
+				// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+				size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+				kernel_write(file, buf, size, &pos);
+				vfs_fsync_range(file, 0, size, 1);
+				count++;
+			}
+		}
+	}
+	printk(KERN_INFO "user m count %d, pid %d\n", count, pid);
+	size = sprintf(buf, "user m count %d pid %d\n", count, pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
+
+SYSCALL_DEFINE1(mycall_m_search2, pid_t, pid)
+{
+	print_usr_m2(pid);
 	return 0;
 }
 
