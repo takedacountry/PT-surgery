@@ -2079,9 +2079,11 @@ void delete_ds_m_free_pte(unsigned long va)
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
 					kfree(m_node);
-					printk(KERN_INFO "delete user m %lx~%lx",va_start, va_end);
+					printk(KERN_INFO "delete user %lx %lx-%lx", va, va_start, va_end);
+					break;
 				}
 			}
+			break;
 		}
 	}
 	
@@ -2098,6 +2100,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					break;					
 				}
 			}
+			break;
 		}
 	}
 	return;
