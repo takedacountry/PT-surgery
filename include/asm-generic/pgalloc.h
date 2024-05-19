@@ -103,7 +103,7 @@ static inline void pte_free(struct mm_struct *mm, struct page *pte_page)
 	pgtable_pte_page_dtor(pte_page);
 	__free_page(pte_page);
 	delete_ds_m_free_pte((unsigned long)page_address(pte_page));
-	printk(KERN_INFO "pte_free\n");
+	// printk(KERN_INFO "pte_free\n");
 }
 
 static inline void pte_free_recover(struct mm_struct *mm, struct page *pte_page)
