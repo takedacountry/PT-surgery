@@ -2046,7 +2046,7 @@ void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
 		goto out;
 	}
 
-	while(end <= itr->base){
+	while(end > itr->base){
 		next = list_next_entry(itr, list);
 		if(itr->base < start && itr->limit <= end){ // base->start
 			itr->limit = start;
