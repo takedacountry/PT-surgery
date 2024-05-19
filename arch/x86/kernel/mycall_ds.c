@@ -1928,7 +1928,7 @@ void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
 
 	if(itr->base < start && end < itr->limit){ // base->start, end->limit
 		if((next = make_ds_node(end, itr->limit, itr->offset, itr->flag)) == NULL)
-			return NULL;
+			goto out;
 		itr->limit = start;
 		list_add(&next->list, &itr->list);
 		goto out;
@@ -1952,7 +1952,7 @@ out:
 
 void delete_ds_m_free_pte(unsigned long va)
 {
-	struct ds_list *ds_node, itr;
+	struct ds_list *ds_node;
 	struct ds_head_list *ds_head;
 	struct m_list *m_node;
 	struct m_head_list *m_head;
@@ -1966,7 +1966,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					va_start = m_node->num;
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
-					kfree(itr);
+					kfree(m_node);
 				}
 			}
 		}
