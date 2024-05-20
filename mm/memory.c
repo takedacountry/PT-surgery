@@ -474,7 +474,7 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 
 	// my code
 	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new)) < 0)
-		printk(KERN_INFO "pte m list failure at pte_alloc %ld\n",(unsigned long)page_address((struct page *)new));
+		printk(KERN_INFO "pte m list failure at pte_alloc %lx pmd %lx\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd);
 	
 	pmd_install(mm, pmd, &new);
 	if (new)
