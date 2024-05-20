@@ -37,18 +37,17 @@ int main(int argc, char **argv)
                 _exit(-1);
         } else if (pid > 0) {
                 printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, pid), pid);
-
-                sleep(20);
-                
-                printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-                printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
-                printf("%ld\n", syscall(SYS_mycall_m_search, pid));
+                // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+                // printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
+                // printf("%ld\n", syscall(SYS_mycall_m_search, pid));
     
         } else {
                 perror("fork");
         }        
     
         wait(NULL);
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
+        // printf("%ld\n", syscall(SYS_mycall_m_search, pid));
         printf("%ld\n", syscall(SYS_mycall_ds_delete));
         printf("%ld\n", syscall(SYS_mycall_m_delete));
         return 0;
