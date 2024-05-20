@@ -524,6 +524,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM)
+				printk(KERN_INFO "make ds error va %lx num %lx\n", va, base);
 				return -1;
 		}
 	}
