@@ -921,7 +921,16 @@ static long make_ds_list_usr_from_pgtable(void)
 
 SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
 {
-	return make_ds_list_usr_from_pgtable();
+	long ret;
+	ktime_t start, end;
+
+	start = ktime_get();
+	ret = make_ds_list_usr_from_pgtable();
+	end = ktime_get();
+
+	printk(KERN_INFO "make_ds_usr time: %lld\n", ktime_sub(end, start));
+	
+	return ret;
 }
 
 static long make_usr_ds(void)
