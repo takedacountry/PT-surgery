@@ -343,6 +343,17 @@ static int add_m_node(unsigned long va, unsigned long num, struct m_list *m_node
 	if((itr = make_m_node(va, num)) == NULL)
 		return -ENOMEM;
 
+	list_add(&itr->list, &m_node->list);
+	return 0;
+}
+
+static int add_tail_m_node(unsigned long va, unsigned long num, struct m_list *m_node)
+{
+	struct m_list *itr;
+
+	if((itr = make_m_node(va, num)) == NULL)
+		return -ENOMEM;
+
 	list_add_tail(&itr->list, &m_node->list);
 	return 0;
 }
@@ -427,13 +438,19 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 pud_va:
 	pud_va &= PAGE_MASK;
 	while(itr->num <= base){
-		itr = list_next_entry(itr, list);
 		if(itr->va == pud_va && itr->num == base)
 			goto end;
+		if(list_is_last(&itr->list, &m_head->head)){
+			if(add_m_node(pud_va, base, itr) < 0){
+				goto end;
+			}
+			goto ret;
+		}
+		itr = list_next_entry(itr, list);
 	}
-	if(add_m_node(pud_va, base, itr) < 0)
+	if(add_tail_m_node(pud_va, base, itr) < 0)
 		goto end;
-		
+ret:		
 	return base;
 end:
 	// printk(KERN_INFO "no pgd m list va %ld\n",va);
@@ -479,13 +496,19 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 pmd_va:
 	pmd_va &= PAGE_MASK;
 	while(itr->num <= base){
-		itr = list_next_entry(itr, list);
 		if(itr->va == pmd_va && itr->num == base)
 			goto end;
+		if(list_is_last(&itr->list, &m_head->head)){
+			if(add_m_node(pmd_va, base, itr) < 0){
+				goto end;
+			}
+			goto ret;
+		}
+		itr = list_next_entry(itr, list);
 	}
-	if(add_m_node(pmd_va, base, itr) < 0)
+	if(add_tail_m_node(pmd_va, base, itr) < 0)
 		goto end;
-	
+ret:		
 	return base;
 end:
 	// printk(KERN_INFO "no pud m list va %ld\n",va);
@@ -531,13 +554,19 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
-		itr = list_next_entry(itr, list);
 		if(itr->va == pte_va && itr->num == base)
 			goto end;
+		if(list_is_last(&itr->list, &m_head->head)){
+			if(add_m_node(pte_va, base, itr) < 0){
+				goto end;
+			}
+			goto ret;
+		}
+		itr = list_next_entry(itr, list);
 	}
-	if(add_m_node(pte_va, base, itr) < 0)
+	if(add_tail_m_node(pte_va, base, itr) < 0)
 		goto end;
-		
+ret:		
 	return base;
 end:
 	// printk(KERN_INFO "no pmd m list va %ld\n",va);
