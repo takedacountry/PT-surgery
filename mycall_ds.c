@@ -61,6 +61,22 @@ int main(void)
     char *mn = (char*)malloc(INDEX);
     char *mo = (char*)malloc(INDEX);
     char *mp = (char*)malloc(INDEX);
+    char *ma1 = (char*)malloc(INDEX);
+    char *mb1 = (char*)malloc(INDEX);
+    char *mc1 = (char*)malloc(INDEX);
+    char *md1 = (char*)malloc(INDEX);
+    char *me1 = (char*)malloc(INDEX);
+    char *mf1 = (char*)malloc(INDEX);
+    char *mg1 = (char*)malloc(INDEX);
+    char *mh1 = (char*)malloc(INDEX);
+    char *mi1 = (char*)malloc(INDEX);
+    char *mj1 = (char*)malloc(INDEX);
+    char *mk1 = (char*)malloc(INDEX);
+    char *ml1 = (char*)malloc(INDEX);
+    char *mm1 = (char*)malloc(INDEX);
+    char *mn1 = (char*)malloc(INDEX);
+    char *mo1 = (char*)malloc(INDEX);
+    char *mp1 = (char*)malloc(INDEX);
     
     memset(ma, 0, INDEX);
     memset(mb, 0, INDEX);
@@ -78,6 +94,22 @@ int main(void)
     memset(mn, 0, INDEX);
     memset(mo, 0, INDEX);
     memset(mp, 0, INDEX);
+    memset(ma1, 0, INDEX);
+    memset(mb1, 0, INDEX);
+    memset(mc1, 0, INDEX);
+    memset(md1, 0, INDEX);
+    memset(me1, 0, INDEX);
+    memset(mf1, 0, INDEX);
+    memset(mg1, 0, INDEX);
+    memset(mh1, 0, INDEX);
+    memset(mi1, 0, INDEX);
+    memset(mj1, 0, INDEX);
+    memset(mk1, 0, INDEX);
+    memset(ml1, 0, INDEX);
+    memset(mm1, 0, INDEX);
+    memset(mn1, 0, INDEX);
+    memset(mo1, 0, INDEX);
+    memset(mp1, 0, INDEX);
     
 
     printf("va: %p\n", ma); // print user va 
@@ -96,6 +128,22 @@ int main(void)
     printf("va: %p\n", mn); // print user va
     printf("va: %p\n", mo); // print user va
     printf("va: %p\n", mp); // print user va
+    printf("va: %p\n", ma1); // print user va 
+    printf("va: %p\n", mb1); // print user va 
+    printf("va: %p\n", mc1); // print user va 
+    printf("va: %p\n", md1); // print user va 
+    printf("va: %p\n", me1); // print user va
+    printf("va: %p\n", mf1); // print user va
+    printf("va: %p\n", mg1); // print user va
+    printf("va: %p\n", mh1); // print user va
+    printf("va: %p\n", mi1); // print user va
+    printf("va: %p\n", mj1); // print user va
+    printf("va: %p\n", mk1); // print user va
+    printf("va: %p\n", ml1); // print user va
+    printf("va: %p\n", mm1); // print user va
+    printf("va: %p\n", mn1); // print user va
+    printf("va: %p\n", mo1); // print user va
+    printf("va: %p\n", mp1); // print user va
     
     
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
@@ -142,21 +190,7 @@ int main(void)
     // }
     
     free(ma);
-
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    
     free(mb);
-
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    
     free(mc);
     free(md);
     free(me);
@@ -171,6 +205,22 @@ int main(void)
     free(mn);
     free(mo);
     free(mp);
+    free(ma1);
+    free(mb1);
+    free(mc1);
+    free(md1);
+    free(me1);
+    free(mf1);
+    free(mg1);
+    free(mh1);
+    free(mi1);
+    free(mj1);
+    free(mk1);
+    free(ml1);
+    free(mm1);
+    free(mn1);
+    free(mo1);
+    free(mp1);
     
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
