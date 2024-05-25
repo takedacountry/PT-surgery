@@ -304,7 +304,7 @@ static bool is_add_m_node_va_usr(unsigned long va, struct m_head_list *m_head)
 
 static int add_first_m_node_usr(unsigned long va, unsigned long num, struct m_head_list *m_head)
 {
-	struct m_list *mnode, *itr;
+	struct m_list *mnode;
 
 	if((mnode = make_m_node(va, num)) == NULL)
 		return -ENOMEM;
@@ -418,7 +418,7 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 	list_for_each_entry(itr, &m_head->head, list){
 		// if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + PAGE_SIZE){
 		if(itr->num & PGD_FLAG_MASK){
-			base = make_ds_va(((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
+			base = make_ds_va(((pgd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pud_va;
 		}
 	}
@@ -443,13 +443,12 @@ end:
 int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 {
 	struct m_head_list *m_head;
-	struct m_list *m_node;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			// if(is_add_m_node_va_usr(pud_va, m_head)){
-			if((num = get_pgd_num(pgd_va, pud_va, m_head, &m_node)) >= MAX_NUM)
+			if((num = get_pgd_num(pgd_va, pud_va, m_head)) >= MAX_NUM)
 				return -1;
 		
 			// if(add_m_node_usr(pud_va, num, m_head, m_node) < 0)
@@ -471,7 +470,7 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 
 	list_for_each_entry(itr, &m_head->head, list){
 		if(itr->num & PUD_FLAG_MASK && itr->va <= pud_va && pud_va < itr->va + PAGE_SIZE){
-			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
+			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((pud_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pmd_va;
 		}
 	}
