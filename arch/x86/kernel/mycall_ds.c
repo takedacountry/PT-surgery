@@ -638,22 +638,22 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 				list_add(&dnode->list, &ds_head->head);
 				goto end;
 			}else{
-				list_for_each_entry(next, &ds_head->head, list){
-					if(dnode->limit <= next->base){
-						list_add_tail(&dnode->list, &next->list);
-						if(list_is_first(&dnode->list, &ds_head->head)){
-							ds_node_merge(dnode, next);
+				list_for_each_entry_reverse(prev, &ds_head->head, list){
+					if(dnode->base >= prev->limit){
+						list_add(&dnode->list, &prev->list);
+						if(list_is_last(&dnode->list, &ds_head->head)){
+							ds_node_merge(prev, dnode);
 							goto end;
 						}
-						prev = list_prev_entry(dnode, list);
+						next = list_next_entry(dnode, list);
 						ds_node_merge(dnode, next);
 						ds_node_merge(prev, dnode);
 						goto end;
 					}
 				}
-				list_add_tail(&dnode->list, &ds_head->head);
-				prev = list_prev_entry(dnode, list);
-				ds_node_merge(prev, dnode);
+				list_add(&dnode->list, &ds_head->head);
+				next = list_next_entry(dnode, list);
+				ds_node_merge(dnode, next);
 				goto end;
 			}
 		}
