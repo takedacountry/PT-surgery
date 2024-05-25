@@ -99,7 +99,7 @@ int main(void)
     
     
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
