@@ -53,14 +53,14 @@ int main(void)
     char *mf = (char*)malloc(INDEX);
     char *mg = (char*)malloc(INDEX);
     char *mh = (char*)malloc(INDEX);
-    // char *mi = (char*)malloc(INDEX);
-    // char *mj = (char*)malloc(INDEX);
-    // char *mk = (char*)malloc(INDEX);
-    // char *ml = (char*)malloc(INDEX);
-    // char *mm = (char*)malloc(INDEX);
-    // char *mn = (char*)malloc(INDEX);
-    // char *mo = (char*)malloc(INDEX);
-    // char *mp = (char*)malloc(INDEX);
+    char *mi = (char*)malloc(INDEX);
+    char *mj = (char*)malloc(INDEX);
+    char *mk = (char*)malloc(INDEX);
+    char *ml = (char*)malloc(INDEX);
+    char *mm = (char*)malloc(INDEX);
+    char *mn = (char*)malloc(INDEX);
+    char *mo = (char*)malloc(INDEX);
+    char *mp = (char*)malloc(INDEX);
     // char *ma1 = (char*)malloc(INDEX);
     // char *mb1 = (char*)malloc(INDEX);
     // char *mc1 = (char*)malloc(INDEX);
@@ -86,14 +86,14 @@ int main(void)
     memset(mf, 0, INDEX);
     memset(mg, 0, INDEX);
     memset(mh, 0, INDEX);
-    // memset(mi, 0, INDEX);
-    // memset(mj, 0, INDEX);
-    // memset(mk, 0, INDEX);
-    // memset(ml, 0, INDEX);
-    // memset(mm, 0, INDEX);
-    // memset(mn, 0, INDEX);
-    // memset(mo, 0, INDEX);
-    // memset(mp, 0, INDEX);
+    memset(mi, 0, INDEX);
+    memset(mj, 0, INDEX);
+    memset(mk, 0, INDEX);
+    memset(ml, 0, INDEX);
+    memset(mm, 0, INDEX);
+    memset(mn, 0, INDEX);
+    memset(mo, 0, INDEX);
+    memset(mp, 0, INDEX);
     // memset(ma1, 0, INDEX);
     // memset(mb1, 0, INDEX);
     // memset(mc1, 0, INDEX);
@@ -120,14 +120,14 @@ int main(void)
     printf("va: %p\n", mf); // print user va
     printf("va: %p\n", mg); // print user va
     printf("va: %p\n", mh); // print user va
-    // printf("va: %p\n", mi); // print user va
-    // printf("va: %p\n", mj); // print user va
-    // printf("va: %p\n", mk); // print user va
-    // printf("va: %p\n", ml); // print user va
-    // printf("va: %p\n", mm); // print user va
-    // printf("va: %p\n", mn); // print user va
-    // printf("va: %p\n", mo); // print user va
-    // printf("va: %p\n", mp); // print user va
+    printf("va: %p\n", mi); // print user va
+    printf("va: %p\n", mj); // print user va
+    printf("va: %p\n", mk); // print user va
+    printf("va: %p\n", ml); // print user va
+    printf("va: %p\n", mm); // print user va
+    printf("va: %p\n", mn); // print user va
+    printf("va: %p\n", mo); // print user va
+    printf("va: %p\n", mp); // print user va
     // printf("va: %p\n", ma1); // print user va 
     // printf("va: %p\n", mb1); // print user va 
     // printf("va: %p\n", mc1); // print user va 
@@ -197,14 +197,14 @@ int main(void)
     free(mf);
     free(mg);
     free(mh);
-    // free(mi);
-    // free(mj);
-    // free(mk);
-    // free(ml);
-    // free(mm);
-    // free(mn);
-    // free(mo);
-    // free(mp);
+    free(mi);
+    free(mj);
+    free(mk);
+    free(ml);
+    free(mm);
+    free(mn);
+    free(mo);
+    free(mp);
     // free(ma1);
     // free(mb1);
     // free(mc1);
