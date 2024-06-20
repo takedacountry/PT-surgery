@@ -145,17 +145,33 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
     
-    
+
+    if((pid = fork()) == -1){
+        err(EXIT_FAILURE, "fork() failed");
+    }else if(pid == 0){
+        // child
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        exit(0);
+        
+    }else{
+        //parent
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        
+    }
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
-    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
-    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
     
     // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
     printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0));
