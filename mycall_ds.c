@@ -148,7 +148,8 @@ int main(void)
     
 
     if((pid = fork()) == -1){
-        err(EXIT_FAILURE, "fork() failed");
+        printf("fork() failed");
+        return -1;
     }else if(pid == 0){
         // child
         printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
