@@ -43,6 +43,7 @@
 #define OFFSET_SIZE		(_AT(long, 1) << OFFSET_SHIFT)
 #define OFFSET_MASK		(OFFSET_SIZE - 1)
 #define OFFSET_MASK_NOT		(~OFFSET_MASK)
+#define _PAGE_RW_NOT		(~_PAGE_RW)
 
 #define SAME_ADDR_SHIFT 	16
 #define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
@@ -2340,3 +2341,172 @@ SYSCALL_DEFINE0(mycall_m_delete)
 	return delete_m_all();
 }
 
+static int do_ds_mkwrite(struct ds_list *ds_node, unsigned long num, struct ds_head_list *ds_head)
+{
+	struct ds_list *new, *next, *prev;
+	
+	if(ds_node->base == num){
+		if((new = make_ds_node(ds_node->base, ds_node->base + 1, ds_node->offset, ds_node->flag | _PAGE_RW)) == NULL)
+			return -ENOMEM;
+		ds_node->base++;
+		list_add_tail(&new->list, &ds_node->list);
+		if(!list_is_first(&new->list, &ds_head->head)){
+			prev = list_prev_entry(new, list);
+			ds_node_merge(prev, new);
+		}
+	}else if(ds_node->limit - 1 == num){
+		if((new = make_ds_node(ds_node->limit - 1, ds_node->limit, ds_node->offset, ds_node->flag | _PAGE_RW)) == NULL)
+			return -ENOMEM;
+		ds_node->limit--;
+		list_add(&new->list, &ds_node->list);
+		if(!list_is_last(&new->list, &ds_head->head)){
+			next = list_next_entry(new, list);
+			ds_node_merge(new, next);
+		}
+	}else{
+		if((new = make_ds_node(num, num + 1, ds_node->offset, ds_node->flag | _PAGE_RW)) == NULL)
+			return -ENOMEM;
+		if((next = make_ds_node(num + 1, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+			return -ENOMEM;
+		ds_node->limit = num;
+		list_add(&new->list, &ds_node->list);
+		list_add(&next->list, &new->list);
+	}
+	return 1;
+}
+
+static bool is_ds_write(struct ds_list *ds_node)
+{
+	if(ds_node->flag & _PAGE_RW)
+		return true;
+	else
+		return false;
+}
+
+int ds_mkwrite(pte_t pte)
+{
+	struct ds_list *ds_node;
+	struct ds_head_list *ds_head;
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	unsigned long va = &pte;
+	unsigned long num;
+	int ret = 0;
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
+					// printk(KERN_INFO "make mkwritre %lx %lx %lx-%lx", num, va, m_node->num, m_node->va);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == current->pid){
+			list_for_each_entry(ds_node, &ds_head->head, list){
+				if(ds_node->limit <= num){
+					continue;
+				}else if(num < ds_node->base){
+					break;
+				}else{
+					if(!is_do_mkwrite(ds_node)){
+						printk(KERN_INFO "make writre %lx %lx-%lx", num, ds_node->base, ds_node->limit);
+						ret = do_ds_mkwrite(ds_node, num, ds_head);
+						printk(KERN_INFO "make writre %lx finish", num);
+					}
+					break;					
+				}
+			}
+			break;
+		}
+	}
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ds_mkwrite);
+
+static int do_ds_wrprotect(struct ds_list *ds_node, unsigned long num, struct ds_head_list *ds_head)
+{
+	struct ds_list *new, *next, *prev;
+	
+	if(ds_node->base == num){
+		if((new = make_ds_node(ds_node->base, ds_node->base + 1, ds_node->offset, ds_node->flag & _PAGE_RW_NOT)) == NULL)
+			return -ENOMEM;
+		ds_node->base++;
+		list_add_tail(&new->list, &ds_node->list);
+		if(!list_is_first(&new->list, &ds_head->head)){
+			prev = list_prev_entry(new, list);
+			ds_node_merge(prev, new);
+		}
+	}else if(ds_node->limit - 1 == num){
+		if((new = make_ds_node(ds_node->limit - 1, ds_node->limit, ds_node->offset, ds_node->flag & _PAGE_RW_NOT)) == NULL)
+			return -ENOMEM;
+		ds_node->limit--;
+		list_add(&new->list, &ds_node->list);
+		if(!list_is_last(&new->list, &ds_head->head)){
+			next = list_next_entry(new, list);
+			ds_node_merge(new, next);
+		}
+	}else{
+		if((new = make_ds_node(num, num + 1, ds_node->offset, ds_node->flag & _PAGE_RW_NOT)) == NULL)
+			return -ENOMEM;
+		if((next = make_ds_node(num + 1, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+			return -ENOMEM;
+		ds_node->limit = num;
+		list_add(&new->list, &ds_node->list);
+		list_add(&next->list, &new->list);
+	}
+	return 1;
+}
+
+int ds_wrprotect(pte_t pte)
+{
+	struct ds_list *ds_node;
+	struct ds_head_list *ds_head;
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	unsigned long va = &pte;
+	unsigned long num;
+	int ret = 0;
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
+					// printk(KERN_INFO "make wrprotect %lx %lx %lx-%lx", num, va, m_node->num, m_node->va);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	
+	list_for_each_entry(ds_head, &usr_ds_head, list){
+		if(ds_head->pid == current->pid){
+			list_for_each_entry(ds_node, &ds_head->head, list){
+				if(ds_node->limit <= num){
+					continue;
+				}else if(num < ds_node->base){
+					break;
+				}else{
+					if(is_ds_write(ds_node)){
+						printk(KERN_INFO "make wrprotect %lx %lx-%lx", num, ds_node->base, ds_node->limit);
+						ret = do_ds_wrprotect(ds_node, num, ds_head);
+						printk(KERN_INFO "make wrprotect %lx finish", num);
+					}
+					break;					
+				}
+			}
+			break;
+		}
+	}
+	return ret;
+}
+EXPORT_SYMBOL_GPL(ds_wrpretect);
