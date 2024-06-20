@@ -2390,7 +2390,7 @@ int ds_mkwrite(pte_t pte)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
-	unsigned long va = &pte;
+	unsigned long va = (unsigned long)&pte;
 	unsigned long num = 0;
 	int ret = 0;
 
@@ -2415,7 +2415,7 @@ int ds_mkwrite(pte_t pte)
 				}else if(num < ds_node->base){
 					break;
 				}else{
-					if(!is_do_mkwrite(ds_node)){
+					if(!is_ds_write(ds_node)){
 						printk(KERN_INFO "make writre %lx %lx-%lx", num, ds_node->base, ds_node->limit);
 						ret = do_ds_mkwrite(ds_node, num, ds_head);
 						printk(KERN_INFO "make writre %lx finish", num);
@@ -2471,7 +2471,7 @@ int ds_wrprotect(pte_t pte)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
-	unsigned long va = &pte;
+	unsigned long va = (unsigned long)&pte;
 	unsigned long num = 0;
 	int ret = 0;
 
@@ -2509,4 +2509,4 @@ int ds_wrprotect(pte_t pte)
 	}
 	return ret;
 }
-EXPORT_SYMBOL_GPL(ds_wrpretect);
+EXPORT_SYMBOL_GPL(ds_wrprotect);
