@@ -2208,7 +2208,7 @@ void delete_ds_m_free_pte(unsigned long va)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
-	unsigned long va_start, va_end;
+	unsigned long va_start = 0, va_end = 0;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
@@ -2391,7 +2391,7 @@ int ds_mkwrite(pte_t pte)
 	struct m_head_list *m_head;
 
 	unsigned long va = &pte;
-	unsigned long num;
+	unsigned long num = 0;
 	int ret = 0;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
@@ -2472,7 +2472,7 @@ int ds_wrprotect(pte_t pte)
 	struct m_head_list *m_head;
 
 	unsigned long va = &pte;
-	unsigned long num;
+	unsigned long num = 0;
 	int ret = 0;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
