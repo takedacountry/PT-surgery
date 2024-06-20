@@ -316,8 +316,10 @@ static inline pte_t pte_mkold(pte_t pte)
 	return pte_clear_flags(pte, _PAGE_ACCESSED);
 }
 
+extern int ds_wrprotect(pte_t pte);
 static inline pte_t pte_wrprotect(pte_t pte)
 {
+	ds_wrprotect(pte);
 	return pte_clear_flags(pte, _PAGE_RW);
 }
 
@@ -336,8 +338,10 @@ static inline pte_t pte_mkyoung(pte_t pte)
 	return pte_set_flags(pte, _PAGE_ACCESSED);
 }
 
+extern int ds_mkwrite(pte_t pte);
 static inline pte_t pte_mkwrite(pte_t pte)
 {
+	ds_mkwrite(pte);
 	return pte_set_flags(pte, _PAGE_RW);
 }
 
