@@ -2394,7 +2394,7 @@ int ds_mkwrite(pte_t pte)
 	unsigned long num = 0;
 	int ret = 0;
 
-	printk(KERN_INFO "mkwrite: pte %lx, va %lx", pte, va);
+	printk(KERN_INFO "mkwrite: pte %lx, va %lx", pte_pfn(pte), va);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
@@ -2477,7 +2477,7 @@ int ds_wrprotect(pte_t pte)
 	unsigned long num = 0;
 	int ret = 0;
 
-	printk(KERN_INFO "wrprotect: pte %lx, va %lx", pte, va);
+	printk(KERN_INFO "wrprotect: pte %lx, va %lx", pte_pfn(pte), va);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
