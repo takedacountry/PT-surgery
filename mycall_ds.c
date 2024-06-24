@@ -47,6 +47,7 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
+    /*
     int fd;
     char buf[COUNT];
     char *ma, *mb;
@@ -76,11 +77,10 @@ int main(void)
         sum2 += mb[i];
     }
     printf("sum1 = %ld, sum2 = %ld\n", sum1, sum2);
-
+    */
     
-
-    // char *ma = (char*)malloc(INDEX);
-    // char *mb = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(INDEX);
+    char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -112,8 +112,8 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    // memset(ma, 0, INDEX);
-    // memset(mb, 0, INDEX);
+    memset(ma, 0, INDEX);
+    memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -201,7 +201,10 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
-    mprotect(ma, len, PROT_WRITE);
+    if(mprotect(ma, INDEX, PROT_READ)){
+        perror("mprotect");
+        exit(1);
+    }
     
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
@@ -244,8 +247,8 @@ int main(void)
     //     printf("%d ", *t);
     // }
     
-    // free(ma);
-    // free(mb);
+    free(ma);
+    free(mb);
     // free(mc);
     // free(md);
     // free(me);
@@ -277,8 +280,8 @@ int main(void)
     // free(mo1);
     // free(mp1);
 
-    munmap(ma, len);
-    munmap(mb, len);
+    // munmap(ma, len);
+    // munmap(mb, len);
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
