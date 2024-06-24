@@ -80,17 +80,15 @@ int main(void)
     printf("sum1 = %ld, sum2 = %ld\n", sum1, sum2);
     */
     
-    char *ma = malloc(1024 + PAGESIZE -1);
-    // char *mb = malloc(1024 + PAGESIZE -1);
+    // char *ma = malloc(1024 + PAGESIZE -1);
 
-    ma = (char *)(((long) ma + PAGESIZE - 1) & ~(PAGESIZE - 1));
-    // mb = (char *)(((int) mb + PAGESIZE - 1) & ~(PAGESIZE - 1));
+    // ma = (char *)(((long) ma + PAGESIZE - 1) & ~(PAGESIZE - 1));
 
-    char c = ma[666];         /* 読み取り; 成功 */
-    ma[666] = 42;        /* 書き込み; 成功 */
+    // char c = ma[666];         /* 読み取り; 成功 */
+    // ma[666] = 42;        /* 書き込み; 成功 */
 
     
-    // char *ma = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(INDEX);
     // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
@@ -123,7 +121,7 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    // memset(ma, 0, INDEX);
+    memset(ma, 0, INDEX);
     // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
@@ -191,26 +189,32 @@ int main(void)
     // printf("va: %p\n", mp1); // print user va
     
 
-    // if((pid = fork()) == -1){
-    //     printf("fork() failed");
-    //     return -1;
-    // }else if(pid == 0){
-    //     // child
-    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    //     printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    //     printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    //     exit(0);
+    if((pid = fork()) == -1){
+        printf("fork() failed");
+        return -1;
+    }else if(pid == 0){
+        // child
+        printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
+        printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
         
-    // }else{
-    //     //parent
-    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    //     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    //     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
-    // }
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
+        
+        exit(0);
+        
+    }else{
+        //parent
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    }
     
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
     // if(mprotect(ma, INDEX, PROT_READ)){
     //     perror("mprotect");
@@ -218,13 +222,13 @@ int main(void)
     // }
 
     
-    /* バッファを読み取り専用に設定する。*/
-    if (mprotect(ma, 1024, PROT_READ)) {
-        perror("Couldn't mprotect");
-        exit(errno);
-    }
+    // /* バッファを読み取り専用に設定する。*/
+    // if (mprotect(ma, 1024, PROT_READ)) {
+    //     perror("Couldn't mprotect");
+    //     exit(errno);
+    // }
 
-    c = ma[666];         /* 読み取り; 成功 */
+    // c = ma[666];         /* 読み取り; 成功 */
     // ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
     
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
@@ -233,13 +237,13 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
     // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
-    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
     
     // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0));
     
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
 
     // success
@@ -264,10 +268,6 @@ int main(void)
     // memset(mo, 1, INDEX);
     // memset(mp, 1, INDEX);
 
-    // for(char *t = ma; t < ma + 100; t++){
-    //     printf("%d ", *t);
-    // }
-    
     free(ma);
     // free(mb);
     // free(mc);
