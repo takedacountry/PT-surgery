@@ -61,7 +61,7 @@ int main(void)
         buf[i] = 2;
     buf[len*2] = '\0';
 
-    fd = open("abc.txt", O_CREAT|O_RDWR|O_TRUC, 0644);
+    fd = open("abc.txt", O_CREAT|O_RDWR|O_TRUNC, 0644);
     if(fd < 0){
         perror("open");
         exit(1);
