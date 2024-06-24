@@ -29,7 +29,7 @@
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
-#define COUNT 65536
+#define PAGESIZE 4096
 #define PGD 512
 #define PUD 512
 #define PMD 512
@@ -79,8 +79,18 @@ int main(void)
     printf("sum1 = %ld, sum2 = %ld\n", sum1, sum2);
     */
     
-    char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(INDEX);
+    char *ma = malloc(1024 + PAGESIZE -1);
+    // char *mb = malloc(1024 + PAGESIZE -1);
+
+    ma = (char *)(((int) ma + PAGESIZE - 1) & ~(PAGESIZE - 1));
+    // mb = (char *)(((int) mb + PAGESIZE - 1) & ~(PAGESIZE - 1));
+
+    char c = ma[666];         /* 読み取り; 成功 */
+    ma[666] = 42;        /* 書き込み; 成功 */
+
+    
+    // char *ma = (char*)malloc(INDEX);
+    // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -112,8 +122,8 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
-    memset(mb, 0, INDEX);
+    // memset(ma, 0, INDEX);
+    // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -147,7 +157,7 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    printf("va: %p\n", mb); // print user va 
+    // printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -201,10 +211,20 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
-    if(mprotect(ma, INDEX, PROT_READ)){
-        perror("mprotect");
-        exit(1);
+    // if(mprotect(ma, INDEX, PROT_READ)){
+    //     perror("mprotect");
+    //     exit(1);
+    // }
+
+    
+    /* バッファを読み取り専用に設定する。*/
+    if (mprotect(ma, 1024, PROT_READ)) {
+        perror("Couldn't mprotect");
+        exit(errno);
     }
+
+    c = p[666];         /* 読み取り; 成功 */
+    p[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
     
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
@@ -248,7 +268,7 @@ int main(void)
     // }
     
     free(ma);
-    free(mb);
+    // free(mb);
     // free(mc);
     // free(md);
     // free(me);
