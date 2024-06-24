@@ -6,6 +6,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/mman.h>
 
 #define SYS_mycall_print_user_pgtable 457
 #define SYS_mycall_print_kernel_pgtable 458
@@ -28,6 +29,7 @@
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
+#define COUNT 65536
 #define PGD 512
 #define PUD 512
 #define PMD 512
@@ -44,9 +46,40 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+
+    int fd;
+    char buf[COUNT];
+    char *ma, *mb;
+    off_t len;
+    long sum1, sum2;
+    int i;
+
+    len = sysconf(_SC_PAGESIZE);
+    for(i = 0; i < len; i++)
+        buf[i] = 1;
+    for(i = len; i < len*2; i++)
+        buf[i] = 2;
+    buf[len*2] = '\0';
+
+    fd = open("abc.txt", O_CREAT|O_RDWR|O_TRUC, 0644);
+    if(fd < 0){
+        perror("open");
+        exit(1);
+    }
+    write(fd, buf, COUNT);
+
+    ma = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, len);
+    mb = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
+
+    for(i = 0; i < len; i++){
+        sum1 += ma[i];
+        sum2 += mb[i];
+    }
+    printf("sum1 = %ld, sum2 = %ld\n", sum1, sum2);
+
     
 
-    char *ma = (char*)malloc(INDEX);
+    // char *ma = (char*)malloc(INDEX);
     // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
@@ -79,7 +112,7 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
+    // memset(ma, 0, INDEX);
     // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
@@ -114,7 +147,7 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    // printf("va: %p\n", mb); // print user va 
+    printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -147,38 +180,42 @@ int main(void)
     // printf("va: %p\n", mp1); // print user va
     
 
-    if((pid = fork()) == -1){
-        printf("fork() failed");
-        return -1;
-    }else if(pid == 0){
-        // child
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-        exit(0);
+    // if((pid = fork()) == -1){
+    //     printf("fork() failed");
+    //     return -1;
+    // }else if(pid == 0){
+    //     // child
+    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    //     printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    //     exit(0);
         
-    }else{
-        //parent
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // }else{
+    //     //parent
+    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    //     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
-    }
+    // }
+    
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+
+    mprotect(ma, len, PROT_WRITE);
+    
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
     // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
     
     // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
-    printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0));
+    // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0));
     
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
 
     // success
@@ -207,7 +244,7 @@ int main(void)
     //     printf("%d ", *t);
     // }
     
-    free(ma);
+    // free(ma);
     // free(mb);
     // free(mc);
     // free(md);
@@ -239,7 +276,9 @@ int main(void)
     // free(mn1);
     // free(mo1);
     // free(mp1);
-    
+
+    munmap(ma, len);
+    munmap(mb, len);
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
