@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <errno.h>
 
 #define SYS_mycall_print_user_pgtable 457
 #define SYS_mycall_print_kernel_pgtable 458
@@ -82,7 +83,7 @@ int main(void)
     char *ma = malloc(1024 + PAGESIZE -1);
     // char *mb = malloc(1024 + PAGESIZE -1);
 
-    ma = (char *)(((int) ma + PAGESIZE - 1) & ~(PAGESIZE - 1));
+    ma = (char *)(((long) ma + PAGESIZE - 1) & ~(PAGESIZE - 1));
     // mb = (char *)(((int) mb + PAGESIZE - 1) & ~(PAGESIZE - 1));
 
     char c = ma[666];         /* 読み取り; 成功 */
@@ -223,8 +224,8 @@ int main(void)
         exit(errno);
     }
 
-    c = p[666];         /* 読み取り; 成功 */
-    p[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
+    c = ma[666];         /* 読み取り; 成功 */
+    ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
     
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
