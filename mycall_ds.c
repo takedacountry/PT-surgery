@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <errno.h>
 
 #define SYS_mycall_print_user_pgtable 457
@@ -187,32 +188,35 @@ int main(void)
     // printf("va: %p\n", mn1); // print user va
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
-    
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     if((pid = fork()) == -1){
         printf("fork() failed");
         return -1;
     }else if(pid == 0){
         // child
-        printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-        printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+        // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
+        // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
         
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
-        printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        printf("%ld\n", syscall(SYS_mycall_m_delete));
+        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        // printf("%ld\n", syscall(SYS_mycall_m_delete));
         
         exit(0);
         
     }else{
         //parent
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     }
-    
+
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
