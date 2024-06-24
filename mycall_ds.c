@@ -225,7 +225,7 @@ int main(void)
     }
 
     c = ma[666];         /* 読み取り; 成功 */
-    ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
+    // ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
     
     // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
