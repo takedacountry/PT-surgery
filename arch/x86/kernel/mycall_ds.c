@@ -2394,10 +2394,9 @@ int ds_mkwrite(pte_t pte)
 	unsigned long num = 0;
 	int ret = 0;
 
-	printk(KERN_INFO "mkwrite: pte %lx, va %lx", pte_pfn(pte), va);
-
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
+			printk(KERN_INFO "mkwrite: pte %lx, va %lx", pte_pfn(pte), va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
 					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
@@ -2477,10 +2476,9 @@ int ds_wrprotect(pte_t pte)
 	unsigned long num = 0;
 	int ret = 0;
 
-	printk(KERN_INFO "wrprotect: pte %lx, va %lx", pte_pfn(pte), va);
-
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
+			printk(KERN_INFO "wrprotect: pte %lx, va %lx", pte_pfn(pte), va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
 					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
