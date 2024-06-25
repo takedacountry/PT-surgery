@@ -615,7 +615,9 @@ static int do_ds_mkwrite(struct ds_list *ds_node, struct ds_list *new, struct ds
 {
 	struct ds_list *next, *prev;
 	
-	if(ds_node->base == new->base){
+	if(ds_node->base == new->base && ds_node->limit == new->limit){
+		ds_node->flag = new->flag;	
+	}else if(ds_node->base == new->base){
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
 		if(!list_is_first(&new->list, &ds_head->head)){
