@@ -611,51 +611,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	return MAX_NUM;
 }
 
-static int do_ds_mkwrite(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
-{
-	struct ds_list *next, *prev;
-	
-	if(ds_node->base == new->base && ds_node->limit == new->limit){
-		ds_node->flag = new->flag;
-		if(list_is_first(&ds_node->list, &ds_head->head)){
-			next = list_next_entry(ds_node, list);
-			ds_node_merge(ds_node, next);
-		}
-		else if(list_is_last(&ds_node->list, &ds_head->head)){
-			prev = list_prev_entry(ds_node, list);
-			ds_node_merge(prev, ds_node);
-		}
-		else{
-			next = list_next_entry(ds_node, list);
-			prev = list_prev_entry(ds_node, list);
-			ds_node_merge(ds_node, next);
-			ds_node_merge(prev, ds_node);
-		}	
-	}else if(ds_node->base == new->base){
-		ds_node->base++;
-		list_add_tail(&new->list, &ds_node->list);
-		if(!list_is_first(&new->list, &ds_head->head)){
-			prev = list_prev_entry(new, list);
-			ds_node_merge(prev, new);
-		}
-	}else if(ds_node->limit == new->limit){
-		ds_node->limit--;
-		list_add(&new->list, &ds_node->list);
-		if(!list_is_last(&new->list, &ds_head->head)){
-			next = list_next_entry(new, list);
-			ds_node_merge(new, next);
-		}
-	}else{
-		if((next = make_ds_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
-			return -ENOMEM;
-		ds_node->limit = new->base;
-		list_add(&new->list, &ds_node->list);
-		list_add(&next->list, &new->list);
-	}
-	return 1;
-}
-
-static int do_ds_wrprotect(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
+static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
 {
 	struct ds_list *next, *prev;
 
@@ -741,17 +697,17 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						if(!is_ds_write(prev) && is_ds_write(dnode)){
 							// ds_mkwrite
 							printk(KERN_INFO "make writre %lx %lx-%lx", base, prev->base, prev->limit);
-							do_ds_mkwrite(prev, dnode, ds_head);
+							modify_ds_flag(prev, dnode, ds_head);
 							printk(KERN_INFO "make writre %lx %lx %lx finish", base, pte_value, pte_flag);
 						}
 						else if(is_ds_write(prev) && !is_ds_write(dnode)){
 							// ds_wrprotect
 							printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
-							do_ds_wrprotect(prev, dnode, ds_head);
+							modify_ds_flag(prev, dnode, ds_head);
 							printk(KERN_INFO "make wrprotect %lx %lx %lx finish", base, pte_value, pte_flag);
 
 						}else{
-							printk(KERN_INFO "not modify flag %lx %lx %lx", base, pte_value, pte_flag);
+							printk(KERN_INFO "not modify ds flag %lx  %lx->%lx", base, prev->flag, pte_flag);
 						}
 						goto end;
 					}
