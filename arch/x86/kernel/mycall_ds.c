@@ -616,7 +616,21 @@ static int do_ds_mkwrite(struct ds_list *ds_node, struct ds_list *new, struct ds
 	struct ds_list *next, *prev;
 	
 	if(ds_node->base == new->base && ds_node->limit == new->limit){
-		ds_node->flag = new->flag;	
+		ds_node->flag = new->flag;
+		if(list_is_first(&ds_node->list, &ds_head->head)){
+			next = list_next_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+		}
+		else if(list_is_last(&ds_node->list, &ds_head->head)){
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(prev, ds_node);
+		}
+		else{
+			next = list_next_entry(ds_node, list);
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+			ds_node_merge(prev, ds_node);
+		}	
 	}else if(ds_node->base == new->base){
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
@@ -647,6 +661,20 @@ static int do_ds_wrprotect(struct ds_list *ds_node, struct ds_list *new, struct 
 
 	if(ds_node->base == new->base && ds_node->limit == new->limit){
 		ds_node->flag = new->flag;	
+		if(list_is_first(&ds_node->list, &ds_head->head)){
+			next = list_next_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+		}
+		else if(list_is_last(&ds_node->list, &ds_head->head)){
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(prev, ds_node);
+		}
+		else{
+			next = list_next_entry(ds_node, list);
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+			ds_node_merge(prev, ds_node);
+		}	
 	}else if(ds_node->base == new->base){
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
