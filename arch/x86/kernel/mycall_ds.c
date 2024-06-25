@@ -714,16 +714,16 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 							// ds_mkwrite
 							printk(KERN_INFO "make writre %lx %lx-%lx", base, prev->base, prev->limit);
 							do_ds_mkwrite(prev, dnode, ds_head);
-							printk(KERN_INFO "make writre %lx finish", base);
+							printk(KERN_INFO "make writre %lx %lx %lx finish", base, pte_value, pte_flag);
 						}
 						else if(is_ds_write(prev) && !is_ds_write(dnode)){
 							// ds_wrprotect
 							printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 							do_ds_wrprotect(prev, dnode, ds_head);
-							printk(KERN_INFO "make wrprotect %lx finish", base);
+							printk(KERN_INFO "make wrprotect %lx %lx %lx finish", base, pte_value, pte_flag);
 
 						}else{
-							printk(KERN_INFO "modify flag %lx %lx %lx", base, pte_value, pte_flag);
+							printk(KERN_INFO "not modify flag %lx %lx %lx", base, pte_value, pte_flag);
 						}
 						goto end;
 					}
