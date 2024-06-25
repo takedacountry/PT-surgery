@@ -655,6 +655,52 @@ static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct d
 	return 1;
 }
 
+
+static int modify_ds_offset(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
+{
+	struct ds_list *next, *prev;
+
+	if(ds_node->base == new->base && ds_node->limit == new->limit){
+		ds_node->offset = new->offset;
+		ds_node->flag = new->flag;
+		if(list_is_first(&ds_node->list, &ds_head->head)){
+			next = list_next_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+		}
+		else if(list_is_last(&ds_node->list, &ds_head->head)){
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(prev, ds_node);
+		}
+		else{
+			next = list_next_entry(ds_node, list);
+			prev = list_prev_entry(ds_node, list);
+			ds_node_merge(ds_node, next);
+			ds_node_merge(prev, ds_node);
+		}	
+	}else if(ds_node->base == new->base){
+		ds_node->base++;
+		list_add_tail(&new->list, &ds_node->list);
+		if(!list_is_first(&new->list, &ds_head->head)){
+			prev = list_prev_entry(new, list);
+			ds_node_merge(prev, new);
+		}
+	}else if(ds_node->limit == new->limit){
+		ds_node->limit--;
+		list_add(&new->list, &ds_node->list);
+		if(!list_is_last(&new->list, &ds_head->head)){
+			next = list_next_entry(new, list);
+			ds_node_merge(new, next);
+		}
+	}else{
+		if((next = make_ds_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+			return -ENOMEM;
+		ds_node->limit = new->base;
+		list_add(&new->list, &ds_node->list);
+		list_add(&next->list, &new->list);
+	}
+	return 1;
+}
+
 static bool is_ds_write(struct ds_list *ds_node)
 {
 	if(ds_node->flag & _PAGE_RW)
@@ -692,22 +738,29 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 				goto end;
 			}else{
 				list_for_each_entry_reverse(prev, &ds_head->head, list){
-					if(prev->base <= dnode->base && dnode->limit <= prev->limit && dnode->offset == prev->offset && dnode->flag != prev->flag){
-						// modify pte flag 
-						if(!is_ds_write(prev) && is_ds_write(dnode)){
-							// ds_mkwrite
-							printk(KERN_INFO "make writre %lx %lx-%lx", base, prev->base, prev->limit);
-							modify_ds_flag(prev, dnode, ds_head);
-							printk(KERN_INFO "make writre %lx %lx %lx finish", base, pte_value, pte_flag);
+					if(prev->base <= dnode->base && dnode->limit <= prev->limit){
+						if(dnode->offset != prev->offset){
+							// modify pte offset
+							modify_ds_offset(prev, dnode, ds_head);
+							printk(KERN_INFO "modify ds offset %lx %lx %lx finish", base, pte_value, pte_flag);
 						}
-						else if(is_ds_write(prev) && !is_ds_write(dnode)){
-							// ds_wrprotect
-							printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
-							modify_ds_flag(prev, dnode, ds_head);
-							printk(KERN_INFO "make wrprotect %lx %lx %lx finish", base, pte_value, pte_flag);
-
-						}else{
-							printk(KERN_INFO "not modify ds flag %lx  %lx->%lx", base, prev->flag, pte_flag);
+						else if(dnode->flag != prev->flag){
+							// modify pte flag 
+							if(!is_ds_write(prev) && is_ds_write(dnode)){
+								// ds_mkwrite
+								// printk(KERN_INFO "make writre %lx %lx-%lx", base, prev->base, prev->limit);
+								modify_ds_flag(prev, dnode, ds_head);
+								printk(KERN_INFO "make writre %lx %lx %lx finish", base, pte_value, pte_flag);
+							}
+							else if(is_ds_write(prev) && !is_ds_write(dnode)){
+								// ds_wrprotect
+								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
+								modify_ds_flag(prev, dnode, ds_head);
+								printk(KERN_INFO "make wrprotect %lx %lx %lx finish", base, pte_value, pte_flag);
+	
+							}else{
+								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx", base, prev->flag, pte_flag);
+							}
 						}
 						goto end;
 					}
