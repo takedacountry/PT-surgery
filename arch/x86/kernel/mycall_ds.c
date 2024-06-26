@@ -724,6 +724,8 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 				printk(KERN_INFO "make ds error va %lx num %lx\n", va, base);
 				return -1;
 			}
+			printk(KERN_INFO "make ds correct va %lx num %lx\n", va, base);
+			break;
 		}
 	}
 
