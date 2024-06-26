@@ -428,7 +428,7 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 	unsigned long base;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		// if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + PAGE_SIZE){
+		// if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + OFFSET_SIZE){
 		if(itr->num & PGD_FLAG_MASK){
 			base = make_ds_va(((pgd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pud_va;
@@ -487,7 +487,7 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 	unsigned long base = 0;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PUD_FLAG_MASK && itr->va <= pud_va && pud_va < itr->va + PAGE_SIZE){
+		if(itr->num & PUD_FLAG_MASK && itr->va <= pud_va && pud_va < itr->va + OFFSET_SIZE){
 			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((pud_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pmd_va;
 		}
@@ -545,7 +545,7 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 	unsigned long base = 0;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PMD_FLAG_MASK && itr->va <= pmd_va && pmd_va < itr->va + PAGE_SIZE){
+		if(itr->num & PMD_FLAG_MASK && itr->va <= pmd_va && pmd_va < itr->va + OFFSET_SIZE){
 			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((pmd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pte_va;
 		}
@@ -603,7 +603,7 @@ static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 	struct m_list *itr;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
 			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 		}
 	}
@@ -2271,7 +2271,7 @@ static long recover_pgtable(unsigned long va)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			list_for_each_entry(itr, &m_head->head, list){
-				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + PAGE_SIZE){
+				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
 					printk(KERN_INFO "pgtable found %lx\n",va);
 					if(__recover_pgtable(itr->num & PT_PGTABLE_MASK_NOT, itr, file, &pos) < 0){
 						goto err;
@@ -2339,7 +2339,7 @@ void delete_ds_m_free_pte(unsigned long va)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			list_for_each_entry(m_node, &m_head->head, list){
-				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					va_start = m_node->num & PT_PGTABLE_MASK_NOT;
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
@@ -2524,7 +2524,7 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // 		if(m_head->pid == current->pid){
 			// printk(KERN_INFO "mkwrite: pte %lx, va %lx", pte_pfn(pte), va);
 // 			list_for_each_entry(m_node, &m_head->head, list){
-// 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+// 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 // 					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
 // 					// printk(KERN_INFO "make mkwritre %lx %lx %lx-%lx", num, va, m_node->num, m_node->va);
 // 					break;
@@ -2606,7 +2606,7 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // 		if(m_head->pid == current->pid){
 			// printk(KERN_INFO "wrprotect: pte %lx, va %lx", pte_pfn(pte), va);
 // 			list_for_each_entry(m_node, &m_head->head, list){
-// 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + PAGE_SIZE){
+// 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 // 					num = make_ds_va((m_node->num >> 27) & PT_PGTABLE_MASK, (m_node->num >> 18) & PT_PGTABLE_MASK, (m_node->num >> 9) & PT_PGTABLE_MASK, ((va - m_node->va) / 0x8) & PT_PGTABLE_MASK);
 // 					printk(KERN_INFO "make wrprotect %lx %lx %lx-%lx", num, va, m_node->num, m_node->va);
 // 					break;
