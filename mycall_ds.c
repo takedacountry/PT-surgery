@@ -193,29 +193,18 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
-    if((pid = fork()) == -1){
-        printf("fork() failed");
-        return -1;
-    }else if(pid == 0){
-        // child
-        // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-        // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
-        
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-        
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
-        
-        exit(0);
-        
-    }else{
-        //parent
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    }
+    // if((pid = fork()) == -1){
+    //     printf("fork() failed");
+    //     return -1;
+    // }else if(pid == 0){
+    //     // child
+    //     exit(0);
+    // }else{
+    //     //parent
+    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    //     printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    // }
 
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
@@ -307,6 +296,10 @@ int main(void)
 
     // munmap(ma, len);
     // munmap(mb, len);
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
