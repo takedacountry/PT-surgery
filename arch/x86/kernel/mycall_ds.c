@@ -742,21 +742,21 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx finish", base, pte_value, pte_flag);
+							printk(KERN_INFO "modify ds offset %lx %lx %lx", base, pte_value, pte_flag);
 						}
 						else if(dnode->flag != prev->flag){
 							// modify pte flag 
 							if(!is_ds_write(prev) && is_ds_write(dnode)){
 								// ds_mkwrite
-								// printk(KERN_INFO "make writre %lx %lx-%lx", base, prev->base, prev->limit);
+								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make writre %lx %lx %lx finish", base, pte_value, pte_flag);
+								printk(KERN_INFO "make write %lx %lx %lx", base, pte_value, pte_flag);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
 								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make wrprotect %lx %lx %lx finish", base, pte_value, pte_flag);
+								printk(KERN_INFO "make wrprotect %lx %lx %lx", base, pte_value, pte_flag);
 	
 							}else{
 								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx", base, prev->flag, pte_flag);
@@ -2342,7 +2342,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
 					kfree(m_node);
-					printk(KERN_INFO "delete user %lx %lx-%lx", va, va_start, va_end);
+					// printk(KERN_INFO "delete user %lx %lx-%lx", va, va_start, va_end);
 					break;
 				}
 			}
@@ -2359,7 +2359,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					break;
 				}else{
 					delete_ds(ds_node, va_start, va_end);
-					printk(KERN_INFO "delete user ds");
+					// printk(KERN_INFO "delete user ds");
 					break;					
 				}
 			}
