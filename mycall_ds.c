@@ -301,8 +301,8 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
-    printf("%ld\n", syscall(SYS_mycall_ds_delete));
-    printf("%ld\n", syscall(SYS_mycall_m_delete));
+    // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+    // printf("%ld\n", syscall(SYS_mycall_m_delete));
     // printf("%ld\n", syscall(SYS_mycall_ds_free));
     
     return 0;
