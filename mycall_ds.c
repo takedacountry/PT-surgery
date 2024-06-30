@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/syscall.h>
@@ -309,4 +307,3 @@ int main(void)
     
     return 0;
 }
->>>>>>> 91173840049f192ab6ffbcae0b33ac12e23e2ee9
