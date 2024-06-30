@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -61,4 +59,3 @@ int main(int argc, char **argv)
         printf("%ld\n", syscall(SYS_mycall_m_delete));
         return 0;
 }
->>>>>>> e57b9548901dd4fb44ab3ac3f856f0b281631d31
