@@ -34,14 +34,14 @@ int main(int argc, char **argv)
 
         if ((pid = fork()) == 0) {
                 printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-                // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+                printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
                 execvp(argv[1], &argv[1]);
                 // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
                 // printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
                 // printf("%ld\n", syscall(SYS_mycall_m_search, pid));
-                printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-                printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-                printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+                // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+                // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+                // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
                 _exit(-1);
         } else if (pid > 0) {
                 // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
@@ -53,8 +53,8 @@ int main(int argc, char **argv)
         }        
     
         wait(NULL);
-        // printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
-        // printf("%ld\n", syscall(SYS_mycall_m_search, pid));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, pid));        
+        printf("%ld\n", syscall(SYS_mycall_m_search2, pid));
         printf("%ld\n", syscall(SYS_mycall_ds_delete));
         printf("%ld\n", syscall(SYS_mycall_m_delete));
         return 0;
