@@ -2374,6 +2374,75 @@ void delete_ds_m_free_pte(unsigned long va)
 }
 EXPORT_SYMBOL_GPL(delete_ds_m_free_pte);
 
+void delete_m_free_pmd(unsigned long va)
+{
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	unsigned long num;
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PMD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
+					num = m_node->num;
+					list_del(&m_node->list);
+					kfree(m_node);
+					printk(KERN_INFO "delete m pmd %lx %lx", va, num);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	return;
+}
+EXPORT_SYMBOL_GPL(delete_m_free_pmd);
+
+void delete_m_free_pud(unsigned long va)
+{
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	unsigned long num;
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PUD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
+					num = m_node->num;
+					list_del(&m_node->list);
+					kfree(m_node);
+					printk(KERN_INFO "delete m pud %lx %lx", va, num);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	return;
+}
+EXPORT_SYMBOL_GPL(delete_m_free_pud);
+
+void delete_m_free_pgd(unsigned long va)
+{
+	struct m_list *m_node;
+	struct m_head_list *m_head;
+
+	list_for_each_entry(m_head, &usr_m_head, list){
+		if(m_head->pid == current->pid){
+			list_for_each_entry(m_node, &m_head->head, list){
+				if(m_node->num & PGD_FLAG_MASK){
+					list_del(&m_node->list);
+					kfree(m_node);
+					printk(KERN_INFO "delete m pgd %lx %lx", va, PGD_FLAG_MASK);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	return;
+}
+EXPORT_SYMBOL_GPL(delete_m_free_pgd);
 
 // remake now
 static long delete_ds_all(void)
