@@ -89,11 +89,13 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 #if CONFIG_PGTABLE_LEVELS > 2
 extern void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd);
-
+// my code
+extern void delete_m_free_pmd(unsigned long va);
 static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 				  unsigned long address)
 {
 	___pmd_free_tlb(tlb, pmd);
+	delete_m_free_pmd((unsigned long)pmd);
 }
 
 #ifdef CONFIG_X86_PAE
@@ -126,11 +128,13 @@ static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pu
 }
 
 extern void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud);
-
+// my code
+extern void delete_m_free_pud(unsigned long va);
 static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 				  unsigned long address)
 {
 	___pud_free_tlb(tlb, pud);
+	delete_m_free_pud((unsigned long)pud);
 }
 
 #if CONFIG_PGTABLE_LEVELS > 4
@@ -169,7 +173,6 @@ static inline void p4d_free(struct mm_struct *mm, p4d_t *p4d)
 }
 
 extern void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d);
-
 static inline void __p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
 				  unsigned long address)
 {
