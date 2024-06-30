@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
         if ((pid = fork()) == 0) {
                 printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-                printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+                // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
                 execvp(argv[1], &argv[1]);
                 // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
                 // printf("%ld\n", syscall(SYS_mycall_ds_search, pid));        
