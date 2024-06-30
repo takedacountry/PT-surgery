@@ -53,8 +53,8 @@ int main(int argc, char **argv)
         }        
     
         wait(NULL);
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, pid));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, pid));
         printf("%ld\n", syscall(SYS_mycall_ds_delete));
         printf("%ld\n", syscall(SYS_mycall_m_delete));
         return 0;
