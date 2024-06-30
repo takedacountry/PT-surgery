@@ -145,11 +145,14 @@ static inline pmd_t *pmd_alloc_one(struct mm_struct *mm, unsigned long addr)
 #endif
 
 #ifndef __HAVE_ARCH_PMD_FREE
+// my code
+extern void delete_m_free_pmd(unsigned long va);
 static inline void pmd_free(struct mm_struct *mm, pmd_t *pmd)
 {
 	BUG_ON((unsigned long)pmd & (PAGE_SIZE-1));
 	pgtable_pmd_page_dtor(virt_to_page(pmd));
 	free_page((unsigned long)pmd);
+	delete_m_free_pmd((unsigned long)pmd);
 }
 #endif
 
@@ -182,10 +185,13 @@ static inline pud_t *pud_alloc_one(struct mm_struct *mm, unsigned long addr)
 }
 #endif
 
+// my code
+extern void delete_m_free_pud(unsigned long va);
 static inline void __pud_free(struct mm_struct *mm, pud_t *pud)
 {
 	BUG_ON((unsigned long)pud & (PAGE_SIZE-1));
 	free_page((unsigned long)pud);
+	delete_m_free_pud((unsigned long)pud);
 }
 
 #ifndef __HAVE_ARCH_PUD_FREE
@@ -198,9 +204,12 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
 #endif /* CONFIG_PGTABLE_LEVELS > 3 */
 
 #ifndef __HAVE_ARCH_PGD_FREE
+// my code
+extern void delete_m_free_pgd(unsigned long va);
 static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
 	free_page((unsigned long)pgd);
+	delete_m_free_pgd((unsigned long)pgd);
 }
 #endif
 
