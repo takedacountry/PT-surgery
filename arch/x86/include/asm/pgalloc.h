@@ -162,8 +162,7 @@ static inline p4d_t *p4d_alloc_one(struct mm_struct *mm, unsigned long addr)
 		gfp &= ~__GFP_ACCOUNT;
 	return (p4d_t *)get_zeroed_page(gfp);
 }
-// my code
-extern void delete_m_free_pgd(unsigned long va);
+
 static inline void p4d_free(struct mm_struct *mm, p4d_t *p4d)
 {
 	if (!pgtable_l5_enabled())
@@ -171,17 +170,14 @@ static inline void p4d_free(struct mm_struct *mm, p4d_t *p4d)
 
 	BUG_ON((unsigned long)p4d & (PAGE_SIZE-1));
 	free_page((unsigned long)p4d);
-	delete_m_free_pgd((unsigned long)p4d);
 }
 
 extern void ___p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d);
 static inline void __p4d_free_tlb(struct mmu_gather *tlb, p4d_t *p4d,
 				  unsigned long address)
 {
-	if (pgtable_l5_enabled()){
+	if (pgtable_l5_enabled())
 		___p4d_free_tlb(tlb, p4d);
-		delete_m_free_pgd((unsigned long)p4d);
-	}
 }
 
 #endif	/* CONFIG_PGTABLE_LEVELS > 4 */
