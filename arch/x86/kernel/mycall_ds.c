@@ -555,8 +555,10 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pte_va && itr->num == base)
+		if(itr->va == pte_va && itr->num == base){
+			printk(KERN_INFO "already same pte\n");
 			goto end;
+		}
 		if(list_is_last(&itr->list, &m_head->head)){
 			if(add_m_node(pte_va, base, itr) < 0){
 				goto end;
@@ -721,7 +723,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
-				printk(KERN_INFO "make ds error va %lx num %lx\n", va, base);
+				printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
 			// printk(KERN_INFO "make ds correct va %lx num %lx\n", va, base);
@@ -2347,7 +2349,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
 					kfree(m_node);
-					printk(KERN_INFO "delete user %lx %lx-%lx", va, va_start, va_end);
+					printk(KERN_INFO "delete m pte %lx %lx-%lx", va, va_start, va_end);
 					break;
 				}
 			}
