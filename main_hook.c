@@ -28,7 +28,7 @@ int __libc_start_main(
         int (*init)(int, char **, char **),
         void (*fini)(void),
         void (*rtld_fini)(void),
-        void *stacck_end)
+        void *stack_end)
 {
         main_orig = main;
 
