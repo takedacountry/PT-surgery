@@ -42,8 +42,8 @@ int main(void)
     pid_t pid;
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
-    printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+    // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
+    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
@@ -298,8 +298,8 @@ int main(void)
     // munmap(mb, len);
 
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
