@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 #include <stdio.h>
-#include <dlfn.h>
+#include <dlfcn.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
