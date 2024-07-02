@@ -38,9 +38,9 @@ int main_hook(int argc, char **argv, char **envp)
         chdir("/");
         int ret = main_orig(argc, argv, envp);
         printf("-----after main-----\n");
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         printf("ds delete %ld\n", syscall(SYS_mycall_ds_delete));
         printf("m  delete %ld\n", syscall(SYS_mycall_m_delete));
         printf("main() returned %d\n", ret);
