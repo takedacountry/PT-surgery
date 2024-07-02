@@ -17,7 +17,7 @@ int main_hook(int argc, char **argv, char **envp)
         chdir("/");
         int ret = main_orig(argc, argv, envp);
         printf("-----after main-----\n");
-        printf("main() returned %d\n"m,ret);
+        printf("main() returned %d\n", ret);
         return ret;
 }
 
@@ -25,9 +25,9 @@ int __libc_start_main(
         int (*main)(int, char **, char **),
         int argc,
         char **argv,
-        int (*int)(int, char **, char **),
+        int (*init)(int, char **, char **),
         void (*fini)(void),
-        void (*rtlk_fini)(void),
+        void (*rtld_fini)(void),
         void *stacck_end)
 {
         main_orig = main;
