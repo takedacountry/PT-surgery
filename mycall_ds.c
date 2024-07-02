@@ -189,9 +189,9 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     // if((pid = fork()) == -1){
     //     printf("fork() failed");
@@ -297,9 +297,9 @@ int main(void)
     // munmap(ma, len);
     // munmap(mb, len);
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
