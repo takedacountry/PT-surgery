@@ -440,7 +440,7 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 pud_va:
 	pud_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pud_va || itr->num == base){
+		if(itr->va == pud_va && itr->num == base){
 			printk(KERN_INFO "already same pud\n");
 			goto end;
 		}
@@ -500,7 +500,7 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 pmd_va:
 	pmd_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pmd_va || itr->num == base){
+		if(itr->va == pmd_va && itr->num == base){
 			printk(KERN_INFO "already same pmd\n");
 			goto end;
 		}
@@ -560,7 +560,7 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pte_va || itr->num == base){
+		if(itr->va == pte_va && itr->num == base){
 			printk(KERN_INFO "already same pte\n");
 			goto end;
 		}
