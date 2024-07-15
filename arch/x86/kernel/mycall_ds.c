@@ -454,7 +454,8 @@ pud_va:
 	}
 	if(add_tail_m_node(pud_va, base, itr) < 0)
 		goto end;
-ret:		
+ret:
+	printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, current->pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pgd m list va %ld\n",va);
@@ -515,6 +516,7 @@ pmd_va:
 	if(add_tail_m_node(pmd_va, base, itr) < 0)
 		goto end;
 ret:		
+	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, current->pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pud m list va %ld\n",va);
@@ -575,6 +577,7 @@ pte_va:
 	if(add_tail_m_node(pte_va, base, itr) < 0)
 		goto end;
 ret:		
+	printk(KERN_INFO "make m pte alloc %lx, %lx, %d\n", pte_va, base, current->pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pmd m list va %ld\n",va);
