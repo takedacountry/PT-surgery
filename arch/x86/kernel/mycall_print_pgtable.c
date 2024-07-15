@@ -365,7 +365,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 }
 
 
-static long make_user_pgtable(pid_t pid)
+static long make_user_pgtable(void)
 {
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
@@ -441,7 +441,7 @@ end:
 	
 	return 0;
 }
-static long make_user_pgtable2(pid_t pid)
+static long make_user_pgtable2(void)
 {
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
