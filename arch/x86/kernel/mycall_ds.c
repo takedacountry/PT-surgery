@@ -61,6 +61,7 @@
 unsigned long vaddr;
 // extern struct ds_list_head *ds_list;
 // extern struct m_list_head *m_list;
+struct task_struct *target_task;
 
 static long register_pid(pid_t pid);
 
@@ -1459,7 +1460,7 @@ static int print_usr_ds(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == pid){
+		if(ds_head->pid == target_task->pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1556,7 +1557,7 @@ static int print_usr_ds2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == pid){
+		if(ds_head->pid == target_task->pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1612,7 +1613,7 @@ static int print_usr_m(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
+		if(m_head->pid == target_task->pid){
 			printk(KERN_INFO "m pid: %d\n", pid);
 			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1709,7 +1710,7 @@ static int print_usr_m2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
+		if(m_head->pid == target_task->pid){
 			printk(KERN_INFO "m pid: %d\n", pid);
 			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1746,6 +1747,9 @@ static long register_pid(pid_t pid)
 	struct ds_head_list *ds_node;
 	struct m_head_list *m_node;
 
+	target_task = current;
+	*target_pid = current->pid;
+	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
 			goto end;
@@ -1829,7 +1833,7 @@ static int get_pmd_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
 
 static int search_pgtable_get_pmd(unsigned long num, pmd_t **pmdp)
 {
-  	struct mm_struct *mm = current->mm;
+  	struct mm_struct *mm = target_task->mm;
 
 	unsigned long pgd = (num >> 27) & PT_PGTABLE_MASK;
 	unsigned long pud = (num >> 18) & PT_PGTABLE_MASK;
@@ -2020,7 +2024,7 @@ static int update_pgtable_usr(unsigned long va_start, pte_t *pte, struct file *f
 	vfs_fsync_range(file, 0, size, 1);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == current->pid){
+		if(ds_head->pid == target_task->pid){
 			list_for_each_entry(itr, &ds_head->head, list){
 				if(itr->limit <= va_start){
 					continue; // not hit yet
@@ -2203,7 +2207,8 @@ static long recover_all_pgtable(void)
 	}
 	
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == target_task->pid){
+			printk(KERN_INFO "target_task pid: %d\n",target_task->pid);
 			for(unsigned long a=0; a<USER_MAX; a++){
 		        	for(unsigned long b=0; b<MAX; b++){
 		            		for(unsigned long c=0; c<MAX; c++){
@@ -2273,7 +2278,7 @@ static long recover_pgtable(unsigned long va)
 	// memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == target_task->pid){
 			list_for_each_entry(itr, &m_head->head, list){
 				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
 					printk(KERN_INFO "pgtable found %lx\n",va);
