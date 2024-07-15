@@ -39,18 +39,14 @@
 
 int main(void)
 {
-    pid_t pid;
-
-    printf("pid: ");
-    scanf("%d",&pid);
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
     // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
     // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable, pid));
-    printf("%ld\n", syscall(SYS_mycall_ds_search, pid));
-    printf("%ld\n", syscall(SYS_mycall_m_search, pid));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     /*
     int fd;
@@ -236,7 +232,7 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
     
-    printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable, pid));
+    printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
     
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
@@ -300,9 +296,9 @@ int main(void)
     // munmap(ma, len);
     // munmap(mb, len);
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2, pid));
-    printf("%ld\n", syscall(SYS_mycall_ds_search2, pid);
-    printf("%ld\n", syscall(SYS_mycall_m_search2, pid));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid());
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
