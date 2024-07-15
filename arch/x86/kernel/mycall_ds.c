@@ -1748,7 +1748,6 @@ static long register_pid(pid_t pid)
 	struct m_head_list *m_node;
 
 	target_task = current;
-	*target_pid = current->pid;
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
