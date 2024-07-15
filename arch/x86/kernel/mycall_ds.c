@@ -440,7 +440,7 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 pud_va:
 	pud_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pud_va && itr->num == base){
+		if(itr->va == pud_va || itr->num == base){
 			printk(KERN_INFO "already same pud\n");
 			goto end;
 		}
@@ -501,7 +501,7 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 pmd_va:
 	pmd_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pmd_va && itr->num == base){
+		if(itr->va == pmd_va || itr->num == base){
 			printk(KERN_INFO "already same pmd\n");
 			goto end;
 		}
@@ -562,7 +562,7 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pte_va && itr->num == base){
+		if(itr->va == pte_va || itr->num == base){
 			printk(KERN_INFO "already same pte\n");
 			goto end;
 		}
@@ -754,7 +754,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx", base, pte_value, pte_flag);
+							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx\n", base, pte_value, pte_flag, va);
 						}
 						else if(dnode->flag != prev->flag){
 							// modify pte flag 
@@ -762,16 +762,16 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 								// ds_mkwrite
 								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make write %lx %lx %lx", base, pte_value, pte_flag);
+								printk(KERN_INFO "make write %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
 								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make wrprotect %lx %lx %lx", base, pte_value, pte_flag);
+								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 	
 							}else{
-								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx", base, prev->flag, pte_flag);
+								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx", base, prev->flag, pte_flag, va);
 							}
 						}
 						goto end;
