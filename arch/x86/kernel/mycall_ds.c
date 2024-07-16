@@ -2326,7 +2326,7 @@ void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
 	}
 
 	while(end > itr->base){
-		printk(KERN_INFO "    %lx %lx", itr->base, itr->limit);
+		// printk(KERN_INFO "    %lx %lx", itr->base, itr->limit);
 		next = list_next_entry(itr, list);
 		if(itr->base < start && itr->limit <= end){ // base->start
 			itr->limit = start;
