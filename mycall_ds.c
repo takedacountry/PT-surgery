@@ -39,6 +39,8 @@
 
 int main(void)
 {
+    pid_t pid;
+    
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
