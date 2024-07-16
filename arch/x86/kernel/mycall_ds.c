@@ -2317,7 +2317,7 @@ void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end)
 	struct ds_list *next;
 
 	if(itr->base < start && end < itr->limit){ // base->start, end->limit
-		printk(KERN_INFO "    %lx %lx", itr->base, itr->limit);
+		// printk(KERN_INFO "    %lx %lx", itr->base, itr->limit);
 		if((next = make_ds_node(end, itr->limit, itr->offset, itr->flag)) == NULL)
 			goto out;
 		itr->limit = start;
@@ -2353,7 +2353,7 @@ void delete_ds_m_free_pte(unsigned long va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			printk(KERN_INFO "delete m pte %lx", va);
+			// printk(KERN_INFO "delete m pte %lx", va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					va_start = m_node->num & PT_PGTABLE_MASK_NOT;
@@ -2396,7 +2396,7 @@ void delete_m_free_pmd(unsigned long va)
 	unsigned long num;
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			printk(KERN_INFO "delete m pmd %lx", va);
+			// printk(KERN_INFO "delete m pmd %lx", va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PMD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					num = m_node->num;
@@ -2421,7 +2421,7 @@ void delete_m_free_pud(unsigned long va)
 	unsigned long num;
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			printk(KERN_INFO "delete m pud %lx", va);
+			// printk(KERN_INFO "delete m pud %lx", va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PUD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					num = m_node->num;
@@ -2445,7 +2445,7 @@ void delete_m_free_pgd(unsigned long va)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == current->pid){
-			printk(KERN_INFO "delete m pgd %lx", va);
+			// printk(KERN_INFO "delete m pgd %lx", va);
 			list_for_each_entry(m_node, &m_head->head, list){
 				if(m_node->num & PGD_FLAG_MASK){
 					list_del(&m_node->list);
