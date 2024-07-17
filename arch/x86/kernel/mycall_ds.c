@@ -413,9 +413,10 @@ int make_pgd_m_list(unsigned long pgd_va)
 			if(is_add_m_node_usr(PGD_FLAG_MASK, m_head)){
 				if(add_first_m_node_usr(pgd_va, PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
-				// printk(KERN_INFO "make pgd %ld, pid %d\n", num | P4D_FLAG_MASK,  current->pid);
+				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va, PGD_FLAG_MASK, current->pid);
 				return 1;
 			}
+			// printk(KERN_INFO "already same pgd\n");
 		}
 	}
 	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
