@@ -90,7 +90,7 @@ int main(void)
     // ma[666] = 42;        /* 書き込み; 成功 */
 
     
-    char *ma = (char*)malloc(INDEX);
+    // char *ma = (char*)malloc(INDEX);
     // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
@@ -123,7 +123,7 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
+    // memset(ma, 0, INDEX);
     // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
@@ -157,7 +157,7 @@ int main(void)
     // memset(mp1, 0, INDEX);
     
 
-    printf("va: %p\n", ma); // print user va 
+    // printf("va: %p\n", ma); // print user va 
     // printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
@@ -264,7 +264,7 @@ int main(void)
     // memset(mo, 1, INDEX);
     // memset(mp, 1, INDEX);
 
-    free(ma);
+    // free(ma);
     // free(mb);
     // free(mc);
     // free(md);
