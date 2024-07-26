@@ -2735,7 +2735,6 @@ SYSCALL_DEFINE0(mycall_m_delete)
 int check_parent_is_target(pid_t pid)
 {
 	struct ds_head_list *ds_node;
-	struct m_head_list *m_node;
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
