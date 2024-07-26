@@ -469,7 +469,7 @@ static long make_user_pgtable2(void)
 	memset(buf, '\0', 100);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if(get_pgdp(target_task->mm, pgd, &p4dp) > 0){
+		if(get_pgdp(current->mm, pgd, &p4dp) > 0){
 			
 			size = sprintf(buf, "%ld-0-0-0 %lx  %lx %lx  %lx\n", pgd, make_ds_va(pgd,0,0,0), p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
