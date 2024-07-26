@@ -2727,3 +2727,24 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // 	return ret;
 // }
 // EXPORT_SYMBOL_GPL(ds_wrprotect);
+
+int check_parent_is_target(pid_t pid)
+{
+	struct ds_head_list *ds_node;
+	struct m_head_list *m_node;
+	
+	list_for_each_entry(ds_node, &usr_ds_head, list){
+		if(ds_node->pid == pid){
+			return 1;
+		}
+	}
+	return 0;	
+}
+
+void register_child(void)
+{
+	// register pid & make ds_list, m_list
+	printk(KERN_INFO "child pid: %d\n", current->pid);
+	register_pid(current->pid);
+	make_ds_list_usr_from_pgtable();
+}
