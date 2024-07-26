@@ -2744,6 +2744,7 @@ int check_parent_is_target(pid_t pid)
 	}
 	return 0;	
 }
+EXPORT_SYMBOL_GPL(check_parent_is_target);
 
 void register_child(void)
 {
@@ -2752,3 +2753,4 @@ void register_child(void)
 	register_pid(current->pid);
 	make_ds_list_usr_from_pgtable();
 }
+EXPORT_SYMBOL_GPL(register_child);
