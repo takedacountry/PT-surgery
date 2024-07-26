@@ -1565,7 +1565,7 @@ static int print_usr_ds2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == target_task->pid){
+		if(ds_head->pid == pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1718,7 +1718,7 @@ static int print_usr_m2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == target_task->pid){
+		if(m_head->pid == pid){
 			printk(KERN_INFO "m pid: %d\n", pid);
 			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
