@@ -2722,7 +2722,7 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	put_pid(pid);
 
 	// my code
-	if(check_parent_is_target(p->parent->pid, p->pid))
+	if(check_parent_is_target(p->real_parent->pid, p->pid))
 		register_child(p->pid);
 	
 	return nr;
