@@ -729,6 +729,9 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	unsigned long pte_flag = pte_flags(pte);
 	unsigned long base;
 
+	if(pid == 0)
+		pid = current->pid;
+
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
