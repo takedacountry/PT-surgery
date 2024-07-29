@@ -2626,7 +2626,7 @@ struct task_struct *create_io_thread(int (*fn)(void *), void *arg, int node)
 
 	return copy_process(NULL, 0, node, &args);
 }
-extern int check_parent_is_target(pid_t pid);
+extern bool check_parent_is_target(pid_t pid);
 extern void register_child(void);
 /*
  *  Ok, this is the main fork-routine.
@@ -2643,7 +2643,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	struct pid *pid;
 	struct task_struct *p;
 	int trace = 0;
-	int flag;
 	pid_t nr;
 
 	/*
@@ -2680,9 +2679,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 
 	p = copy_process(NULL, trace, NUMA_NO_NODE, args);
 	add_latent_entropy();
-
-	// my code
-	flag = check_parent_is_target(current->pid);
 	
 	if (IS_ERR(p))
 		return PTR_ERR(p);
@@ -2726,8 +2722,8 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	put_pid(pid);
 
 	// my code
-	if(flag && nr == 0)
-		register_child();
+	if(check_parent_is_target(p->parent->pid, p->pid))
+		register_child(p->pid);
 	
 	return nr;
 }
