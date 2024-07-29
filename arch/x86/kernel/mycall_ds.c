@@ -2732,16 +2732,18 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // }
 // EXPORT_SYMBOL_GPL(ds_wrprotect);
 
-int check_parent_is_target(pid_t pid)
+bool check_parent_is_target(pid_t pid)
 {
 	struct ds_head_list *ds_node;
+
+	printk(KERN_INFO "parent pid %d, child pid %d\n", pid, current->pid);
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
-			return 1;
+			return true;
 		}
 	}
-	return 0;	
+	return false;	
 }
 EXPORT_SYMBOL_GPL(check_parent_is_target);
 
