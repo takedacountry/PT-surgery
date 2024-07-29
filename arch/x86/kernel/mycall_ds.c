@@ -758,7 +758,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
-							// printk(KERN_INFO "modify ds offset %lx %lx %lx %lx\n", base, pte_value, pte_flag, va);
+							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx\n", base, pte_value, pte_flag, va);
 						}
 						else if(dnode->flag != prev->flag){
 							// modify pte flag 
@@ -766,16 +766,16 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								// ds_mkwrite
 								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								// printk(KERN_INFO "make write %lx %lx %lx %lx", base, pte_value, pte_flag, va);
+								printk(KERN_INFO "make write %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
 								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								// printk(KERN_INFO "make wrprotect %lx %lx %lx %lx", base, pte_value, pte_flag, va);
+								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 	
 							}else{
-								// printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx", base, prev->flag, pte_flag, va);
+								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx", base, prev->flag, pte_flag, va);
 							}
 						}
 						goto end;
