@@ -442,7 +442,7 @@ pud_va:
 	pud_va &= PAGE_MASK;
 	while(itr->num <= base){
 		if(itr->va == pud_va || itr->num == base){
-			printk(KERN_INFO "already same pud\n");
+			// printk(KERN_INFO "already same pud\n");
 			goto end;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
@@ -503,7 +503,7 @@ pmd_va:
 	pmd_va &= PAGE_MASK;
 	while(itr->num <= base){
 		if(itr->va == pmd_va || itr->num == base){
-			printk(KERN_INFO "already same pmd\n");
+			// printk(KERN_INFO "already same pmd\n");
 			goto end;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
@@ -564,7 +564,7 @@ pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
 		if(itr->va == pte_va || itr->num == base){
-			printk(KERN_INFO "already same pte\n");
+			// printk(KERN_INFO "already same pte\n");
 			goto end;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
