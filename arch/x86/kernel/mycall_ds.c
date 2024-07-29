@@ -43,7 +43,9 @@
 #define OFFSET_SIZE		(_AT(long, 1) << OFFSET_SHIFT)
 #define OFFSET_MASK		(OFFSET_SIZE - 1)
 #define OFFSET_MASK_NOT		(~OFFSET_MASK)
-#define _PAGE_RW_NOT		(~_PAGE_RW)
+#define RW_BIT			1
+#define FLAG_RW			(_AT(long, 1) << RW_BIT)
+#define FLAG_RW_NOT		(~FLAG_RW)
 
 #define SAME_ADDR_SHIFT 	16
 #define SAME_ADDR_MASK 		(_AT(long, 1) << SAME_ADDR_SHIFT)
@@ -714,7 +716,7 @@ static int modify_ds_offset(struct ds_list *ds_node, struct ds_list *new, struct
 
 static bool is_ds_write(struct ds_list *ds_node)
 {
-	if(ds_node->flag & _PAGE_RW)
+	if(ds_node->flag & FLAG_RW)
 		return true;
 	else
 		return false;
