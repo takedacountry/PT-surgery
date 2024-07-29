@@ -404,22 +404,22 @@ static int add_m_node_ker(unsigned long va, unsigned long num)
  	return 0;
 }
 
-int make_pgd_m_list(unsigned long pgd_va)
+int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == pid){
 			if(is_add_m_node_usr(PGD_FLAG_MASK, m_head)){
 				if(add_first_m_node_usr(pgd_va, PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
-				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va, PGD_FLAG_MASK, current->pid);
+				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va, PGD_FLAG_MASK, pid);
 				return 1;
 			}
 			// printk(KERN_INFO "already same pgd\n");
 		}
 	}
-	// printk(KERN_INFO "pgd no pid: %d\n", current->pid);
+	// printk(KERN_INFO "pgd no pid: %d\n", pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
@@ -463,13 +463,13 @@ end:
 	return MAX_NUM;
 }
 
-int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
+int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pud_va, m_head)){
 			if((num = get_pgd_num(pgd_va, pud_va, m_head)) >= MAX_NUM)
 				return -1;
@@ -477,11 +477,11 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
 			// if(add_m_node_usr(pud_va, num, m_head, m_node) < 0)
 			// 	return -ENOMEM;
 			
-			// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, current->pid);
+			// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, pid);
 			return 1;
 		}
 	}
-	// printk(KERN_INFO "pud no pid: %d\n", current->pid);
+	// printk(KERN_INFO "pud no pid: %d\n", pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
@@ -524,13 +524,13 @@ end:
 	return MAX_NUM;
 }
 
-int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
+int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pmd_va, m_head)){
 			if((num = get_pud_num(pud_va, pmd_va, m_head)) >= MAX_NUM)
 				return -1;
@@ -538,11 +538,11 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 			// if(add_m_node_usr(pmd_va, num, m_head) < 0)
 			// 	return -ENOMEM;
 
-			// printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, current->pid);
+			// printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, pid);
 			return 1;
 		}
 	}
-	// printk(KERN_INFO "no m pid: %d\n", current->pid);
+	// printk(KERN_INFO "no m pid: %d\n", pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
@@ -585,13 +585,13 @@ end:
 	return MAX_NUM;
 }
 
-int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
+int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pte_va, m_head)){
 			if((num = get_pmd_num(pmd_va, pte_va, m_head)) >= MAX_NUM)
 				return -1;
@@ -599,12 +599,12 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 			// if(add_m_node_usr(pte_va, num, m_head) < 0)
 			// 	return -ENOMEM;
 
-			// printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, current->pid);
+			// printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, pid);
 			return 1;
 			
 		}
 	}
-	// printk(KERN_INFO "no m pid: %d\n", current->pid);
+	// printk(KERN_INFO "no m pid: %d\n", pid);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
@@ -720,7 +720,7 @@ static bool is_ds_write(struct ds_list *ds_node)
 		return false;
 }
 
-int make_ds_list_usr(unsigned long va, pte_t pte)
+int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
@@ -730,7 +730,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 	unsigned long base;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
+		if(m_head->pid == pid){
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
@@ -741,7 +741,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 	}
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == current->pid){		
+		if(ds_head->pid == pid){		
 			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
 				return -ENOMEM;
 			
@@ -796,7 +796,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 			}
 		}
 	}
-	// printk(KERN_INFO "no ds pid: %d\n", (int)current->pid);
+	// printk(KERN_INFO "no ds pid: %d\n", pid);
 	return 0;
 end:
 	// printk(KERN_INFO "make ds base %ld\n", base);
@@ -1014,7 +1014,7 @@ EXPORT_SYMBOL_GPL(make_list_from_pgtable);
 // 	return 0;
 // }
 
-static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp, int *flag)
+static int get_ptep(pmd_t *pmdp, pid_t pid, unsigned long pte, pte_t **ptepp, int *flag)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
 	*(ptepp) = ptep;
@@ -1028,7 +1028,7 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp, int *flag)
 		// if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0){
 		// 	printk(KERN_INFO "pte m list failure at get_ptep\n");
 		// }
-		if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) == 1){
+		if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep, pid) == 1){
 			*(flag) = 1;
 		}
 	}
@@ -1036,7 +1036,7 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp, int *flag)
   	return 1;
 }
 
-static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp, int *flag)
+static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp, int *flag)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
 	*(pmdpp) = pmdp;
@@ -1050,7 +1050,7 @@ static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp, int *flag)
 		// if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0){
 		// 	printk(KERN_INFO "pmd m list failure at get_pmdp\n");
 		// }
-		if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) == 1){
+		if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp, pid) == 1){
 			*(flag) = 1;
 		}
 	}
@@ -1063,7 +1063,7 @@ static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp, int *flag)
   	return 1;
 }
 
-static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp, int *flag)
+static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp, int *flag)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
 	*(pudpp) = pudp;
@@ -1077,7 +1077,7 @@ static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp, int *flag)
 		// if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0){
 		// 	printk(KERN_INFO "pud m list failure at get_pudp\n");
 		// }
-		if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) == 1){
+		if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp, pid) == 1){
 			*(flag) = 1;
 		}
 	}
@@ -1102,7 +1102,7 @@ static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
 	return 1;
 }
 
-static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp, int *flag)
+static int get_pgdp(struct mm_struct *mm, pid_t pid, unsigned long pgd, p4d_t **p4dpp, int *flag)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
@@ -1119,7 +1119,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp, int 
 		// if(make_pgd_m_list((unsigned long)pgdp) < 0){
 		// 	printk(KERN_INFO "pgd m list failure at get_pgdp\n");
 		// }
-		if(make_pgd_m_list((unsigned long)pgdp) == 1){
+		if(make_pgd_m_list((unsigned long)pgdp, pid) == 1){
 			*(flag) = 1;
 		}
 	}
@@ -1127,8 +1127,9 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp, int 
   	return 1;
 }
 
-static long make_ds_list_usr_from_pgtable(void)
+static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 {
+	pid_t pid = p->pid;
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
 	pud_t *pudp;
@@ -1144,16 +1145,16 @@ static long make_ds_list_usr_from_pgtable(void)
 	// unsigned long pte_num;
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if(get_pgdp(current->mm, pgd, &p4dp, &flag_pgd) > 0){
+		if(get_pgdp(p->mm, pid, pgd, &p4dp, &flag_pgd) > 0){
 			
 	        	for(unsigned long pud=0; pud<MAX; pud++){
-				if(get_pudp(p4dp, pud, &pudp, &flag_pud) > 0){
+				if(get_pudp(p4dp, pid, pud, &pudp, &flag_pud) > 0){
 					
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
-						if(get_pmdp(pudp, pmd, &pmdp, &flag_pmd) > 0){
+						if(get_pmdp(pudp, pid, pmd, &pmdp, &flag_pmd) > 0){
 
 							for(unsigned long pte=0; pte<MAX; pte++){
-			                    			if(get_ptep(pmdp, pte, &ptep, &flag_pte) > 0){
+			                    			if(get_ptep(pmdp, pid, pte, &ptep, &flag_pte) > 0){
 									
 									if(flag == 0){
 										vaddr = (unsigned long)ptep;
@@ -1165,7 +1166,7 @@ static long make_ds_list_usr_from_pgtable(void)
 									// 	goto end;
 
 									// make_ds from ptep
-									if(make_ds_list_usr((unsigned long)ptep, *ptep) < 0){
+									if(make_ds_list_usr((unsigned long)ptep, *ptep, pid) < 0){
 										printk(KERN_INFO "pte ds list failure at from_pgtable\n");
 										// goto end;
 									}
@@ -1190,7 +1191,7 @@ SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
 	ktime_t start, end;
 
 	start = ktime_get();
-	ret = make_ds_list_usr_from_pgtable();
+	ret = make_ds_list_usr_from_pgtable(current);
 	end = ktime_get();
 
 	printk(KERN_INFO "make_ds_usr time: %lld\n", ktime_sub(end, start));
@@ -2748,11 +2749,11 @@ bool check_parent_is_target(pid_t ppid, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(check_parent_is_target);
 
-void register_child(pid_t pid)
+void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
-	printk(KERN_INFO "child pid %d, current pid %d\n", pid, current->pid);
-	register_pid(pid);
-	make_ds_list_usr_from_pgtable();
+	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
+	register_pid(p->pid);
+	make_ds_list_usr_from_pgtable(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
