@@ -13,6 +13,7 @@
 
 // my code
 // #include <asm/ds.h>
+#include <asm/current.h>
 
 #ifndef __ASSEMBLY__
 #include <linux/bug.h>
