@@ -440,14 +440,14 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned 
 }
 
 // my code
-extern int make_ds_list_usr(unsigned long va, pte_t pte);
+extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 	// my code
 	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
 	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
-	make_ds_list_usr((unsigned long)ptep, pte);
+	make_ds_list_usr((unsigned long)ptep, pte, current->pid);
 }
 
 static inline void set_pte_recover(pte_t *ptep, pte_t pte)
