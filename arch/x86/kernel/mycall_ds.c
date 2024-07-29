@@ -2747,7 +2747,7 @@ bool check_parent_is_target(pid_t ppid, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(check_parent_is_target);
 
-void register_child(pid_ pid)
+void register_child(pid_t pid)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", pid, current->pid);
