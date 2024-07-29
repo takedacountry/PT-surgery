@@ -11,10 +11,6 @@
 
 #include <asm/paravirt_types.h>
 
-// my code
-// #include <asm/ds.h>
-#include <asm/current.h>
-
 #ifndef __ASSEMBLY__
 #include <linux/bug.h>
 #include <linux/types.h>
@@ -448,7 +444,7 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 	// my code
 	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
 	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
-	make_ds_list_usr((unsigned long)ptep, pte, current->pid);
+	make_ds_list_usr((unsigned long)ptep, pte, 0);
 }
 
 static inline void set_pte_recover(pte_t *ptep, pte_t pte)
