@@ -2627,7 +2627,7 @@ struct task_struct *create_io_thread(int (*fn)(void *), void *arg, int node)
 	return copy_process(NULL, 0, node, &args);
 }
 extern bool check_parent_is_target(pid_t ppid, pid_t pid);
-extern void register_child(pid_t pid);
+extern void register_child(struct task_struct *p);
 /*
  *  Ok, this is the main fork-routine.
  *
@@ -2723,7 +2723,7 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 
 	// my code
 	if(check_parent_is_target(p->real_parent->pid, p->pid))
-		register_child(p->pid);
+		register_child(p);
 	
 	return nr;
 }
