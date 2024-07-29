@@ -2736,10 +2736,11 @@ bool check_parent_is_target(pid_t ppid, pid_t pid)
 {
 	struct ds_head_list *ds_node;
 
-	printk(KERN_INFO "parent pid %d, child pid %d\n", ppid, pid);
+	// printk(KERN_INFO "parent pid %d, child pid %d\n", ppid, pid);
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == ppid){
+			printk(KERN_INFO "parent pid %d, child pid %d\n", ppid, pid);
 			return true;
 		}
 	}
