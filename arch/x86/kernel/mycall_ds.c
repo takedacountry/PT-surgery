@@ -2732,14 +2732,14 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // }
 // EXPORT_SYMBOL_GPL(ds_wrprotect);
 
-bool check_parent_is_target(pid_t pid)
+bool check_parent_is_target(pid_t ppid, pid_t pid)
 {
 	struct ds_head_list *ds_node;
 
-	printk(KERN_INFO "parent pid %d, child pid %d\n", pid, current->pid);
+	printk(KERN_INFO "parent pid %d, child pid %d\n", ppid, pid);
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
-		if(ds_node->pid == pid){
+		if(ds_node->pid == ppid){
 			return true;
 		}
 	}
@@ -2747,11 +2747,11 @@ bool check_parent_is_target(pid_t pid)
 }
 EXPORT_SYMBOL_GPL(check_parent_is_target);
 
-void register_child(void)
+void register_child(pid_ pid)
 {
 	// register pid & make ds_list, m_list
-	printk(KERN_INFO "child pid: %d\n", current->pid);
-	register_pid(current->pid);
+	printk(KERN_INFO "child pid %d, current pid %d\n", pid, current->pid);
+	register_pid(pid);
 	make_ds_list_usr_from_pgtable();
 }
 EXPORT_SYMBOL_GPL(register_child);
