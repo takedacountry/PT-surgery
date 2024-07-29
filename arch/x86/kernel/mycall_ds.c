@@ -411,7 +411,7 @@ int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			if(is_add_m_node_usr(PGD_FLAG_MASK, m_head)){
-				if(add_first_m_node_usr(pgd_va, PGD_FLAG_MASK, m_head) < 0)
+				if(add_first_m_node_usr(pgd_va & PAGE_MASK, PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
 				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va, PGD_FLAG_MASK, pid);
 				return 1;
