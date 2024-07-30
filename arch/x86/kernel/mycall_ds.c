@@ -629,7 +629,7 @@ static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct d
 	struct ds_list *next, *prev;
 
 	if(ds_node->base == new->base && ds_node->limit == new->limit){
-		ds_node->flag = new->flag;	
+		ds_node->flag = new->flag;
 		if(list_is_first(&ds_node->list, &ds_head->head)){
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
@@ -740,7 +740,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
-			// printk(KERN_INFO "make ds correct va %lx num %lx\n", va, base);
+			printk(KERN_INFO "make ds correct va %lx num %lx value %lx flag %lx\n", va, base, pte_value, pte_flag);
 			break;
 		}
 	}
