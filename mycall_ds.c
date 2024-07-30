@@ -40,6 +40,7 @@
 int main(void)
 {
     pid_t pid;
+    int status;
     
     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
     // printf("%ld\n", syscall(SYS_mycall_m_delete));
@@ -208,6 +209,11 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         // printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
         // printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
+
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("Exit: %d\n", WEXITSTATUS(status));
+        }
     }
 
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
