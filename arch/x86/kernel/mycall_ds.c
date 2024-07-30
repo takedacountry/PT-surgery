@@ -736,12 +736,12 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
-			printk(KERN_INFO "make ds before hit m %lx %lx %lx %d\n", pte_value, pte_flag, va, pid);
+			// printk(KERN_INFO "make ds before hit m %lx %lx %lx %d\n", pte_value, pte_flag, va, pid);
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
-			printk(KERN_INFO "make ds after hit m %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+			printk(KERN_INFO "make ds hit m %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 			break;
 		}
 	}
@@ -758,7 +758,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 			}else{
 				list_for_each_entry_reverse(prev, &ds_head->head, list){
 					if(prev->base <= dnode->base && dnode->limit <= prev->limit){
-						printk(KERN_INFO "make ds after hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+						printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
@@ -785,6 +785,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						goto end;
 					}
 					else if(dnode->base >= prev->limit){
+						printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						list_add(&dnode->list, &prev->list);
 						if(list_is_last(&dnode->list, &ds_head->head)){
 							ds_node_merge(prev, dnode);
