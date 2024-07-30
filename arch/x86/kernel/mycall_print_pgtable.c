@@ -390,7 +390,7 @@ long make_user_pgtable(void)
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
         if(!buf)
 		goto end;
-	memset(buf, '\0', 100);
+	memset(buf, '\0', 1024);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if(get_pgdp(current->mm, pgd, &p4dp) > 0){
@@ -468,7 +468,7 @@ long make_user_pgtable2(void)
         buf = kmalloc(PATH_MAX, GFP_KERNEL);
         if(!buf)
 		goto end;
-	memset(buf, '\0', 100);
+	memset(buf, '\0', 1024);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if(get_pgdp(current->mm, pgd, &p4dp) > 0){
