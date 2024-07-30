@@ -2738,6 +2738,8 @@ SYSCALL_DEFINE0(mycall_m_delete)
 // }
 // EXPORT_SYMBOL_GPL(ds_wrprotect);
 
+extern long make_user_pgtable2(void);
+
 bool check_parent_is_target(pid_t ppid, pid_t pid)
 {
 	struct ds_head_list *ds_node;
@@ -2758,7 +2760,8 @@ void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
-	// register_pid(p->pid);
-	// make_ds_list_usr_from_pgtable(p);
+	register_pid(p->pid);
+	make_ds_list_usr_from_pgtable(p);
+	make_user_pgtable2();
 }
 EXPORT_SYMBOL_GPL(register_child);
