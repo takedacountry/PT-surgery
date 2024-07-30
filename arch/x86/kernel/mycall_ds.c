@@ -740,7 +740,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
-			printk(KERN_INFO "make ds correct va %lx num %lx value %lx flag %lx\n", va, base, pte_value, pte_flag);
+			printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 			break;
 		}
 	}
@@ -2758,7 +2758,7 @@ void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
-	register_pid(p->pid);
-	make_ds_list_usr_from_pgtable(p);
+	// register_pid(p->pid);
+	// make_ds_list_usr_from_pgtable(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
