@@ -392,6 +392,10 @@ long make_user_pgtable(struct task_struct *p)
 		goto end;
 	memset(buf, '\0', 1024);
 
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if(get_pgdp(p->mm, pgd, &p4dp) > 0){
 			
@@ -469,6 +473,10 @@ long make_user_pgtable2(struct task_struct *p)
         if(!buf)
 		goto end;
 	memset(buf, '\0', 1024);
+
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if(get_pgdp(p->mm, pgd, &p4dp) > 0){
