@@ -198,16 +198,16 @@ int main(void)
     }else if(pid == 0){
         // child
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        printf("ds 2 %ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("m 2 %ld\n", syscall(SYS_mycall_m_search2, getpid()));
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
         exit(0);
     }else{
         //parent
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
     }
 
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
