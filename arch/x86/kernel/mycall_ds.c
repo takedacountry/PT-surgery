@@ -740,7 +740,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
-			printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+			// printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 			break;
 		}
 	}
