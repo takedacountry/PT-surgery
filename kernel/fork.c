@@ -2722,8 +2722,12 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	put_pid(pid);
 
 	// my code
-	if(check_parent_is_target(p->real_parent->pid, p->pid) && nr == 0)
-		register_child(p);
+	if(nr == 0){
+		printk(KERN_INFO "nr == 0 pid %d\n", current->pid);
+		if(check_parent_is_target(p->real_parent->pid, p->pid)){
+			register_child(p);
+		}
+	}
 	
 	return nr;
 }
