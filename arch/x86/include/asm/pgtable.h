@@ -1075,10 +1075,16 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
 }
 
 #define __HAVE_ARCH_PTEP_SET_WRPROTECT
+// my code
+extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
 static inline void ptep_set_wrprotect(struct mm_struct *mm,
 				      unsigned long addr, pte_t *ptep)
 {
 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+	// my code
+	// if(make_ds_list_usr((unsigned long)ptep, pte, 0) < 0)
+	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
+	make_ds_list_usr((unsigned long)ptep, *ptep, 0);
 }
 
 #define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)
