@@ -191,9 +191,9 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    // printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     if((pid = fork()) == -1){
         printf("fork() failed");
@@ -208,15 +208,19 @@ int main(void)
         exit(0);
     }else{
         //parent
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("ds 2 %ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("m 2 %ld\n", syscall(SYS_mycall_m_search2, getpid()));
-
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
+        
         wait(&status);
         if (WIFEXITED(status)) {
             printf("Exit: %d\n", WEXITSTATUS(status));
         }
     }
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("ds 2 %ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("m 2 %ld\n", syscall(SYS_mycall_m_search2, getpid()));
+
 
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
