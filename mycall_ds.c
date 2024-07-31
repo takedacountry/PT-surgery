@@ -217,9 +217,7 @@ int main(void)
             printf("Exit: %d\n", WEXITSTATUS(status));
         }
     }
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    printf("ds 2 %ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    printf("m 2 %ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    
 
 
     // printf("%ld\n", syscall(SYS_mycall_ds_init));
@@ -313,9 +311,9 @@ int main(void)
     // munmap(ma, len);
     // munmap(mb, len);
 
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
