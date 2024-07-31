@@ -429,15 +429,19 @@ static inline pte_t ptep_modify_prot_start(struct vm_area_struct *vma, unsigned 
 	return (pte_t) { .pte = ret };
 }
 
+// my code
+extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
 static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned long addr,
 					   pte_t *ptep, pte_t old_pte, pte_t pte)
 {
 
 	PVOP_VCALL4(mmu.ptep_modify_prot_commit, vma, addr, ptep, pte.pte);
+	// my code
+	// if(make_ds_list_usr((unsigned long)ptep, pte, 0) < 0)
+	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
+	make_ds_list_usr((unsigned long)ptep, pte, 0);
 }
 
-// my code
-extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
