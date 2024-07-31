@@ -741,7 +741,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
 			}
-			printk(KERN_INFO "make ds hit m %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+			// printk(KERN_INFO "make ds hit m %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 			break;
 		}
 	}
@@ -758,7 +758,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 			}else{
 				list_for_each_entry_reverse(prev, &ds_head->head, list){
 					if(prev->base <= dnode->base && dnode->limit <= prev->limit){
-						printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
@@ -768,13 +768,13 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 							// modify pte flag 
 							if(!is_ds_write(prev) && is_ds_write(dnode)){
 								// ds_mkwrite
-								printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
+								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
 								printk(KERN_INFO "make write %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
-								printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
+								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
 								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx", base, pte_value, pte_flag, va);
 	
