@@ -207,8 +207,8 @@ int main(void)
     }else{
         //parent
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        // printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        // printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
 
         wait(&status);
         if (WIFEXITED(status)) {
