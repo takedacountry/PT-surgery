@@ -201,16 +201,16 @@ int main(void)
     }else if(pid == 0){
         // child
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        // printf("ds 2 %ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("m 2 %ld\n", syscall(SYS_mycall_m_search2, getpid()));
-
+        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        
         exit(0);
     }else{
         //parent
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
         wait(&status);
         if (WIFEXITED(status)) {
@@ -258,7 +258,7 @@ int main(void)
     //     printf("%d ", *t);
     // }
     
-    memset(ma, 1, INDEX);
+    // memset(ma, 1, INDEX);
     // memset(mb, 1, INDEX);
     // memset(mc, 1, INDEX);
     // memset(md, 1, INDEX);
@@ -275,9 +275,9 @@ int main(void)
     // memset(mo, 1, INDEX);
     // memset(mp, 1, INDEX);
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     free(ma);
     // free(mb);
