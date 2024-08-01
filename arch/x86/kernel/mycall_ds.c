@@ -2763,8 +2763,8 @@ void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
-	// register_pid(p->pid);
-	// make_ds_list_usr_from_pgtable(p);
-	// make_user_pgtable2(p);
+	register_pid(p->pid);
+	make_ds_list_usr_from_pgtable(p);
+	make_user_pgtable2(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
