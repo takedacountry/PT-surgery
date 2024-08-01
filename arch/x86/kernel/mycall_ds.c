@@ -785,7 +785,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						goto end;
 					}
 					else if(dnode->base >= prev->limit){
-						printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						list_add(&dnode->list, &prev->list);
 						if(list_is_last(&dnode->list, &ds_head->head)){
 							ds_node_merge(prev, dnode);
