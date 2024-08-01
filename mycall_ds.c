@@ -209,12 +209,12 @@ int main(void)
     }else{
         //parent
         printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("ds 1 %ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("m 1 %ld\n", syscall(SYS_mycall_m_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
         wait(&status);
         if (WIFEXITED(status)) {
-            printf("Exit: %d\n", WEXITSTATUS(status));
+            printf("exit: %d\n", WEXITSTATUS(status));
         }
     }
     
@@ -258,7 +258,7 @@ int main(void)
     //     printf("%d ", *t);
     // }
     
-    // memset(ma, 1, INDEX);
+    memset(ma, 1, INDEX);
     // memset(mb, 1, INDEX);
     // memset(mc, 1, INDEX);
     // memset(md, 1, INDEX);
@@ -274,6 +274,10 @@ int main(void)
     // memset(mn, 1, INDEX);
     // memset(mo, 1, INDEX);
     // memset(mp, 1, INDEX);
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
 
     free(ma);
     // free(mb);
@@ -311,9 +315,7 @@ int main(void)
     // munmap(ma, len);
     // munmap(mb, len);
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    
 
     printf("%ld\n", syscall(SYS_mycall_ds_delete));
     printf("%ld\n", syscall(SYS_mycall_m_delete));
