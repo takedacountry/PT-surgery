@@ -204,12 +204,9 @@ static inline void pud_free(struct mm_struct *mm, pud_t *pud)
 #endif /* CONFIG_PGTABLE_LEVELS > 3 */
 
 #ifndef __HAVE_ARCH_PGD_FREE
-// my code
-extern void delete_m_free_pgd(unsigned long va);
 static inline void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
 	free_page((unsigned long)pgd);
-	delete_m_free_pgd((unsigned long)pgd);
 }
 #endif
 
