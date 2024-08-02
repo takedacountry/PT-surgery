@@ -426,7 +426,7 @@ int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
-static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, struct m_head_list *m_head)
+static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, struct m_head_list *m_head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base;
@@ -458,7 +458,7 @@ pud_va:
 	if(add_tail_m_node(pud_va, base, itr) < 0)
 		goto end;
 ret:
-	printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, current->pid);
+	printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pgd m list va %ld\n",va);
@@ -473,7 +473,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pud_va, m_head)){
-			if((num = get_pgd_num(pgd_va, pud_va, m_head)) >= MAX_NUM)
+			if((num = get_pgd_num(pgd_va, pud_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 		
 			// if(add_m_node_usr(pud_va, num, m_head, m_node) < 0)
@@ -488,7 +488,7 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
-static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, struct m_head_list *m_head)
+static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, struct m_head_list *m_head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base = 0;
@@ -519,7 +519,7 @@ pmd_va:
 	if(add_tail_m_node(pmd_va, base, itr) < 0)
 		goto end;
 ret:		
-	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, current->pid);
+	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pud m list va %ld\n",va);
@@ -534,7 +534,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pmd_va, m_head)){
-			if((num = get_pud_num(pud_va, pmd_va, m_head)) >= MAX_NUM)
+			if((num = get_pud_num(pud_va, pmd_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 			
 			// if(add_m_node_usr(pmd_va, num, m_head) < 0)
@@ -549,7 +549,7 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
-static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, struct m_head_list *m_head)
+static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, struct m_head_list *m_head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base = 0;
@@ -580,7 +580,7 @@ pte_va:
 	if(add_tail_m_node(pte_va, base, itr) < 0)
 		goto end;
 ret:		
-	printk(KERN_INFO "make m pte alloc %lx, %lx, %d\n", pte_va, base, current->pid);
+	printk(KERN_INFO "make m pte alloc %lx, %lx, %d\n", pte_va, base, pid);
 	return base;
 end:
 	// printk(KERN_INFO "no pmd m list va %ld\n",va);
@@ -595,7 +595,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			// if(is_add_m_node_va_usr(pte_va, m_head)){
-			if((num = get_pmd_num(pmd_va, pte_va, m_head)) >= MAX_NUM)
+			if((num = get_pmd_num(pmd_va, pte_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 			
 			// if(add_m_node_usr(pte_va, num, m_head) < 0)
@@ -762,7 +762,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						if(dnode->offset != prev->offset){
 							// modify pte offset
 							modify_ds_offset(prev, dnode, ds_head);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx\n", base, pte_value, pte_flag, va);
+							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						}
 						else if(dnode->flag != prev->flag){
 							// modify pte flag 
@@ -770,16 +770,16 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								// ds_mkwrite
 								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make write %lx %lx %lx %lx", base, pte_value, pte_flag, va);
+								printk(KERN_INFO "make write %lx %lx %lx %lx%d\n", base, pte_value, pte_flag, va, pid);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
 								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx", base, pte_value, pte_flag, va);
+								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 	
 							}else{
-								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx", base, prev->flag, pte_flag, va);
+								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
 							}
 						}
 						goto end;
@@ -2766,7 +2766,7 @@ void register_child(struct task_struct *p)
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
 	register_pid(p->pid);
-	make_ds_list_usr_from_pgtable(p);
 	make_user_pgtable2(p);
+	make_ds_list_usr_from_pgtable(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
