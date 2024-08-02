@@ -2488,10 +2488,11 @@ static long delete_ds_all(void)
 			itr = list_first_entry(&ds_head->head, typeof(*itr), list);
 			list_del(&itr->list);
 			kfree(itr);
-		}
-		list_for_each_entry(itr, &ds_head->head, list){
 			count++;
 		}
+		// list_for_each_entry(itr, &ds_head->head, list){
+		// 	count++;
+		// }
 		printk(KERN_INFO "delete user ds count %d, pid %d\n", count, ds_head->pid);
 
 		list_del(&ds_head->list);
@@ -2535,10 +2536,11 @@ static long delete_m_all(void)
 			itr = list_first_entry(&m_head->head, typeof(*itr), list);
 			list_del(&itr->list);
 			kfree(itr);
-		}
-		list_for_each_entry(itr, &m_head->head, list){
 			count++;
 		}
+		// list_for_each_entry(itr, &m_head->head, list){
+		// 	count++;
+		// }
 		printk(KERN_INFO "delete user m count %d, pid %d\n", count, m_head->pid);
 
 		list_del(&m_head->list);
