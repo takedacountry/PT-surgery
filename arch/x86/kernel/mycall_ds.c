@@ -2374,7 +2374,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					va_end = va_start + PT_PGTABLE_SIZE;
 					list_del(&m_node->list);
 					kfree(m_node);
-					// printk(KERN_INFO "delete m pte %lx %lx-%lx", va, va_start, va_end);
+					printk(KERN_INFO "delete m pte %lx %lx-%lx pid %d\n", va, va_start, va_end, current->pid);
 					break;
 				}
 			}
@@ -2391,7 +2391,7 @@ void delete_ds_m_free_pte(unsigned long va)
 					break;
 				}else{
 					delete_ds(ds_node, va_start, va_end);
-					// printk(KERN_INFO "delete user ds");
+					printk(KERN_INFO "delete ds pte\n");
 					break;					
 				}
 			}
@@ -2416,7 +2416,7 @@ void delete_m_free_pmd(unsigned long va)
 					num = m_node->num;
 					list_del(&m_node->list);
 					kfree(m_node);
-					// printk(KERN_INFO "delete m pmd %lx %lx", va, num);
+					printk(KERN_INFO "delete m pmd %lx %lx pid %d\n", va, num, current->pid);
 					break;
 				}
 			}
@@ -2441,7 +2441,7 @@ void delete_m_free_pud(unsigned long va)
 					num = m_node->num;
 					list_del(&m_node->list);
 					kfree(m_node);
-					// printk(KERN_INFO "delete m pud %lx %lx", va, num);
+					printk(KERN_INFO "delete m pud %lx %lx pid %d\n", va, num, current->pid);
 					break;
 				}
 			}
@@ -2464,7 +2464,7 @@ void delete_m_free_pgd(unsigned long va)
 				if(m_node->num & PGD_FLAG_MASK){
 					list_del(&m_node->list);
 					kfree(m_node);
-					// printk(KERN_INFO "delete m pgd %lx %lx", va, PGD_FLAG_MASK);
+					printk(KERN_INFO "delete m pgd %lx %lx pid %d\n", va, PGD_FLAG_MASK, current->pid);
 					break;
 				}
 			}
