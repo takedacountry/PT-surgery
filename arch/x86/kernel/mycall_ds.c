@@ -2395,7 +2395,11 @@ void delete_ds_m_free_pte(unsigned long va)
 					break;					
 				}
 			}
-			break;
+			if(list_empty(&ds_head->head)){
+				list_del(&ds_head->list);
+				kfree(ds_head);
+				break;
+			}
 		}
 	}
 	return;
@@ -2468,6 +2472,8 @@ void delete_m_free_pgd(unsigned long va)
 					break;
 				}
 			}
+			list_del(&m_head->list);
+			kfree(m_head);
 			break;
 		}
 	}
@@ -2765,8 +2771,8 @@ void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current pid %d\n", p->pid, current->pid);
-	register_pid(p->pid);
-	make_user_pgtable2(p);
-	make_ds_list_usr_from_pgtable(p);
+	// register_pid(p->pid);
+	// make_user_pgtable2(p);
+	// make_ds_list_usr_from_pgtable(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
