@@ -313,8 +313,8 @@ int main(void)
         // munmap(ma, len);
         // munmap(mb, len);
     
-        printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        printf("%ld\n", syscall(SYS_mycall_m_delete));
+        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        // printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     }
 
