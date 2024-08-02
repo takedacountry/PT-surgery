@@ -203,9 +203,9 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
         printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
         printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         
-        exit(0);
+        // exit(0);
     }else{
         //parent
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
@@ -216,109 +216,106 @@ int main(void)
         if (WIFEXITED(status)) {
             printf("exit: %d\n", WEXITSTATUS(status));
         }
+    
+        // printf("%ld\n", syscall(SYS_mycall_ds_init));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    
+        // if(mprotect(ma, INDEX, PROT_READ)){
+        //     perror("mprotect");
+        //     exit(1);
+        // }
+    
+        
+        // /* バッファを読み取り専用に設定する。*/
+        // if (mprotect(ma, 1024, PROT_READ)) {
+        //     perror("Couldn't mprotect");
+        //     exit(errno);
+        // }
+    
+        // c = ma[666];         /* 読み取り; 成功 */
+        // ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
+        
+        // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
+        // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        
+        // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
+        
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
+    
+        // success
+        // for(char *t = ma; t < ma + INDEX; t++){
+        //     printf("%d ", *t);
+        // }
+        
+        // memset(ma, 1, INDEX);
+        // memset(mb, 1, INDEX);
+        // memset(mc, 1, INDEX);
+        // memset(md, 1, INDEX);
+        // memset(me, 1, INDEX);
+        // memset(mf, 1, INDEX);
+        // memset(mg, 1, INDEX);
+        // memset(mh, 1, INDEX);
+        // memset(mi, 1, INDEX);
+        // memset(mj, 1, INDEX);
+        // memset(mk, 1, INDEX);
+        // memset(ml, 1, INDEX);
+        // memset(mm, 1, INDEX);
+        // memset(mn, 1, INDEX);
+        // memset(mo, 1, INDEX);
+        // memset(mp, 1, INDEX);
+    
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    
+        free(ma);
+        // free(mb);
+        // free(mc);
+        // free(md);
+        // free(me);
+        // free(mf);
+        // free(mg);
+        // free(mh);
+        // free(mi);
+        // free(mj);
+        // free(mk);
+        // free(ml);
+        // free(mm);
+        // free(mn);
+        // free(mo);
+        // free(mp);
+        // free(ma1);
+        // free(mb1);
+        // free(mc1);
+        // free(md1);
+        // free(me1);
+        // free(mf1);
+        // free(mg1);
+        // free(mh1);
+        // free(mi1);
+        // free(mj1);
+        // free(mk1);
+        // free(ml1);
+        // free(mm1);
+        // free(mn1);
+        // free(mo1);
+        // free(mp1);
+    
+        // munmap(ma, len);
+        // munmap(mb, len);
+    
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
+
     }
-    
-
-
-    // printf("%ld\n", syscall(SYS_mycall_ds_init));
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-
-    // if(mprotect(ma, INDEX, PROT_READ)){
-    //     perror("mprotect");
-    //     exit(1);
-    // }
-
-    
-    // /* バッファを読み取り専用に設定する。*/
-    // if (mprotect(ma, 1024, PROT_READ)) {
-    //     perror("Couldn't mprotect");
-    //     exit(errno);
-    // }
-
-    // c = ma[666];         /* 読み取り; 成功 */
-    // ma[666] = 42;        /* 書き込み; プログラムは SIGSEGV で強制終了する */
-    
-    // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_make_user));
-    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_make_kernel));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-    
-    // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
-    
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_print_kernel_pgtable2));
-
-    // success
-    // for(char *t = ma; t < ma + INDEX; t++){
-    //     printf("%d ", *t);
-    // }
-    
-    // memset(ma, 1, INDEX);
-    // memset(mb, 1, INDEX);
-    // memset(mc, 1, INDEX);
-    // memset(md, 1, INDEX);
-    // memset(me, 1, INDEX);
-    // memset(mf, 1, INDEX);
-    // memset(mg, 1, INDEX);
-    // memset(mh, 1, INDEX);
-    // memset(mi, 1, INDEX);
-    // memset(mj, 1, INDEX);
-    // memset(mk, 1, INDEX);
-    // memset(ml, 1, INDEX);
-    // memset(mm, 1, INDEX);
-    // memset(mn, 1, INDEX);
-    // memset(mo, 1, INDEX);
-    // memset(mp, 1, INDEX);
-
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-
-    free(ma);
-    // free(mb);
-    // free(mc);
-    // free(md);
-    // free(me);
-    // free(mf);
-    // free(mg);
-    // free(mh);
-    // free(mi);
-    // free(mj);
-    // free(mk);
-    // free(ml);
-    // free(mm);
-    // free(mn);
-    // free(mo);
-    // free(mp);
-    // free(ma1);
-    // free(mb1);
-    // free(mc1);
-    // free(md1);
-    // free(me1);
-    // free(mf1);
-    // free(mg1);
-    // free(mh1);
-    // free(mi1);
-    // free(mj1);
-    // free(mk1);
-    // free(ml1);
-    // free(mm1);
-    // free(mn1);
-    // free(mo1);
-    // free(mp1);
-
-    // munmap(ma, len);
-    // munmap(mb, len);
-
-    
-
-    printf("%ld\n", syscall(SYS_mycall_ds_delete));
-    printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     return 0;
 }
