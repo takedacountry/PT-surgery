@@ -200,6 +200,8 @@ int main(void)
         return -1;
     }else if(pid == 0){
         // child
+        printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
+        printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
         // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
