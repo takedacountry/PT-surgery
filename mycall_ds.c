@@ -201,8 +201,8 @@ int main(void)
     }else if(pid == 0){
         // child
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
@@ -314,8 +314,8 @@ int main(void)
         // munmap(ma, len);
         // munmap(mb, len);
     
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     }
 
