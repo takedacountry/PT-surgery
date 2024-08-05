@@ -473,8 +473,8 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 		return -ENOMEM;
 
 	// my code
-	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new)) < 0)
-		printk(KERN_INFO "pte m list failure at pte_alloc %lx pmd %lx\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd);
+	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid) < 0)
+		printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd, current->pid);
 	// make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid);
 	
 	pmd_install(mm, pmd, &new);
