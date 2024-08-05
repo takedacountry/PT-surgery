@@ -2692,6 +2692,9 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	pid = get_task_pid(p, PIDTYPE_PID);
 	nr = pid_vnr(pid);
 
+	if(nr == 0)
+		printk(KERN_INFO "nr=0 ppid %d, pid %d, current %d\n",p->real_parent->pid, p->pid, current->pid);
+
 	if (clone_flags & CLONE_PARENT_SETTID)
 		put_user(nr, args->parent_tid);
 
