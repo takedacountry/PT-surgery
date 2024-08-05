@@ -279,6 +279,8 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
         // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+
+        sleep(10);
     
         free(ma);
         // free(mb);
