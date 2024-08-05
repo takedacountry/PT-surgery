@@ -2683,10 +2683,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	if (IS_ERR(p))
 		return PTR_ERR(p);
 
-	// my code
-	if(check_parent_is_target(p->real_parent->pid, p->pid))
-		register_child(p);
-	
 	/*
 	 * Do this prior waking up the new thread - the thread pointer
 	 * might get invalid after that point, if the thread exits quickly.
@@ -2713,6 +2709,10 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	}
 
 	wake_up_new_task(p);
+
+	// my code
+	if(check_parent_is_target(p->real_parent->pid, p->pid))
+		register_child(p);
 
 	/* forking complete and child started to run, tell ptracer */
 	if (unlikely(trace))
