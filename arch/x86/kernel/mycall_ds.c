@@ -2398,6 +2398,7 @@ void delete_ds_m_free_pte(unsigned long va)
 			if(list_empty(&ds_head->head)){
 				list_del(&ds_head->list);
 				kfree(ds_head);
+				printk(KERN_INFO "delete ds head %d\n", current->pid);
 				break;
 			}
 		}
@@ -2474,6 +2475,7 @@ void delete_m_free_pgd(unsigned long va)
 			}
 			list_del(&m_head->list);
 			kfree(m_head);
+			printk(KERN_INFO "delete m head %d\n", current->pid);
 			break;
 		}
 	}
