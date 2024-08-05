@@ -2692,9 +2692,6 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 	pid = get_task_pid(p, PIDTYPE_PID);
 	nr = pid_vnr(pid);
 
-	if(nr == 0)
-		printk(KERN_INFO "nr=0 ppid %d, pid %d, current %d\n",p->real_parent->pid, p->pid, current->pid);
-
 	if (clone_flags & CLONE_PARENT_SETTID)
 		put_user(nr, args->parent_tid);
 
@@ -2710,12 +2707,12 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 		lru_gen_add_mm(p->mm);
 		task_unlock(p);
 	}
-
-	wake_up_new_task(p);
-
+	
 	// my code
 	if(check_parent_is_target(p->real_parent->pid, p->pid))
 		register_child(p);
+	
+	wake_up_new_task(p);
 
 	/* forking complete and child started to run, tell ptracer */
 	if (unlikely(trace))
