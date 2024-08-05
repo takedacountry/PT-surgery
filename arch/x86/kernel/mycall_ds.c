@@ -770,7 +770,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								// ds_mkwrite
 								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make write %lx %lx %lx %lx%d\n", base, pte_value, pte_flag, va, pid);
+								printk(KERN_INFO "make write %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)){
 								// ds_wrprotect
