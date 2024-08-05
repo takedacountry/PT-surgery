@@ -415,7 +415,7 @@ int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 			if(is_add_m_node_usr(PGD_FLAG_MASK, m_head)){
 				if(add_first_m_node_usr(pgd_va & PAGE_MASK, PGD_FLAG_MASK, m_head) < 0)
 					return -ENOMEM;
-				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va, PGD_FLAG_MASK, pid);
+				printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, pid);
 				return 1;
 			}
 			// printk(KERN_INFO "already same pgd\n");
@@ -2470,16 +2470,17 @@ void delete_m_free_pgd(unsigned long va)
 		if(m_head->pid == current->pid){
 			// printk(KERN_INFO "delete m pgd %lx", va);
 			list_for_each_entry(m_node, &m_head->head, list){
-				if(m_node->num & PGD_FLAG_MASK){
+				if(m_node->num & PGD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					list_del(&m_node->list);
 					kfree(m_node);
 					printk(KERN_INFO "delete m pgd %lx %lx pid %d\n", va, PGD_FLAG_MASK, current->pid);
+
+					list_del(&m_head->list);
+					kfree(m_head);
+					printk(KERN_INFO "delete m head %d\n", current->pid);
 					break;
 				}
 			}
-			list_del(&m_head->list);
-			kfree(m_head);
-			printk(KERN_INFO "delete m head %d\n", current->pid);
 			break;
 		}
 	}
