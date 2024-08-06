@@ -90,6 +90,8 @@
 // my code
 #include <asm/ds.h>
 
+extern void print_pte_addr(struct page *pte);
+
 #include "pgalloc-track.h"
 #include "internal.h"
 #include "swap.h"
