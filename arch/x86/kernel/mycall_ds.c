@@ -2760,7 +2760,7 @@ void print_pte_addr(struct page *pte)
 {
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == current->pid){
-			printk(KERN_INFO "pte addr %lx\n", (unsigned long)page_address(pte));
+			printk(KERN_INFO "pte addr %lx %d\n", (unsigned long)page_address(pte), current->pid);
 		}
 	}
 	return;
