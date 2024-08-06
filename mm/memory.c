@@ -4424,8 +4424,12 @@ vm_fault_t finish_fault(struct vm_fault *vmf)
 				return ret;
 		}
 
-		if (vmf->prealloc_pte)
+		if (vmf->prealloc_pte){
 			pmd_install(vma->vm_mm, vmf->pmd, &vmf->prealloc_pte);
+			// my code
+			if(make_pte_m_list((unsigned long)vmf->pmd, (unsigned long)page_address((struct page *)vmf->prealloc_pte), current->pid) < 0)
+				printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)vmf->prealloc_pte), (unsigned long)vmf->pmd, current->pid);
+		}
 		else if (unlikely(pte_alloc(vma->vm_mm, vmf->pmd)))
 			return VM_FAULT_OOM;
 	}
