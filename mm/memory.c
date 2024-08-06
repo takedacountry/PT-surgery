@@ -4300,8 +4300,6 @@ vm_fault_t do_set_pmd(struct vm_fault *vmf, struct page *page)
 		vmf->prealloc_pte = pte_alloc_one(vma->vm_mm);
 		if (!vmf->prealloc_pte)
 			return VM_FAULT_OOM;
-		// my code
-		print_pte_addr(vmf->prealloc_pte);
 	}
 
 	vmf->ptl = pmd_lock(vma->vm_mm, vmf->pmd);
