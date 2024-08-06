@@ -1027,7 +1027,7 @@ EXPORT_SYMBOL_GPL(make_list_from_pgtable);
 // 	return 0;
 // }
 
-static int get_ptep(pmd_t *pmdp, pid_t pid, unsigned long pte, pte_t **ptepp, int *flag)
+static int get_ptep(pmd_t *pmdp, pid_t pid, unsigned long pte, pte_t **ptepp)
 {
   	pte_t *ptep = pte_offset_index(pmdp, pte);
 	*(ptepp) = ptep;
@@ -1037,19 +1037,10 @@ static int get_ptep(pmd_t *pmdp, pid_t pid, unsigned long pte, pte_t **ptepp, in
     		return 0;
   	}
 
-	if(*(flag) == 0){
-		// if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep) < 0){
-		// 	printk(KERN_INFO "pte m list failure at get_ptep\n");
-		// }
-		if(make_pte_m_list((unsigned long)pmdp, (unsigned long)ptep, pid) == 1){
-			*(flag) = 1;
-		}
-	}
-		
   	return 1;
 }
 
-static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp, int *flag)
+static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp)
 {
   	pmd_t *pmdp = pmd_offset_index(pudp, pmd);
 	*(pmdpp) = pmdp;
@@ -1059,14 +1050,7 @@ static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp, in
     		return 0;
   	}
 
-	if(*(flag) == 0){
-		// if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp) < 0){
-		// 	printk(KERN_INFO "pmd m list failure at get_pmdp\n");
-		// }
-		if(make_pmd_m_list((unsigned long)pudp, (unsigned long)pmdp, pid) == 1){
-			*(flag) = 1;
-		}
-	}
+	make_pte_m_list((unsigned long)pmdp, pmd_page_vaddr(*pmdp), pid);
 	
   // 	if(pmd_large(*pmdp)){
   //   		pte_value = pmd_pfn(*pmdp);
@@ -1076,7 +1060,7 @@ static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp, in
   	return 1;
 }
 
-static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp, int *flag)
+static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp)
 {
   	pud_t *pudp = pud_offset_index(p4dp, pud);
 	*(pudpp) = pudp;
@@ -1086,14 +1070,7 @@ static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp, in
 	    	return 0;
   	}
 
-	if(*(flag) == 0){
-		// if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp) < 0){
-		// 	printk(KERN_INFO "pud m list failure at get_pudp\n");
-		// }
-		if(make_pud_m_list((unsigned long)p4dp, (unsigned long)pudp, pid) == 1){
-			*(flag) = 1;
-		}
-	}
+	make_pmd_m_list((unsigned long)pudp, (unsigned long)pud_pgtable(*pudp), pid);
 	
   // 	if(pud_large(*pudp)){
   //   		pte_value = pud_pfn(*pudp);
@@ -1103,7 +1080,7 @@ static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp, in
   	return 1;  
 }
 
-static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
+static int get_p4dp(pgd_t *pgdp, pid_t pid, unsigned long p4d, p4d_t **p4dpp)
 {
   	p4d_t *p4dp = p4d_offset_index(pgdp, p4d);
 	*(p4dpp) = p4dp;
@@ -1112,10 +1089,13 @@ static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
 	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
     		return 0;
   	}
+	
+	make_pud_m_list((unsigned long)p4dp, (unsigned long)p4d_pgtable(*p4dp), pid);
+	
 	return 1;
 }
 
-static int get_pgdp(struct mm_struct *mm, pid_t pid, unsigned long pgd, p4d_t **p4dpp, int *flag)
+static int get_pgdp(struct mm_struct *mm, pid_t pid, unsigned long pgd, p4d_t **p4dpp)
 {
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
@@ -1124,18 +1104,11 @@ static int get_pgdp(struct mm_struct *mm, pid_t pid, unsigned long pgd, p4d_t **
     		return 0;
   	}
 
-	if(get_p4dp(pgdp, pgd, p4dpp) == 0){
+	if(get_p4dp(pgdp, pid, pgd, p4dpp) == 0){
 		return 0;
 	}
 
-	if(*(flag) == 0){
-		// if(make_pgd_m_list((unsigned long)pgdp) < 0){
-		// 	printk(KERN_INFO "pgd m list failure at get_pgdp\n");
-		// }
-		if(make_pgd_m_list((unsigned long)pgdp, pid) == 1){
-			*(flag) = 1;
-		}
-	}
+	
 	
   	return 1;
 }
@@ -1150,24 +1123,22 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 	pte_t *ptep;
 	
 	int flag=0;
-	int flag_pgd=0;
-	int flag_pud=0;
-	int flag_pmd=0;
-	int flag_pte=0;
 	
 	// unsigned long pte_num;
 
+	make_pgd_m_list((unsigned long)p->mm->pgd, pid);
+
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
-		if(get_pgdp(p->mm, pid, pgd, &p4dp, &flag_pgd) > 0){
+		if(get_pgdp(p->mm, pid, pgd, &p4dp) > 0){
 			
 	        	for(unsigned long pud=0; pud<MAX; pud++){
-				if(get_pudp(p4dp, pid, pud, &pudp, &flag_pud) > 0){
+				if(get_pudp(p4dp, pid, pud, &pudp) > 0){
 					
 		            		for(unsigned long pmd=0; pmd<MAX; pmd++){
-						if(get_pmdp(pudp, pid, pmd, &pmdp, &flag_pmd) > 0){
+						if(get_pmdp(pudp, pid, pmd, &pmdp) > 0){
 
 							for(unsigned long pte=0; pte<MAX; pte++){
-			                    			if(get_ptep(pmdp, pid, pte, &ptep, &flag_pte) > 0){
+			                    			if(get_ptep(pmdp, pid, pte, &ptep) > 0){
 									
 									if(flag == 0){
 										vaddr = (unsigned long)ptep;
@@ -1185,13 +1156,10 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 									}
 			                    			}
 			                		}
-							flag_pte = 0;
 						}
 		            		}
-					flag_pmd = 0;
 				}
 	        	}
-			flag_pud = 0;
 		}
     	}
 // end:
