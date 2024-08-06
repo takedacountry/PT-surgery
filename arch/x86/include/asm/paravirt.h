@@ -457,7 +457,7 @@ static inline void set_pte_recover(pte_t *ptep, pte_t pte)
 }
 
 // my code
-extern int make_pte_m_list_from_set_pmd((unsigned long)pmd_va, pmd_t pmd);
+extern int make_pte_m_list_from_set_pmd(unsigned long pmd_va, pmd_t pmd);
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
 	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
