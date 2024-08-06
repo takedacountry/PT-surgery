@@ -612,7 +612,7 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
-int make_pte_m_list_from_set_pmd((unsigned long)pmd_va, pmd_t pmd)
+int make_pte_m_list_from_set_pmd(unsigned long pmd_va, pmd_t pmd)
 {
 	return make_pte_m_list(pmd_va, pmd_page_vaddr(pmd), current->pid);
 }
