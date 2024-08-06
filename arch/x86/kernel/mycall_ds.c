@@ -2765,3 +2765,4 @@ void print_pte_addr(struct page *pte)
 	}
 	return;
 }
+EXPORT_SYMBOL_GPL(print_pte_addr);
