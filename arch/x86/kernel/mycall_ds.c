@@ -592,10 +592,9 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 	struct m_head_list *m_head;
 	unsigned long num;
 
-	printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
-
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
+			printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
 			// if(is_add_m_node_va_usr(pte_va, m_head)){
 			if((num = get_pmd_num(pmd_va, pte_va, m_head, pid)) >= MAX_NUM)
 				return -1;
