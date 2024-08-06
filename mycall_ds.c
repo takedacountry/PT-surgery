@@ -207,8 +207,8 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
         printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         // exit(0);
     }else{
         //parent
