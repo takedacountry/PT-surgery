@@ -2754,3 +2754,14 @@ void register_child(struct task_struct *p)
 	make_ds_list_usr_from_pgtable(p);
 }
 EXPORT_SYMBOL_GPL(register_child);
+
+
+void print_pte_addr(struct page *pte)
+{
+	list_for_each_entry(ds_node, &usr_ds_head, list){
+		if(ds_node->pid == current->pid){
+			printk(KERN_INFO "pte addr %lx\n", (unsigned long)page_address(pte));
+		}
+	}
+	return;
+}
