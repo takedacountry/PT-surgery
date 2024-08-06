@@ -787,12 +787,11 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
 							}
 						}
+						flag = 0;
 						goto end;
 					}
 					else if(dnode->base >= prev->limit){
 						list_add(&dnode->list, &prev->list);
-						if(flag == 1)
-							printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						if(list_is_last(&dnode->list, &ds_head->head)){
 							ds_node_merge(prev, dnode);
 							goto end;
@@ -813,6 +812,8 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	// printk(KERN_INFO "no ds pid: %d\n", pid);
 	return 0;
 end:
+	if(flag == 1)
+		printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 	// printk(KERN_INFO "make ds base %ld\n", base);
 	return 1;
 }
