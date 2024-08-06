@@ -2758,6 +2758,8 @@ EXPORT_SYMBOL_GPL(register_child);
 
 void print_pte_addr(struct page *pte)
 {
+	struct ds_head_list *ds_node;
+	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == current->pid){
 			printk(KERN_INFO "pte addr %lx %d\n", (unsigned long)page_address(pte), current->pid);
