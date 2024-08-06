@@ -433,7 +433,7 @@ static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, str
 
 	list_for_each_entry(itr, &m_head->head, list){
 		// if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + OFFSET_SIZE){
-		if(itr->num & PGD_FLAG_MASK){
+		if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + OFFSET_SIZE){
 			base = make_ds_va(((pgd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pud_va;
 		}
