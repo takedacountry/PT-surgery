@@ -342,14 +342,14 @@ int make_pgd_m_list(unsigned long pgd_va)
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
-static unsigned long get_pgd_num(unsigned long pgd_va, unsigned long pud_va, struct m_head_list *m_head, pid_t pid)
+static unsigned long get_p4d_num(unsigned long p4d_va, unsigned long pud_va, struct m_head_list *m_head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PGD_FLAG_MASK && itr->va <= pgd_va && pgd_va < itr->va + OFFSET_SIZE){
-			base = make_ds_va(((pgd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
+		if(itr->num & PGD_FLAG_MASK && itr->va <= p4d_va && p4d_va < itr->va + OFFSET_SIZE){
+			base = make_ds_va(((p4d_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pud_va;
 		}
 	}
@@ -380,14 +380,14 @@ end:
 	return MAX_NUM;
 }
 
-static int __make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
+static int __make_pud_m_list(unsigned long p4d_va, unsigned long pud_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
-			if((num = get_pgd_num(pgd_va, pud_va, m_head, pid)) >= MAX_NUM)
+			if((num = get_p4d_num(p4d_va, pud_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 		
 			// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, pid);
@@ -397,9 +397,9 @@ static int __make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t p
 	return 0;
 }
 
-int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
+int make_pud_m_list(unsigned long p4d_va, p4d_t p4d)
 {
-	return __make_pud_m_list(pgd_va, pud_va, current->pid);
+	return __make_pud_m_list(p4d_va, (unsigned long)p4d_pgtable(p4d), current->pid);
 ]
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
