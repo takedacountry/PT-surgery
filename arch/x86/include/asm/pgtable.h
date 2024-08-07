@@ -24,7 +24,7 @@
 #include <asm-generic/pgtable_uffd.h>
 #include <linux/page_table_check.h>
 
-\\ my code
+// my code
 #include <asm/ds.h>
 
 extern pgd_t early_top_pgt[PTRS_PER_PGD];
