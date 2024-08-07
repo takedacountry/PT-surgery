@@ -458,9 +458,9 @@ static int __make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t p
 	return 0;
 }
 
-int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
+int make_pmd_m_list(unsigned long pud_va, pud_t pud)
 {
-	return __make_pmd_m_list(pud_va, pmd_va, current->pid);
+	return __make_pmd_m_list(pud_va, (unsigned long)pud_pgtable(pud), current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
