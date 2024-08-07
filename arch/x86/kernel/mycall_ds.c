@@ -320,7 +320,7 @@ static int add_tail_m_node(unsigned long va, unsigned long num, struct m_list *m
 //  	return 0;
 // }
 
-int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
+static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 
@@ -334,6 +334,11 @@ int make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 		}
 	}
 	return 0;
+}
+
+int make_pgd_m_list(unsigned long pgd_va)
+{
+	return __make_pgd_m_list(pgd_va, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
@@ -375,7 +380,7 @@ end:
 	return MAX_NUM;
 }
 
-int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
+static int __make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
@@ -391,6 +396,11 @@ int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid)
 	}
 	return 0;
 }
+
+int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va)
+{
+	return __make_pud_m_list(pgd_va, pud_va, current->pid);
+]
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
 static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, struct m_head_list *m_head, pid_t pid)
@@ -431,7 +441,7 @@ end:
 	return MAX_NUM;
 }
 
-int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
+static int __make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
@@ -446,6 +456,11 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 		}
 	}
 	return 0;
+}
+
+int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
+{
+	return __make_pmd_m_list(pud_va, pmd_va, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
@@ -487,14 +502,14 @@ end:
 	return MAX_NUM;
 }
 
-int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
+static int __make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 {
 	struct m_head_list *m_head;
 	unsigned long num;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
-			// printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
+			printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
 			if((num = get_pmd_num(pmd_va, pte_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 
@@ -505,13 +520,12 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 	}
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_pte_m_list);
 
-int make_pte_m_list_from_set_pmd(unsigned long pmd_va, pmd_t pmd)
+int make_pte_m_list(unsigned long pmd_va, pmd_t pmd)
 {
-	return make_pte_m_list(pmd_va, pmd_page_vaddr(pmd), current->pid);
+	return __make_pte_m_list(pmd_va, pmd_page_vaddr(pmd), current->pid);
 }
-EXPORT_SYMBOL_GPL(make_pte_m_list_from_set_pmd);
+EXPORT_SYMBOL_GPL(make_pte_m_list);
 
 static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
 {
@@ -623,7 +637,7 @@ static bool is_ds_write(struct ds_list *ds_node)
 		return false;
 }
 
-int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
+static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 {
 	struct m_head_list *m_head;
 	struct ds_head_list *ds_head;
@@ -631,17 +645,12 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
 	unsigned long base;
-	int flag = 0;
-
-	if(pid == 0){
-		pid = current->pid;
-		flag = 1;
-	}
+	// int flag = 0;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
-			if(flag == 1)
-				printk(KERN_INFO "set pte %lx %lx %lx %d\n", pte_value, pte_flag, va, pid);
+			// if(flag == 1)
+			// 	printk(KERN_INFO "set pte %lx %lx %lx %d\n", pte_value, pte_flag, va, pid);
 			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
 				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
 				return -1;
@@ -687,7 +696,7 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
 							}
 						}
-						flag = 0;
+						// flag = 0;
 						goto end;
 					}
 					else if(dnode->base >= prev->limit){
@@ -711,9 +720,14 @@ int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	}
 	return 0;
 end:
-	if(flag == 1)
-		printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+	// if(flag == 1)
+	// 	printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 	return 1;
+}
+
+int make_ds_list_usr(unsigned long va, pte_t pte)
+{
+	return __make_ds_list_usr(va, pte, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
@@ -849,7 +863,7 @@ static int get_pmdp(pud_t *pudp, pid_t pid, unsigned long pmd, pmd_t **pmdpp)
     		return 0;
   	}
 
-	make_pte_m_list((unsigned long)pmdp, pmd_page_vaddr(*pmdp), pid);
+	__make_pte_m_list((unsigned long)pmdp, pmd_page_vaddr(*pmdp), pid);
 	
   	return 1;
 }
@@ -864,7 +878,7 @@ static int get_pudp(p4d_t *p4dp, pid_t pid, unsigned long pud, pud_t **pudpp)
 	    	return 0;
   	}
 
-	make_pmd_m_list((unsigned long)pudp, (unsigned long)pud_pgtable(*pudp), pid);
+	__make_pmd_m_list((unsigned long)pudp, (unsigned long)pud_pgtable(*pudp), pid);
 	
   	return 1;  
 }
@@ -879,7 +893,7 @@ static int get_p4dp(pgd_t *pgdp, pid_t pid, unsigned long p4d, p4d_t **p4dpp)
     		return 0;
   	}
 	
-	make_pud_m_list((unsigned long)p4dp, (unsigned long)p4d_pgtable(*p4dp), pid);
+	__make_pud_m_list((unsigned long)p4dp, (unsigned long)p4d_pgtable(*p4dp), pid);
 	
 	return 1;
 }
@@ -911,7 +925,7 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 	
 	int flag=0;
 	
-	make_pgd_m_list((unsigned long)p->mm->pgd, pid);
+	__make_pgd_m_list((unsigned long)p->mm->pgd, pid);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++){
 		if(get_pgdp(p->mm, pid, pgd, &p4dp) > 0){
@@ -931,7 +945,7 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 									}
 
 									// make_ds from ptep
-									if(make_ds_list_usr((unsigned long)ptep, *ptep, pid) < 0){
+									if(__make_ds_list_usr((unsigned long)ptep, *ptep, pid) < 0){
 										printk(KERN_INFO "pte ds list failure at from_pgtable\n");
 										// goto end;
 									}
