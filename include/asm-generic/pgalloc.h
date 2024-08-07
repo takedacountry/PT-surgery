@@ -97,12 +97,12 @@ static inline pgtable_t pte_alloc_one(struct mm_struct *mm)
  * @pte_page: the `struct page` representing the page table
  */
 // my code
-extern void delete_ds_m_free_pte(unsigned long va);
+// extern void delete_ds_m_free_pte(unsigned long va);
 static inline void pte_free(struct mm_struct *mm, struct page *pte_page)
 {
 	pgtable_pte_page_dtor(pte_page);
 	__free_page(pte_page);
-	delete_ds_m_free_pte((unsigned long)page_address(pte_page));
+	// delete_ds_m_free_pte((unsigned long)page_address(pte_page));
 	// printk(KERN_INFO "pte_free\n");
 }
 
