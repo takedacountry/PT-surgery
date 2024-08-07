@@ -36,21 +36,22 @@ struct m_head_list{
 // 	struct list_head ker_m_list;
 // };
 
-// extern struct m_list_head *m_list;
-// extern struct ds_list_head *ds_list;
 extern struct list_head usr_m_head;
 extern struct list_head ker_m_head;
 extern struct list_head usr_ds_head;
 extern struct list_head ker_ds_head;
 
-extern void init_ds_list_head(void);
-extern void init_m_list_head(void);
-extern void free_list_head(void);
-
 extern int make_pgd_m_list(unsigned long pgd_va, pid_t pid);
 extern int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid);
 extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid);
 extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid);
+
 extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
 
-// extern int make_ds_list(unsigned long address, pte_t *ptep);
+extern void delete_ds_m_free_pte(unsigned long va);
+extern void delete_m_free_pmd(unsigned long va);
+extern void delete_m_free_pud(unsigned long va);
+extern void delete_m_free_pgd(unsigned long va);
+
+extern bool check_parent_is_target(pid_t ppid, pid_t pid);
+extern void register_child(struct task_struct *p);
