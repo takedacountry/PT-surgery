@@ -400,7 +400,7 @@ static int __make_pud_m_list(unsigned long p4d_va, unsigned long pud_va, pid_t p
 int make_pud_m_list(unsigned long p4d_va, p4d_t p4d)
 {
 	return __make_pud_m_list(p4d_va, (unsigned long)p4d_pgtable(p4d), current->pid);
-]
+}
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
 static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, struct m_head_list *m_head, pid_t pid)
