@@ -435,11 +435,6 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 	if (pgd == NULL)
 		goto out;
 
-	// my code
-	// if(make_pgd_m_list((unsigned long)pgd) < 0)
-		// printk(KERN_INFO "pgd m list failure at pgd_alloc %ld\n",(unsigned long)pgd);
-	// make_pgd_m_list((unsigned long)pgd, current->pid);
-
 	mm->pgd = pgd;
 
 	if (preallocate_pmds(mm, pmds, PREALLOCATED_PMDS) != 0)
@@ -476,14 +471,14 @@ out:
 	return NULL;
 }
 
-extern void delete_m_free_pgd(unsigned long va);
 void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
 	pgd_mop_up_pmds(mm, pgd);
 	pgd_dtor(pgd);
 	paravirt_pgd_free(mm, pgd);
 	_pgd_free(pgd);
-	delete_m_free_pgd((unsigned long)pgd);
+	// my code
+	// delete_m_free_pgd((unsigned long)pgd);
 }
 
 /*
