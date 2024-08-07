@@ -430,25 +430,25 @@ static inline pte_t ptep_modify_prot_start(struct vm_area_struct *vma, unsigned 
 }
 
 // my code
-extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned long addr,
 					   pte_t *ptep, pte_t old_pte, pte_t pte)
 {
 
 	PVOP_VCALL4(mmu.ptep_modify_prot_commit, vma, addr, ptep, pte.pte);
 	// my code
-	// if(make_ds_list_usr((unsigned long)ptep, pte, 0) < 0)
+	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
 	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
-	make_ds_list_usr((unsigned long)ptep, pte, 0);
+	make_ds_list_usr((unsigned long)ptep, pte);
 }
 
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 	// my code
-	// if(make_ds_list_usr((unsigned long)ptep, pte, 0) < 0)
+	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
 	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
-	make_ds_list_usr((unsigned long)ptep, pte, 0);
+	make_ds_list_usr((unsigned long)ptep, pte);
 }
 
 // my code
@@ -458,12 +458,12 @@ static inline void set_pte_recover(pte_t *ptep, pte_t pte)
 }
 
 // my code
-extern int make_pte_m_list_from_set_pmd(unsigned long pmd_va, pmd_t pmd);
+extern int make_pte_m_list(unsigned long pmd_va, pmd_t pmd);
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 {
 	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
 	// my code
-	make_pte_m_list_from_set_pmd((unsigned long)pmdp, pmd);
+	make_pte_m_list((unsigned long)pmdp, pmd);
 }
 
 // my code
