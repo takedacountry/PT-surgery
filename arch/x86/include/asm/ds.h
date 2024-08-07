@@ -41,12 +41,12 @@ extern struct list_head ker_m_head;
 extern struct list_head usr_ds_head;
 extern struct list_head ker_ds_head;
 
-extern int make_pgd_m_list(unsigned long pgd_va, pid_t pid);
-extern int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va, pid_t pid);
-extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid);
-extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid);
+extern int make_pgd_m_list(unsigned long pgd_va);
+extern int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va);
+extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va);
+extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va);
 
-extern int make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid);
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 
 extern void delete_ds_m_free_pte(unsigned long va);
 extern void delete_m_free_pmd(unsigned long va);
