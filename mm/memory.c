@@ -475,8 +475,8 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 		return -ENOMEM;
 
 	// my code
-	if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid) < 0)
-		printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd, current->pid);
+	// if(make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid) < 0)
+	// 	printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd, current->pid);
 	// make_pte_m_list((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid);
 	
 	pmd_install(mm, pmd, &new);
@@ -4219,8 +4219,6 @@ static vm_fault_t __do_fault(struct vm_fault *vmf)
 		vmf->prealloc_pte = pte_alloc_one(vma->vm_mm);
 		if (!vmf->prealloc_pte)
 			return VM_FAULT_OOM;
-		// my code
-		print_pte_addr(vmf->prealloc_pte);
 	}
 
 	ret = vma->vm_ops->fault(vmf);
@@ -4426,9 +4424,6 @@ vm_fault_t finish_fault(struct vm_fault *vmf)
 
 		if (vmf->prealloc_pte){
 			pmd_install(vma->vm_mm, vmf->pmd, &vmf->prealloc_pte);
-			// my code
-			if(make_pte_m_list((unsigned long)vmf->pmd, (unsigned long)page_address((struct page *)vmf->prealloc_pte), current->pid) < 0)
-				printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)vmf->prealloc_pte), (unsigned long)vmf->pmd, current->pid);
 		}
 		else if (unlikely(pte_alloc(vma->vm_mm, vmf->pmd)))
 			return VM_FAULT_OOM;
@@ -4545,8 +4540,6 @@ static vm_fault_t do_fault_around(struct vm_fault *vmf)
 		vmf->prealloc_pte = pte_alloc_one(vmf->vma->vm_mm);
 		if (!vmf->prealloc_pte)
 			return VM_FAULT_OOM;
-		// my code
-		print_pte_addr(vmf->prealloc_pte);
 	}
 
 	return vmf->vma->vm_ops->map_pages(vmf, start_pgoff, end_pgoff);
