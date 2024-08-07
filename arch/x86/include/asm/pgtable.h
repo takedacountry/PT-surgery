@@ -24,9 +24,6 @@
 #include <asm-generic/pgtable_uffd.h>
 #include <linux/page_table_check.h>
 
-// my code
-#include <asm/ds.h>
-
 extern pgd_t early_top_pgt[PTRS_PER_PGD];
 bool __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
 
@@ -1078,6 +1075,8 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
 }
 
 #define __HAVE_ARCH_PTEP_SET_WRPROTECT
+// my code
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void ptep_set_wrprotect(struct mm_struct *mm,
 				      unsigned long addr, pte_t *ptep)
 {
