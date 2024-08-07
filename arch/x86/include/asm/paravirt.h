@@ -451,6 +451,7 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 	make_ds_list_usr((unsigned long)ptep, pte, 0);
 }
 
+// my code
 static inline void set_pte_recover(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
@@ -463,6 +464,12 @@ static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
 	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
 	// my code
 	make_pte_m_list_from_set_pmd((unsigned long)pmdp, pmd);
+}
+
+// my code
+static inline void set_pmd_recover(pmd_t *pmdp, pmd_t pmd)
+{
+	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
 }
 
 static inline pmd_t __pmd(pmdval_t val)
