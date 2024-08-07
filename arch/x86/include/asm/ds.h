@@ -42,9 +42,9 @@ extern struct list_head usr_ds_head;
 extern struct list_head ker_ds_head;
 
 extern int make_pgd_m_list(unsigned long pgd_va);
-extern int make_pud_m_list(unsigned long pgd_va, unsigned long pud_va);
-extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va);
-extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va);
+extern int make_pud_m_list(unsigned long p4d_va, p4d_t p4d);
+extern int make_pmd_m_list(unsigned long pud_va, pud_t pud);
+extern int make_pte_m_list(unsigned long pmd_va, pmd_t pmd);
 
 extern int make_ds_list_usr(unsigned long va, pte_t pte);
 
@@ -55,6 +55,8 @@ extern void delete_m_free_pgd(unsigned long va);
 
 extern bool check_parent_is_target(pid_t ppid, pid_t pid);
 extern void register_child(struct task_struct *p);
+
+extern void print_pte_addr(struct page *pte);
 
 extern long make_user_pgtable(struct task_struct *p);
 extern long make_user_pgtable2(struct task_struct *p);
