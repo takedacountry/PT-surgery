@@ -218,18 +218,18 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
-static bool is_add_m_node_usr(unsigned long num, struct m_head_list *m_head)
-{
-	struct m_list *itr;
+// static bool is_add_m_node_usr(unsigned long num, struct m_head_list *m_head)
+// {
+// 	struct m_list *itr;
 	
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num == num)
-			return false;
-		if(num < itr->num)
-			break;
-	}
-	return true;
-}
+// 	list_for_each_entry(itr, &m_head->head, list){
+// 		if(itr->num == num)
+// 			return false;
+// 		if(num < itr->num)
+// 			break;
+// 	}
+// 	return true;
+// }
 
 static int add_first_m_node(unsigned long va, unsigned long num, struct m_head_list *m_head)
 {
@@ -1147,45 +1147,45 @@ static int print_usr_ds(pid_t pid)
 	return 0;
 }
 
-static int print_ker_ds(void)
-{
-	struct ds_list *itr;
-	int count = 0;
+// static int print_ker_ds(void)
+// {
+// 	struct ds_list *itr;
+// 	int count = 0;
 
-	struct file *file;
-	char *filename = "./ker_ds_txt";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+// 	struct file *file;
+// 	char *filename = "./ker_ds_txt";
+// 	int size;
+// 	char *buf;
+//         loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		return -1;
-	}
+// 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+// 	if(IS_ERR(file)){
+// 		printk("pre_file open err=%ld", PTR_ERR(file));
+// 		return -1;
+// 	}
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return -1;
-	memset(buf, '\0', 100);
+//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
+//         if(!buf)
+// 		return -1;
+// 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &ker_ds_head, list){
-		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-		kernel_write(file, buf, size, &pos);
-		vfs_fsync_range(file, 0, size, 1);
-		count++;
-	}
-	printk(KERN_INFO "kern ds count %d\n", count);
-	size = sprintf(buf, "kern ds count %d\n", count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+// 	list_for_each_entry(itr, &ker_ds_head, list){
+// 		// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+// 		size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
+// 		kernel_write(file, buf, size, &pos);
+// 		vfs_fsync_range(file, 0, size, 1);
+// 		count++;
+// 	}
+// 	printk(KERN_INFO "kern ds count %d\n", count);
+// 	size = sprintf(buf, "kern ds count %d\n", count);
+// 	kernel_write(file, buf, size, &pos);
+// 	vfs_fsync_range(file, 0, size, 1);
 
-	kfree(buf);
-	filp_close(file, NULL);
+// 	kfree(buf);
+// 	filp_close(file, NULL);
 	
-	return 0;
-}
+// 	return 0;
+// }
 
 SYSCALL_DEFINE1(mycall_ds_search, pid_t, pid)
 {
@@ -1300,45 +1300,45 @@ static int print_usr_m(pid_t pid)
 	return 0;
 }
 
-static int print_ker_m(void)
-{
-	struct m_list *itr;
-	int count=0;
+// static int print_ker_m(void)
+// {
+// 	struct m_list *itr;
+// 	int count=0;
 	
-	struct file *file;
-	char *filename = "./ker_m_txt";
-	int size;
-	char *buf;
-        loff_t pos = 0;
+// 	struct file *file;
+// 	char *filename = "./ker_m_txt";
+// 	int size;
+// 	char *buf;
+//         loff_t pos = 0;
 
-	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-	if(IS_ERR(file)){
-		printk("pre_file open err=%ld", PTR_ERR(file));
-		return -1;
-	}
+// 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+// 	if(IS_ERR(file)){
+// 		printk("pre_file open err=%ld", PTR_ERR(file));
+// 		return -1;
+// 	}
 	
-        buf = kmalloc(PATH_MAX, GFP_KERNEL);
-        if(!buf)
-		return -1;
-	memset(buf, '\0', 100);
+//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
+//         if(!buf)
+// 		return -1;
+// 	memset(buf, '\0', 100);
 	
-	list_for_each_entry(itr, &ker_m_head, list){
-		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
-		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
-		kernel_write(file, buf, size, &pos);
-		vfs_fsync_range(file, 0, size, 1);
-		count++;
-	}
-	printk(KERN_INFO "kern m count %d\n", count);
-	size = sprintf(buf, "kern m count %d\n", count);
-	kernel_write(file, buf, size, &pos);
-	vfs_fsync_range(file, 0, size, 1);
+// 	list_for_each_entry(itr, &ker_m_head, list){
+// 		// printk(KERN_INFO "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+// 		size = sprintf(buf, "%lx %lx   %lx\n",itr->va, itr->num, __pa((unsigned long)itr));
+// 		kernel_write(file, buf, size, &pos);
+// 		vfs_fsync_range(file, 0, size, 1);
+// 		count++;
+// 	}
+// 	printk(KERN_INFO "kern m count %d\n", count);
+// 	size = sprintf(buf, "kern m count %d\n", count);
+// 	kernel_write(file, buf, size, &pos);
+// 	vfs_fsync_range(file, 0, size, 1);
 
-	kfree(buf);
-	filp_close(file, NULL);
+// 	kfree(buf);
+// 	filp_close(file, NULL);
 	
-	return 0;
-}
+// 	return 0;
+// }
 
 SYSCALL_DEFINE1(mycall_m_search, pid_t, pid)
 {
@@ -1880,7 +1880,7 @@ static long recover_pgtable(unsigned long va)
 		// if(m_head->pid == target_task->pid){
 			list_for_each_entry(itr, &m_head->head, list){
 				if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
-					printk(KERN_INFO "recover pte found %lx %lx\n", itr->num, ite->va);
+					printk(KERN_INFO "recover pte found %lx %lx\n", itr->num, itr->va);
 					if(__recover_pgtable(itr->num & PT_PGTABLE_MASK_NOT, itr, file, &pos) < 0){
 						goto err;
 					}
