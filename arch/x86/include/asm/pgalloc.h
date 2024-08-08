@@ -111,7 +111,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 	paravirt_alloc_pmd(mm, __pa(pmd) >> PAGE_SHIFT);
 	set_pud(pud, __pud(_PAGE_TABLE | __pa(pmd)));
 	// my code
-	make_pmd_m_list((unsigned long)pud, (unsigned long)pmd)
+	make_pmd_m_list((unsigned long)pud, (unsigned long)pmd);
 }
 
 static inline void pud_populate_safe(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
