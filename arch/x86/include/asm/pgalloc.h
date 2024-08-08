@@ -88,6 +88,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 	paravirt_alloc_pte(mm, pfn);
 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | _PAGE_TABLE));
+	// my code
 	make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(pte));
 }
 
@@ -109,6 +110,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	paravirt_alloc_pmd(mm, __pa(pmd) >> PAGE_SHIFT);
 	set_pud(pud, __pud(_PAGE_TABLE | __pa(pmd)));
+	// my code
 	make_pmd_m_list((unsigned long)pud, (unsigned long)pmd)
 }
 
@@ -124,6 +126,7 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
 {
 	paravirt_alloc_pud(mm, __pa(pud) >> PAGE_SHIFT);
 	set_p4d(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
+	// my code
 	make_pud_m_list((unsigned long)p4d, (unsigned long)pud);
 }
 
