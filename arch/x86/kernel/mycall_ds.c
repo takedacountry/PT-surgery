@@ -516,7 +516,7 @@ static int __make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t p
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
-			printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
+			// printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
 			if((num = get_pmd_num(pmd_va, pte_va, m_head, pid)) >= MAX_NUM)
 				return -1;
 
