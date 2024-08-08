@@ -10,6 +10,9 @@
 #define __HAVE_ARCH_PGD_FREE
 #include <asm-generic/pgalloc.h>
 
+// my code
+#include <asm/ds.h>
+
 static inline int  __paravirt_pgd_alloc(struct mm_struct *mm) { return 0; }
 
 #ifdef CONFIG_PARAVIRT_XXL
@@ -56,7 +59,7 @@ extern pgtable_t pte_alloc_one(struct mm_struct *);
 extern void ___pte_free_tlb(struct mmu_gather *tlb, struct page *pte);
 
 // my code
-extern void delete_ds_m_free_pte(unsigned long va);
+// extern void delete_ds_m_free_pte(unsigned long va);
 static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *pte,
 				  unsigned long address)
 {
@@ -85,12 +88,13 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 	paravirt_alloc_pte(mm, pfn);
 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | _PAGE_TABLE));
+	make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(pte));
 }
 
 #if CONFIG_PGTABLE_LEVELS > 2
 extern void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd);
 // my code
-extern void delete_m_free_pmd(unsigned long va);
+// extern void delete_m_free_pmd(unsigned long va);
 static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 				  unsigned long address)
 {
@@ -105,6 +109,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	paravirt_alloc_pmd(mm, __pa(pmd) >> PAGE_SHIFT);
 	set_pud(pud, __pud(_PAGE_TABLE | __pa(pmd)));
+	make_pmd_m_list((unsigned long)pud, (unsigned long)pmd)
 }
 
 static inline void pud_populate_safe(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
@@ -119,6 +124,7 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
 {
 	paravirt_alloc_pud(mm, __pa(pud) >> PAGE_SHIFT);
 	set_p4d(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
+	make_pud_m_list((unsigned long)p4d, (unsigned long)pud);
 }
 
 static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
@@ -129,7 +135,7 @@ static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pu
 
 extern void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud);
 // my code
-extern void delete_m_free_pud(unsigned long va);
+// extern void delete_m_free_pud(unsigned long va);
 static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 				  unsigned long address)
 {
