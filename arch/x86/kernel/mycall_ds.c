@@ -8,7 +8,7 @@
 #include <linux/export.h>
 #include <asm/current.h>
 #include <asm/io.h>
-#include <asm/ds.h>
+#include <asm/ds_struct.h>
 #include <asm/page.h>
 #include <asm/pgtable.h>
 #include <asm/pgalloc.h>
