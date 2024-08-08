@@ -457,17 +457,7 @@ static inline void set_pte_recover(pte_t *ptep, pte_t pte)
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 }
 
-// my code
-extern int make_pte_m_list(unsigned long pmd_va, pmd_t pmd);
 static inline void set_pmd(pmd_t *pmdp, pmd_t pmd)
-{
-	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
-	// my code
-	make_pte_m_list((unsigned long)pmdp, pmd);
-}
-
-// my code
-static inline void set_pmd_recover(pmd_t *pmdp, pmd_t pmd)
 {
 	PVOP_VCALL2(mmu.set_pmd, pmdp, native_pmd_val(pmd));
 }
@@ -485,13 +475,9 @@ static inline pmdval_t pmd_val(pmd_t pmd)
 				"mov %%rdi, %%rax", ALT_NOT(X86_FEATURE_XENPV));
 }
 
-// my code
-extern int make_pmd_m_list(unsigned long pud_va, pud_t pud);
 static inline void set_pud(pud_t *pudp, pud_t pud)
 {
 	PVOP_VCALL2(mmu.set_pud, pudp, native_pud_val(pud));
-	// my code
-	make_pmd_m_list((unsigned long)pudp, pud);
 }
 
 static inline pud_t __pud(pudval_t val)
@@ -515,15 +501,11 @@ static inline void pud_clear(pud_t *pudp)
 	set_pud(pudp, native_make_pud(0));
 }
 
-// my code
-extern int make_pud_m_list(unsigned long p4d_va, p4d_t p4d);
 static inline void set_p4d(p4d_t *p4dp, p4d_t p4d)
 {
 	p4dval_t val = native_p4d_val(p4d);
 
 	PVOP_VCALL2(mmu.set_p4d, p4dp, val);
-	// my code
-	make_pud_m_list((unsigned long)p4dp, p4d);
 }
 
 #if CONFIG_PGTABLE_LEVELS >= 5
