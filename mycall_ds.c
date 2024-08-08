@@ -165,6 +165,8 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         // exit(0);
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
     }else{
         //parent
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
@@ -237,8 +239,8 @@ int main(void)
         // free(mo1);
         // free(mp1);
     
-        printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        printf("%ld\n", syscall(SYS_mycall_m_delete));
+        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        // printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     }
 
