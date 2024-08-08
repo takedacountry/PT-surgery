@@ -327,7 +327,7 @@ static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
 			if(add_first_m_node(pgd_va & PAGE_MASK, PGD_FLAG_MASK, m_head) < 0)
-				return -ENOMEM;
+				return -1;
 			printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, pid);
 			return 1;
 			// printk(KERN_INFO "already same pgd\n");
@@ -353,29 +353,31 @@ static unsigned long get_p4d_num(unsigned long p4d_va, unsigned long pud_va, str
 			goto pud_va;
 		}
 	}
-	goto end;
+	goto err;
 	
 pud_va:
 	pud_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pud_va || itr->num == base){
-			// printk(KERN_INFO "already same pud\n");
-			goto end;
+		if(itr->va != pud_va && itr->num == base){
+			itr->va = pud_va;
+			printk(KERN_INFO "modify m pud %lx %lx\n", itr->va, itr->num);
+			goto ret;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
 			if(add_m_node(pud_va, base, itr) < 0){
-				goto end;
+				goto err;
 			}
-			goto ret;
+			goto end;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pud_va, base, itr) < 0)
-		goto end;
-ret:
-	printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, pid);
-	return base;
+		goto err;
 end:
+	printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, pid);
+ret:
+	return base;
+err:
 	// printk(KERN_INFO "no pgd m list va %ld\n",va);
 	return MAX_NUM;
 }
@@ -414,29 +416,31 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 			goto pmd_va;
 		}
 	}
-	goto end;
+	goto err;
 
 pmd_va:
 	pmd_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pmd_va || itr->num == base){
-			// printk(KERN_INFO "already same pmd\n");
-			goto end;
+		if(itr->va != pmd_va && itr->num == base){
+			itr->va = pmd_va;
+			printk(KERN_INFO "modify m pmd %lx %lx\n", itr->va, itr->num);
+			goto ret;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
 			if(add_m_node(pmd_va, base, itr) < 0){
-				goto end;
+				goto err;
 			}
-			goto ret;
+			goto end;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pmd_va, base, itr) < 0)
-		goto end;
-ret:		
-	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, pid);
-	return base;
+		goto err;
 end:
+	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, pid);
+ret:
+	return base;
+err:
 	// printk(KERN_INFO "no pud m list va %ld\n",va);
 	return MAX_NUM;
 }
@@ -475,29 +479,31 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 			goto pte_va;
 		}
 	}
-	goto end;
+	goto err;
 
 pte_va:
 	pte_va &= PAGE_MASK;
 	while(itr->num <= base){
-		if(itr->va == pte_va || itr->num == base){
-			// printk(KERN_INFO "already same pte\n");
-			goto end;
+		if(itr->va != pte_va && itr->num == base){
+			itr->va = pte_va;
+			printk(KERN_INFO "modify m pte %lx %lx\n", itr->va, itr->num);
+			goto ret;
 		}
 		if(list_is_last(&itr->list, &m_head->head)){
 			if(add_m_node(pte_va, base, itr) < 0){
-				goto end;
+				goto err;
 			}
-			goto ret;
+			goto end;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pte_va, base, itr) < 0)
-		goto end;
-ret:		
+		goto err;
+end:		
 	printk(KERN_INFO "make m pte alloc %lx, %lx, %d\n", pte_va, base, pid);
+ret:
 	return base;
-end:
+err:
 	// printk(KERN_INFO "no pmd m list va %ld\n",va);
 	return MAX_NUM;
 }
