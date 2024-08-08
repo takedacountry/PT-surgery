@@ -397,9 +397,9 @@ static int __make_pud_m_list(unsigned long p4d_va, unsigned long pud_va, pid_t p
 	return 0;
 }
 
-int make_pud_m_list(unsigned long p4d_va, p4d_t p4d)
+int make_pud_m_list(unsigned long p4d_va, unsigned long pud_va)
 {
-	return __make_pud_m_list(p4d_va, (unsigned long)p4d_pgtable(p4d), current->pid);
+	return __make_pud_m_list(p4d_va, pud_va, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
@@ -458,9 +458,9 @@ static int __make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t p
 	return 0;
 }
 
-int make_pmd_m_list(unsigned long pud_va, pud_t pud)
+int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 {
-	return __make_pmd_m_list(pud_va, (unsigned long)pud_pgtable(pud), current->pid);
+	return __make_pmd_m_list(pud_va, pmd_va, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
@@ -521,9 +521,9 @@ static int __make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t p
 	return 0;
 }
 
-int make_pte_m_list(unsigned long pmd_va, pmd_t pmd)
+int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 {
-	return __make_pte_m_list(pmd_va, pmd_page_vaddr(pmd), current->pid);
+	return __make_pte_m_list(pmd_va, pte_va, current->pid);
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
@@ -1529,7 +1529,7 @@ static void modify_pte_m_list(struct m_list *itr, unsigned long va)
 static void pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
 {
 	paravirt_alloc_pte(mm, __pa(pte) >> PAGE_SHIFT);
-	set_pmd_recover(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
+	set_pmd(pmd, __pmd(__pa(pte) | pmd_flags(*pmd)));
 }
 
 static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep, struct m_list *itr)
