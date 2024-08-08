@@ -237,8 +237,8 @@ int main(void)
         // free(mo1);
         // free(mp1);
     
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     }
 
