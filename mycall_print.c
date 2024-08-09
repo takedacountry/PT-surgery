@@ -17,8 +17,6 @@
 #define SYS_mycall_m_search 467
 #define SYS_mycall_m_delete 468
 #define SYS_mycall_recover_pgtable 469
-#define SYS_mycall_ds_init 470
-#define SYS_mycall_ds_free 471
 #define SYS_mycall_ds_register_pid 472
 #define SYS_mycall_make_ds_usr_from_pgtable 473
 #define SYS_mycall_ds_search2 474
@@ -31,9 +29,11 @@ int main(void)
     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     
     return 0;
 }
