@@ -152,42 +152,42 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
-    // if((pid = fork()) == -1){
-    //     printf("fork() failed");
-    //     return -1;
-    // }else if(pid == 0){
-    //     // child
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    //     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    //     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-    
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    //     // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    //     // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    //     // exit(0);
-    //     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-    //     // printf("%ld\n", syscall(SYS_mycall_m_delete));
-    // }else{
-    //     //parent
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    //     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    //     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-        
-    //     wait(&status);
-    //     if (WIFEXITED(status)) {
-    //         printf("exit: %d\n", WEXITSTATUS(status));
-    //     }
-    
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    if((pid = fork()) == -1){
+        printf("fork() failed");
+        return -1;
+    }else if(pid == 0){
+        // child
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
         printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // exit(0);
+        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        // printf("%ld\n", syscall(SYS_mycall_m_delete));
+    }else{
+        //parent
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("exit: %d\n", WEXITSTATUS(status));
+        }
+    
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
         // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
         
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
         // memset(ma, 1, INDEX);
         // memset(mb, 1, INDEX);
@@ -242,7 +242,7 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_ds_delete));
         // printf("%ld\n", syscall(SYS_mycall_m_delete));
 
-    // }
+    }
 
     return 0;
 }
