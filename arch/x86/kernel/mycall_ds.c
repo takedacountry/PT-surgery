@@ -49,6 +49,7 @@
 #define FLAG_RW_NOT		(~FLAG_RW)
 
 unsigned long vaddr;
+struct task_struct *target_task;
 
 static long register_pid(pid_t pid);
 
@@ -652,7 +653,10 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
 	unsigned long base;
-	// int flag = 0;
+	int flag = 0;
+
+	if(pid = current->pid)
+		flag = 1;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
 		if(m_head->pid == pid){
@@ -703,7 +707,7 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
 							}
 						}
-						// flag = 0;
+						flag = 0;
 						goto end;
 					}
 					else if(dnode->base >= prev->limit){
@@ -727,8 +731,8 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	}
 	return 0;
 end:
-	// if(flag == 1)
-	// 	printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+	if(flag == 1)
+		printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 	return 1;
 }
 
@@ -1142,7 +1146,8 @@ static int print_usr_ds(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == pid){
+		// if(ds_head->pid == pid){
+		if(ds_head->pid == target_task->pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1239,7 +1244,8 @@ static int print_usr_ds2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == pid){
+		// if(ds_head->pid == pid){
+		if(ds_head->pid == target_task->pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1295,7 +1301,8 @@ static int print_usr_m(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
+		// if(m_head->pid == pid){
+		if(m_head->pid == target_task->pid){
 			printk(KERN_INFO "m pid: %d\n", pid);
 			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1392,7 +1399,8 @@ static int print_usr_m2(pid_t pid)
 	memset(buf, '\0', 100);
 
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
+		// if(m_head->pid == pid){
+		if(m_head->pid == target_task->pid){
 			printk(KERN_INFO "m pid: %d\n", pid);
 			size = sprintf(buf, "m pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
@@ -1429,7 +1437,7 @@ static long register_pid(pid_t pid)
 	struct ds_head_list *ds_node;
 	struct m_head_list *m_node;
 
-	// target_task = current;
+	target_task = current;
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
@@ -1514,8 +1522,8 @@ static int get_pmd_scan_pgd(struct mm_struct *mm, unsigned long pgd, unsigned lo
 
 static int search_pgtable_get_pmd(unsigned long num, pmd_t **pmdp)
 {
-  	struct mm_struct *mm = current->mm;
-	// struct mm_struct *mm = target_task->mm;
+  	// struct mm_struct *mm = current->mm;
+	struct mm_struct *mm = target_task->mm;
 
 	unsigned long pgd = (num >> 27) & PT_PGTABLE_MASK;
 	unsigned long pud = (num >> 18) & PT_PGTABLE_MASK;
@@ -1648,8 +1656,8 @@ static int update_pgtable_usr(unsigned long va_start, pte_t *pte, struct file *f
 	vfs_fsync_range(file, 0, size, 1);
 
 	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == current->pid){
-		// if(ds_head->pid == target_task->pid){
+		// if(ds_head->pid == current->pid){
+		if(ds_head->pid == target_task->pid){
 			list_for_each_entry(itr, &ds_head->head, list){
 				if(itr->limit <= va_start){
 					continue; // not hit yet
@@ -1735,7 +1743,8 @@ static int __recover_pgtable(unsigned long va_start, struct m_list *itr, struct 
 		kernel_write(file, buf, size, pos);
 		vfs_fsync_range(file, 0, size, 1);
 		
-		ptep_new = pte_realloc(current->mm);
+		// ptep_new = pte_realloc(current->mm);
+		ptep_new = pte_realloc(target_task->mm);
 		
 		if(!ptep_new){
 			printk(KERN_INFO "out of memory\n");
@@ -1743,7 +1752,8 @@ static int __recover_pgtable(unsigned long va_start, struct m_list *itr, struct 
 		}
 		
 		if(update_pgtable_usr(va_start, ptep_new, file, pos) == 1){
-			pmd_reinstall(current->mm, pmdp, ptep_new, itr);
+			// pmd_reinstall(current->mm, pmdp, ptep_new, itr);
+			pmd_reinstall(target_task->mm, pmdp, ptep_new, itr);
 
 			// printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
 			size = sprintf(buf, "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -1759,7 +1769,8 @@ static int __recover_pgtable(unsigned long va_start, struct m_list *itr, struct 
 			size = sprintf(buf, "not dup pte\n");
 			kernel_write(file, buf, size, pos);
 			vfs_fsync_range(file, 0, size, 1);
-			pte_free(current->mm, virt_to_page(ptep_new));
+			// pte_free(current->mm, virt_to_page(ptep_new));
+			pte_free(target_task->mm, virt_to_page(ptep_new));
 		}
 	}
 	else if(num == 2){ // in kernel
@@ -1832,9 +1843,9 @@ static long recover_all_pgtable(void)
 	}
 	
 	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == current->pid){
-		// if(m_head->pid == target_task->pid){
-			// printk(KERN_INFO "target_task pid: %d\n",target_task->pid);
+		// if(m_head->pid == current->pid){
+		if(m_head->pid == target_task->pid){
+			printk(KERN_INFO "target_task pid: %d\n",target_task->pid);
 			for(unsigned long a=0; a<USER_MAX; a++){
 		        	for(unsigned long b=0; b<MAX; b++){
 		            		for(unsigned long c=0; c<MAX; c++){
