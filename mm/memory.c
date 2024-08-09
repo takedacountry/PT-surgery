@@ -394,6 +394,8 @@ void free_pgd_range(struct mmu_gather *tlb,
 			continue;
 		free_p4d_range(tlb, pgd, addr, next, floor, ceiling);
 	} while (pgd++, addr = next, addr != end);
+	// my code
+	delete_m_free_pgd((unsigned long)pgd);
 }
 
 void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,
