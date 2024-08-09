@@ -183,7 +183,7 @@ int main(void)
     //         printf("exit: %d\n", WEXITSTATUS(status));
     //     }
 
-    mremap(ma, INDEX, INDEX, MREMAP_FIXED, (ma + INDEX) & OFFSET_MASK_NOT);
+    // mremap(ma, INDEX, INDEX, MREMAP_FIXED, (ma + INDEX) & OFFSET_MASK_NOT);
     
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
@@ -192,9 +192,9 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
         
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
         // memset(ma, 1, INDEX);
         // memset(mb, 1, INDEX);
