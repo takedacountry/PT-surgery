@@ -35,6 +35,11 @@
 #define PMD 512
 #define PTE 512
 
+#define OFFSET_SHIFT 		12
+#define OFFSET_SIZE		    (_AT(long, 1) << OFFSET_SHIFT)
+#define OFFSET_MASK		    (OFFSET_SIZE - 1)
+#define OFFSET_MASK_NOT		(~OFFSET_MASK)
+
 int main(void)
 {
     pid_t pid;
@@ -148,35 +153,37 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
-    if((pid = fork()) == -1){
-        printf("fork() failed");
-        return -1;
-    }else if(pid == 0){
-        // child
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // if((pid = fork()) == -1){
+    //     printf("fork() failed");
+    //     return -1;
+    // }else if(pid == 0){
+    //     // child
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    //     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
     
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-        // exit(0);
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
-    }else{
-        //parent
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+    //     // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    //     // exit(0);
+    //     // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+    //     // printf("%ld\n", syscall(SYS_mycall_m_delete));
+    // }else{
+    //     //parent
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    //     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+    //     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
-        wait(&status);
-        if (WIFEXITED(status)) {
-            printf("exit: %d\n", WEXITSTATUS(status));
-        }
+    //     wait(&status);
+    //     if (WIFEXITED(status)) {
+    //         printf("exit: %d\n", WEXITSTATUS(status));
+    //     }
+
+    mremap(ma, INDEX, INDEX, MREMAP_FIXED, (ma + INDEX) & OFFSET_MASK_NOT);
     
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
@@ -239,10 +246,10 @@ int main(void)
         // free(mo1);
         // free(mp1);
     
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
 
-    }
+    // }
 
     return 0;
 }
