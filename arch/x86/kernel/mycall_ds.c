@@ -655,7 +655,7 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	unsigned long base;
 	int flag = 0;
 
-	if(pid = current->pid)
+	if(pid == current->pid)
 		flag = 1;
 
 	list_for_each_entry(m_head, &usr_m_head, list){
