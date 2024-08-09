@@ -1999,8 +1999,8 @@ void delete_ds_m_free_pte(unsigned long va)
 				list_del(&ds_head->list);
 				kfree(ds_head);
 				printk(KERN_INFO "delete ds head %d\n", current->pid);
-				break;
 			}
+			break;
 		}
 	}
 	return;
