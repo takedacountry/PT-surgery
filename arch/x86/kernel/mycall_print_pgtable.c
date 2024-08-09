@@ -16,7 +16,7 @@
 #define USER_MAX 0x100
 #define MAX 0x200
 
-// extern struct task_struct *target_task;
+extern struct task_struct *target_task;
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -452,7 +452,7 @@ EXPORT_SYMBOL_GPL(make_user_pgtable2);
 // }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable){
-	return make_user_pgtable(current);
+	return make_user_pgtable(target_task);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
@@ -462,7 +462,7 @@ SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
 }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable2){
-	return make_user_pgtable2(current);
+	return make_user_pgtable2(target_task);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable2){
