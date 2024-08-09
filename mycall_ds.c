@@ -35,11 +35,6 @@
 #define PMD 512
 #define PTE 512
 
-#define OFFSET_SHIFT 		12
-#define OFFSET_SIZE		    (_AT(long, 1) << OFFSET_SHIFT)
-#define OFFSET_MASK		    (OFFSET_SIZE - 1)
-#define OFFSET_MASK_NOT		(~OFFSET_MASK)
-
 int main(void)
 {
     pid_t pid;
