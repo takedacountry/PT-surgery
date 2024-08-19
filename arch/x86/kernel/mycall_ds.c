@@ -160,10 +160,10 @@ static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
 //   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 // }
 
-LIST_HEAD(usr_m_head);
-LIST_HEAD(ker_m_head);
-LIST_HEAD(usr_ds_head);
-LIST_HEAD(ker_ds_head);
+LIST_HEAD(usr_head);
+LIST_HEAD(ker_head);
+// LIST_HEAD(usr_ds_head);
+// LIST_HEAD(ker_ds_head);
 
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
@@ -191,15 +191,30 @@ static struct ds_list *make_ds_node(unsigned long base, unsigned long limit, lon
 	return list;
 }
 
-static struct m_list *make_m_node(unsigned long va, unsigned long num)
+static struct m_list *make_m_node(unsigned long va, unsigned long base)
 {
 	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
 	if(!list)
 		return NULL;
 
 	list->va = va & PAGE_MASK;
-	list->num = num;
+	list->base = base;
+	INIT_LIST_HEAD(&list->ds_head);
+	INIT_LIST_HEAD(&list->log_head);
 	// list_add_tail(&list->list, &usr_m_head);
+	return list;
+}
+
+static struct log_list *make_log_node(unsigned long base, pte_t pte, int flag, int commit)
+{
+	struct log_list *list = kmalloc(sizeof(struct log_list), GFP_KERNEL);
+	if(!list)
+		return NULL;
+
+	list->base = base;
+	list->pte = pte;
+	list->flag = flag;
+	list->commit = commit;
 	return list;
 }
 
@@ -233,15 +248,15 @@ static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 // 	return true;
 // }
 
-static int add_first_m_node(unsigned long va, unsigned long num, struct m_head_list *m_head)
+static int add_first_m_node(unsigned long va, unsigned long base, struct pid_list *head)
 {
 	struct m_list *mnode;
 
-	if((mnode = make_m_node(va, num)) == NULL)
+	if((mnode = make_m_node(va, base)) == NULL)
 		return -ENOMEM;
 
-	if(list_empty(&m_head->head)){ //no node
-		list_add(&mnode->list, &m_head->head);
+	if(list_empty(&head->m_head)){ //no node
+		list_add(&mnode->list, &head->m_head);
 	}
 	return 0;
 }
@@ -267,22 +282,22 @@ static int add_first_m_node(unsigned long va, unsigned long num, struct m_head_l
 // 	return 0;
 // }
 
-static int add_m_node(unsigned long va, unsigned long num, struct m_list *m_node)
+static int add_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
 {
 	struct m_list *itr;
 
-	if((itr = make_m_node(va, num)) == NULL)
+	if((itr = make_m_node(va, base)) == NULL)
 		return -ENOMEM;
 
 	list_add(&itr->list, &m_node->list);
 	return 0;
 }
 
-static int add_tail_m_node(unsigned long va, unsigned long num, struct m_list *m_node)
+static int add_tail_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
 {
 	struct m_list *itr;
 
-	if((itr = make_m_node(va, num)) == NULL)
+	if((itr = make_m_node(va, base)) == NULL)
 		return -ENOMEM;
 
 	list_add_tail(&itr->list, &m_node->list);
@@ -324,11 +339,11 @@ static int add_tail_m_node(unsigned long va, unsigned long num, struct m_list *m
 
 static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 {
-	struct m_head_list *m_head;
+	struct pid_list *p_node;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
-			if(add_first_m_node(pgd_va & PAGE_MASK, PGD_FLAG_MASK, m_head) < 0)
+	list_for_each_entry(p_node, &usr_head, list){
+		if(p_node->pid == pid){
+			if(add_first_m_node(pgd_va & PAGE_MASK, PGD_FLAG_MASK, p_node) < 0)
 				return -1;
 			printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, pid);
 			return 1;
@@ -344,13 +359,13 @@ int make_pgd_m_list(unsigned long pgd_va)
 }
 EXPORT_SYMBOL_GPL(make_pgd_m_list);
 
-static unsigned long get_p4d_num(unsigned long p4d_va, unsigned long pud_va, struct m_head_list *m_head, pid_t pid)
+static unsigned long get_p4d_base(unsigned long p4d_va, unsigned long pud_va, struct pid_list *head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base;
 
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PGD_FLAG_MASK && itr->va <= p4d_va && p4d_va < itr->va + OFFSET_SIZE){
+	list_for_each_entry(itr, &head->head, list){
+		if(itr->base & PGD_FLAG_MASK && itr->va <= p4d_va && p4d_va < itr->va + OFFSET_SIZE){
 			base = make_ds_va(((p4d_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pud_va;
 		}
@@ -359,13 +374,13 @@ static unsigned long get_p4d_num(unsigned long p4d_va, unsigned long pud_va, str
 	
 pud_va:
 	pud_va &= PAGE_MASK;
-	while(itr->num <= base){
-		if(itr->va != pud_va && itr->num == base){
+	while(itr->base <= base){
+		if(itr->va != pud_va && itr->base == base){
 			itr->va = pud_va;
-			printk(KERN_INFO "modify m pud %lx %lx\n", itr->va, itr->num);
+			printk(KERN_INFO "modify m pud %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
-		if(list_is_last(&itr->list, &m_head->head)){
+		if(list_is_last(&itr->list, &head->head)){
 			if(add_m_node(pud_va, base, itr) < 0){
 				goto err;
 			}
@@ -386,12 +401,12 @@ err:
 
 static int __make_pud_m_list(unsigned long p4d_va, unsigned long pud_va, pid_t pid)
 {
-	struct m_head_list *m_head;
-	unsigned long num;
+	struct pid_list *p_node;
+	unsigned long base;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
-			if((num = get_p4d_num(p4d_va, pud_va, m_head, pid)) >= MAX_NUM)
+	list_for_each_entry(p_node, &usr_head, list){
+		if(p_node->pid == pid){
+			if((base = get_p4d_base(p4d_va, pud_va, p_node, pid)) >= MAX_NUM)
 				return -1;
 		
 			// printk(KERN_INFO "make pud %ld, pid %d\n", num | PUD_FLAG_MASK, pid);
@@ -407,14 +422,14 @@ int make_pud_m_list(unsigned long p4d_va, unsigned long pud_va)
 }
 EXPORT_SYMBOL_GPL(make_pud_m_list);
 
-static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, struct m_head_list *m_head, pid_t pid)
+static unsigned long get_pud_base(unsigned long pud_va, unsigned long pmd_va, struct pid_list *head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base = 0;
 
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PUD_FLAG_MASK && itr->va <= pud_va && pud_va < itr->va + OFFSET_SIZE){
-			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, ((pud_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
+	list_for_each_entry(itr, &head->head, list){
+		if(itr->base & PUD_FLAG_MASK && itr->va <= pud_va && pud_va < itr->va + OFFSET_SIZE){
+			base = make_ds_va((itr->base >> 27) & PT_PGTABLE_MASK, ((pud_va - itr->va) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pmd_va;
 		}
 	}
@@ -422,13 +437,13 @@ static unsigned long get_pud_num(unsigned long pud_va, unsigned long pmd_va, str
 
 pmd_va:
 	pmd_va &= PAGE_MASK;
-	while(itr->num <= base){
-		if(itr->va != pmd_va && itr->num == base){
+	while(itr->base <= base){
+		if(itr->va != pmd_va && itr->base == base){
 			itr->va = pmd_va;
-			printk(KERN_INFO "modify m pmd %lx %lx\n", itr->va, itr->num);
+			printk(KERN_INFO "modify m pmd %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
-		if(list_is_last(&itr->list, &m_head->head)){
+		if(list_is_last(&itr->list, &head->head)){
 			if(add_m_node(pmd_va, base, itr) < 0){
 				goto err;
 			}
@@ -449,12 +464,12 @@ err:
 
 static int __make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 {
-	struct m_head_list *m_head;
-	unsigned long num;
+	struct pid_list *p_node;
+	unsigned long base;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
-			if((num = get_pud_num(pud_va, pmd_va, m_head, pid)) >= MAX_NUM)
+	list_for_each_entry(p_node, &usr_head, list){
+		if(p_node->pid == pid){
+			if((base = get_pud_base(pud_va, pmd_va, p_node, pid)) >= MAX_NUM)
 				return -1;
 
 			// printk(KERN_INFO "make pmd %ld, pid %d\n", num | PMD_FLAG_MASK, pid);
@@ -470,14 +485,14 @@ int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
 }
 EXPORT_SYMBOL_GPL(make_pmd_m_list);
 
-static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, struct m_head_list *m_head, pid_t pid)
+static unsigned long get_pmd_base(unsigned long pmd_va, unsigned long pte_va, struct pid_list *head, pid_t pid)
 {
 	struct m_list *itr;
 	unsigned long base = 0;
 
-	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PMD_FLAG_MASK && itr->va <= pmd_va && pmd_va < itr->va + OFFSET_SIZE){
-			base = make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK,  ((pmd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
+	list_for_each_entry(itr, &head->head, list){
+		if(itr->base & PMD_FLAG_MASK && itr->va <= pmd_va && pmd_va < itr->va + OFFSET_SIZE){
+			base = make_ds_va((itr->base >> 27) & PT_PGTABLE_MASK, (itr->base >> 18) & PT_PGTABLE_MASK,  ((pmd_va - itr->va) / 0x8) & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
 			goto pte_va;
 		}
 	}
@@ -485,13 +500,13 @@ static unsigned long get_pmd_num(unsigned long pmd_va, unsigned long pte_va, str
 
 pte_va:
 	pte_va &= PAGE_MASK;
-	while(itr->num <= base){
-		if(itr->va != pte_va && itr->num == base){
+	while(itr->base <= base){
+		if(itr->va != pte_va && itr->base == base){
 			itr->va = pte_va;
-			printk(KERN_INFO "modify m pte %lx %lx\n", itr->va, itr->num);
+			printk(KERN_INFO "modify m pte %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
-		if(list_is_last(&itr->list, &m_head->head)){
+		if(list_is_last(&itr->list, &head->head)){
 			if(add_m_node(pte_va, base, itr) < 0){
 				goto err;
 			}
@@ -512,13 +527,13 @@ err:
 
 static int __make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 {
-	struct m_head_list *m_head;
-	unsigned long num;
+	struct pid_list *p_node;
+	unsigned long base;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
+	list_for_each_entry(p_node, &usr_head, list){
+		if(p_node->pid == pid){
 			// printk(KERN_INFO "make pte m list %lx %lx %d\n", pmd_va, pte_va, pid);
-			if((num = get_pmd_num(pmd_va, pte_va, m_head, pid)) >= MAX_NUM)
+			if((base = get_pmd_base(pmd_va, pte_va, p_node, pid)) >= MAX_NUM)
 				return -1;
 
 			// printk(KERN_INFO "make pte %ld, pid %d\n", num | PTE_FLAG_MASK, pid);
@@ -535,29 +550,29 @@ int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
 }
 EXPORT_SYMBOL_GPL(make_pte_m_list);
 
-static unsigned long get_pte_num(unsigned long va, struct m_head_list *m_head)
+static unsigned long get_pte_base(unsigned long va, struct m_head_list *m_head)
 {
 	struct m_list *itr;
 
 	list_for_each_entry(itr, &m_head->head, list){
-		if(itr->num & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
-			return make_ds_va((itr->num >> 27) & PT_PGTABLE_MASK, (itr->num >> 18) & PT_PGTABLE_MASK, (itr->num >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
+		if(itr->base & PTE_FLAG_MASK && itr->va <= va && va < itr->va + OFFSET_SIZE){
+			return make_ds_va((itr->base >> 27) & PT_PGTABLE_MASK, (itr->base >> 18) & PT_PGTABLE_MASK, (itr->base >> 9) & PT_PGTABLE_MASK, ((va - itr->va) / 0x8) & PT_PGTABLE_MASK);
 		}
 	}
 	return MAX_NUM;
 }
 
-static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
+static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct m_list *head)
 {
 	struct ds_list *next, *prev;
 
 	if(ds_node->base == new->base && ds_node->limit == new->limit){
 		ds_node->flag = new->flag;
-		if(list_is_first(&ds_node->list, &ds_head->head)){
+		if(list_is_first(&ds_node->list, &head->ds_head)){
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
 		}
-		else if(list_is_last(&ds_node->list, &ds_head->head)){
+		else if(list_is_last(&ds_node->list, &head->ds_head)){
 			prev = list_prev_entry(ds_node, list);
 			ds_node_merge(prev, ds_node);
 		}
@@ -570,14 +585,14 @@ static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct d
 	}else if(ds_node->base == new->base){
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
-		if(!list_is_first(&new->list, &ds_head->head)){
+		if(!list_is_first(&new->list, &head->ds_head)){
 			prev = list_prev_entry(new, list);
 			ds_node_merge(prev, new);
 		}
 	}else if(ds_node->limit == new->limit){
 		ds_node->limit--;
 		list_add(&new->list, &ds_node->list);
-		if(!list_is_last(&new->list, &ds_head->head)){
+		if(!list_is_last(&new->list, &head->ds_head)){
 			next = list_next_entry(new, list);
 			ds_node_merge(new, next);
 		}
@@ -592,18 +607,18 @@ static int modify_ds_flag(struct ds_list *ds_node, struct ds_list *new, struct d
 }
 
 
-static int modify_ds_offset(struct ds_list *ds_node, struct ds_list *new, struct ds_head_list *ds_head)
+static int modify_ds_offset(struct ds_list *ds_node, struct ds_list *new, struct m_list *head)
 {
 	struct ds_list *next, *prev;
 
 	if(ds_node->base == new->base && ds_node->limit == new->limit){
 		ds_node->offset = new->offset;
 		ds_node->flag = new->flag;
-		if(list_is_first(&ds_node->list, &ds_head->head)){
+		if(list_is_first(&ds_node->list, &head->ds_head)){
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
 		}
-		else if(list_is_last(&ds_node->list, &ds_head->head)){
+		else if(list_is_last(&ds_node->list, &head->ds_head)){
 			prev = list_prev_entry(ds_node, list);
 			ds_node_merge(prev, ds_node);
 		}
@@ -616,14 +631,14 @@ static int modify_ds_offset(struct ds_list *ds_node, struct ds_list *new, struct
 	}else if(ds_node->base == new->base){
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
-		if(!list_is_first(&new->list, &ds_head->head)){
+		if(!list_is_first(&new->list, &head->ds_head)){
 			prev = list_prev_entry(new, list);
 			ds_node_merge(prev, new);
 		}
 	}else if(ds_node->limit == new->limit){
 		ds_node->limit--;
 		list_add(&new->list, &ds_node->list);
-		if(!list_is_last(&new->list, &ds_head->head)){
+		if(!list_is_last(&new->list, &head->ds_head)){
 			next = list_next_entry(new, list);
 			ds_node_merge(new, next);
 		}
@@ -647,8 +662,8 @@ static bool is_ds_write(struct ds_list *ds_node)
 
 static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 {
-	struct m_head_list *m_head;
-	struct ds_head_list *ds_head;
+	struct pid_list *pnode;
+	struct m_list *mnode
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
@@ -658,77 +673,73 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	if(pid == current->pid)
 		flag = 1;
 
-	list_for_each_entry(m_head, &usr_m_head, list){
-		if(m_head->pid == pid){
-			// if(flag == 1)
-			// 	printk(KERN_INFO "set pte %lx %lx %lx %d\n", pte_value, pte_flag, va, pid);
-			if((base = get_pte_num(va, m_head)) >= MAX_NUM){
-				// printk(KERN_INFO "make ds error va %lx pfn %lx flag %lx\n", va, pte_value, pte_flag);
-				return -1;
+	list_for_each_entry(pnode, &usr_head, list){
+		if(pnode->pid == pid){
+			list_for_each_entry(mnode, &pnode->head, list){
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE){
+					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
+					
+					if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
+						return -ENOMEM;
+
+					if(list_empty(&mnode->ds_head)){ //no node
+						list_add(&dnode->list, &mnode->ds_head);
+						goto end;
+					}else{
+						list_for_each_entry_reverse(prev, &mnode->ds_head, list){
+							if(prev->base <= dnode->base && dnode->limit <= prev->limit){
+								// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+								if(dnode->offset != prev->offset){
+									// modify pte value
+									modify_ds_offset(prev, dnode, mnode);
+									printk(KERN_INFO "modify ds offset %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+								}
+								else if(dnode->flag != prev->flag){
+									// modify pte flag 
+									if(!is_ds_write(prev) && is_ds_write(dnode)){
+										// ds_mkwrite
+										// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
+										modify_ds_flag(prev, dnode, mnode);
+										printk(KERN_INFO "make write %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+									}
+									else if(is_ds_write(prev) && !is_ds_write(dnode)){
+										// ds_wrprotect
+										// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
+										modify_ds_flag(prev, dnode, mnode);
+										printk(KERN_INFO "make wrprotect %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
+			
+									}else{
+										printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
+									}
+								}
+								flag = 0;
+								goto end;
+							}
+							else if(dnode->base >= prev->limit){
+								list_add(&dnode->list, &prev->list);
+								if(list_is_last(&dnode->list, &mnode->ds_head)){
+									ds_node_merge(prev, dnode);
+									goto end;
+								}
+								next = list_next_entry(dnode, list);
+								ds_node_merge(dnode, next);
+								ds_node_merge(prev, dnode);
+								goto end;
+							}
+						}
+						list_add(&dnode->list, &mnode->ds_head);
+						next = list_next_entry(dnode, list);
+						ds_node_merge(dnode, next);
+						goto end;
+					}
+					break;
+				}
 			}
 			// printk(KERN_INFO "make ds hit m %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 			break;
 		}
 	}
 
-	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == pid){		
-			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
-				return -ENOMEM;
-			
-			// incert dnode
-			if(list_empty(&ds_head->head)){ //no node
-				list_add(&dnode->list, &ds_head->head);
-				goto end;
-			}else{
-				list_for_each_entry_reverse(prev, &ds_head->head, list){
-					if(prev->base <= dnode->base && dnode->limit <= prev->limit){
-						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-						if(dnode->offset != prev->offset){
-							// modify pte value
-							modify_ds_offset(prev, dnode, ds_head);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-						}
-						else if(dnode->flag != prev->flag){
-							// modify pte flag 
-							if(!is_ds_write(prev) && is_ds_write(dnode)){
-								// ds_mkwrite
-								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
-								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make write %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-							}
-							else if(is_ds_write(prev) && !is_ds_write(dnode)){
-								// ds_wrprotect
-								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
-								modify_ds_flag(prev, dnode, ds_head);
-								printk(KERN_INFO "make wrprotect %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-	
-							}else{
-								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
-							}
-						}
-						flag = 0;
-						goto end;
-					}
-					else if(dnode->base >= prev->limit){
-						list_add(&dnode->list, &prev->list);
-						if(list_is_last(&dnode->list, &ds_head->head)){
-							ds_node_merge(prev, dnode);
-							goto end;
-						}
-						next = list_next_entry(dnode, list);
-						ds_node_merge(dnode, next);
-						ds_node_merge(prev, dnode);
-						goto end;
-					}
-				}
-				list_add(&dnode->list, &ds_head->head);
-				next = list_next_entry(dnode, list);
-				ds_node_merge(dnode, next);
-				goto end;
-			}
-		}
-	}
 	return 0;
 end:
 	if(flag == 1)
@@ -1124,8 +1135,9 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 
 static int print_usr_ds(pid_t pid)
 {
-	struct ds_list *itr;
-	struct ds_head_list *ds_head;
+	struct pid_list *pnode;
+	struct m_list *mnode;
+	struct ds_list *dnode;
 	int count = 0;
 
 	struct file *file;
@@ -1145,20 +1157,24 @@ static int print_usr_ds(pid_t pid)
 		return -1;
 	memset(buf, '\0', 100);
 
-	list_for_each_entry(ds_head, &usr_ds_head, list){
-		// if(ds_head->pid == pid){
-		if(ds_head->pid == target_task->pid){
+	list_for_each_entry(pnode, &usr_head, list){
+		if(pnode->pid == pid){
+		// if(pnode->pid == target_task->pid){
 			printk(KERN_INFO "ds pid: %d\n", pid);
 			size = sprintf(buf, "ds pid: %d\n", pid);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
-			
-			list_for_each_entry(itr, &ds_head->head, list){
-				// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-				size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", itr->base, itr->limit, itr->offset, itr->flag, __pa((unsigned long)itr));
-				kernel_write(file, buf, size, &pos);
-				vfs_fsync_range(file, 0, size, 1);
-				count++;
+
+			list_for_each_entry(mnode, &pnode->m_head, list){
+				if(mnode->base & PTE_FLAG_MASK){
+					list_for_each_entry(dnode, &mnode->ds_head, list){
+						// printk(KERN_INFO "%lx %lx %lx %lx   %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag, __pa((unsigned long)dnode));
+						size = sprintf(buf, "%lx %lx %lx %lx   %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag, __pa((unsigned long)dnode));
+						kernel_write(file, buf, size, &pos);
+						vfs_fsync_range(file, 0, size, 1);
+						count++;
+					}
+				}
 			}
 		}
 	}
@@ -1172,6 +1188,8 @@ static int print_usr_ds(pid_t pid)
 	
 	return 0;
 }
+
+// fin
 
 // static int print_ker_ds(void)
 // {
