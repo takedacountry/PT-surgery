@@ -8,30 +8,25 @@ struct ds_list{
 	struct list_head list;
 };
 
-struct ds_head_list{
-	pid_t pid;
-	struct list_head head;
+struct log_list{
+	unsigned long base;
+	pte_t pte;	// if update
+	int flag;	// update, free, read
+	int commit;
 	struct list_head list;
 };
-
-// struct ds_list_head{
-// 	struct list_head usr_ds_list;
-// 	struct list_head ker_ds_list;
-// };
 
 struct m_list{
 	unsigned long va;
-	unsigned long num;
+	unsigned long base;
+	struct list_head ds_head;
+	struct list_head log_head;
 	struct list_head list;
 };
 
-struct m_head_list{
+struct pid_list{
 	pid_t pid;
 	struct list_head head;
 	struct list_head list;
 };
-		
-// struct m_list_head{
-// 	struct list_head usr_m_list;
-// 	struct list_head ker_m_list;
-// };
+
