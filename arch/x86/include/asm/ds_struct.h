@@ -26,7 +26,7 @@ struct m_list{
 
 struct pid_list{
 	pid_t pid;
-	struct list_head head;
+	struct list_head m_head;
 	struct list_head list;
 };
 
