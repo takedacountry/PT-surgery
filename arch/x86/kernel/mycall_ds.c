@@ -663,7 +663,7 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 {
 	struct m_head_list *mhead;
 	struct ds_head_list *dhead;
-	struct m_list *mnode
+	struct m_list *mnode;
 	struct ds_list *dnode, *next, *prev;
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
