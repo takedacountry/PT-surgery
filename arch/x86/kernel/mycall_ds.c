@@ -48,6 +48,7 @@
 #define FLAG_RW			(_AT(long, 1) << RW_BIT)
 #define FLAG_RW_NOT		(~FLAG_RW)
 
+
 unsigned long vaddr;
 struct task_struct *target_task;
 
@@ -300,6 +301,17 @@ static int add_tail_m_node(unsigned long va, unsigned long base, struct m_list *
 		return -ENOMEM;
 
 	list_add_tail(&itr->list, &m_node->list);
+	return 0;
+}
+
+static int add_log_node(unsigned long base, pte_t pte, int flag, struct m_list *mnode)
+{
+	struct log_list *itr;
+
+	if((itr = make_log_node(base, pte, flag, 0)) == NULL)
+		return -ENOMEM;
+
+	list_add_tail(&itr->list, &mnode->head);
 	return 0;
 }
 
@@ -680,6 +692,7 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 			break;
 		}
 	}
+	
 	list_for_each_entry(dhead, &usr_ds_head, list){
 		if(dhead->pid == pid){
 			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
@@ -752,6 +765,63 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
+int make_log_list_usr(unsigned long va, pte_t pte, int flag)
+{
+	struct m_head_list *mhead;
+	struct m_list *mnode;
+	unsigned long base;
+
+	list_for_each_entry(mhead, &usr_m_head, list){
+		if(mhead->pid == current->pid){
+			list_for_each_entry(mnode, &mhead->head, list){
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE){
+					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
+					if(add_log_node(base, pte, flag, mnode) < 0)
+						goto err;
+					return 1;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+err:
+	return -1;
+}
+EXPORT_SYMBOL_GPL(make_log_list_usr);
+
+int finish_log_list_usr(unsigned long va, int flag)
+{
+	struct m_head_list *mhead;
+	struct m_list *mnode;
+	struct log_list *lnode;
+	unsigned long base;
+
+	list_for_each_entry(mhead, &usr_m_head, list){
+		if(mhead->pid == current->pid){
+			list_for_each_entry(mnode, &mhead->head, list){
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE){
+					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
+					
+					list_for_each_entry(lnode, &mnode->head, list){
+						if(lnode->base == base && lnode->flag == flag){
+							lnode->commit = 1;
+							list_del(&lnode->list);
+							kfree(lnode);
+							break;
+						}
+					}
+					return 1;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+err:
+	return -1;
+}
+EXPORT_SYMBOL_GPL(finish_log_list_usr);
 
 // static int make_list_usr_from_pgtable(unsigned long addr, pte_t *ptep)
 // {
