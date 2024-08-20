@@ -818,8 +818,6 @@ int finish_log_list_usr(unsigned long va, int flag)
 		}
 	}
 	return 0;
-err:
-	return -1;
 }
 EXPORT_SYMBOL_GPL(finish_log_list_usr);
 
