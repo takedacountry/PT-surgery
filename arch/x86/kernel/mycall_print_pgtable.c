@@ -452,7 +452,8 @@ EXPORT_SYMBOL_GPL(make_user_pgtable2);
 // }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable){
-	return make_user_pgtable(target_task);
+	// return make_user_pgtable(target_task);
+	return make_user_pgtable(current);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
@@ -462,7 +463,8 @@ SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
 }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable2){
-	return make_user_pgtable2(target_task);
+	// return make_user_pgtable2(target_task);
+	return make_user_pgtable2(current);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable2){
