@@ -8,6 +8,12 @@ struct ds_list{
 	struct list_head list;
 };
 
+struct ds_head_list{
+	pid_t pid;
+	struct list_head head;
+	struct list_head list;
+};
+
 struct log_list{
 	unsigned long base;
 	pte_t pte;	// if update
@@ -19,14 +25,13 @@ struct log_list{
 struct m_list{
 	unsigned long va;
 	unsigned long base;
-	struct list_head ds_head;
-	struct list_head log_head;
+	struct list_head head;
 	struct list_head list;
 };
 
-struct pid_list{
+struct m_head_list{
 	pid_t pid;
-	struct list_head m_head;
+	struct list_head head;
 	struct list_head list;
 };
 
