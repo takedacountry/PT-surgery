@@ -982,7 +982,10 @@ copy_present_pte(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	 * in the parent and the child
 	 */
 	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
+		\\ my code
+		make_log_list_usr((unsigned long)src_pte, *src_pte, PTE_UPDATE_MASK);
 		ptep_set_wrprotect(src_mm, addr, src_pte);
+		finish_log_list_usr((unsigned long)src_pte, PTE_UPDATE_MASK);
 		pte = pte_wrprotect(pte);
 	}
 	VM_BUG_ON(page && PageAnon(page) && PageAnonExclusive(page));
