@@ -778,7 +778,7 @@ int make_log_list_usr(unsigned long va, pte_t pte, int flag)
 					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
 					if(add_log_node(base, pte, flag, mnode) < 0)
 						goto err;
-					printk(KERN_INFO "make log list %lx %lx %d 0\n", base, (unsigned long)pte, flag);
+					printk(KERN_INFO "make log %lx %lx %lx %d 0\n", base, pte_pfn(pte), pte_flags(pte), flag);
 					return 1;
 				}
 			}
@@ -807,7 +807,7 @@ int finish_log_list_usr(unsigned long va, int flag)
 					list_for_each_entry(lnode, &mnode->head, list){
 						if(lnode->base == base && lnode->flag == flag){
 							lnode->commit = 1;
-							printk(KERN_INFO "make log list %lx %lx %d %d\n", lnode->base, (unsigned long)lnode->pte, lnode->flag, lnode->commit);
+							printk(KERN_INFO "make log %lx %lx %lx %d %d\n", lnode->base, pte_pfn(lnode->pte), pte_flags(lnode->pte), lnode->flag, lnode->commit);
 							list_del(&lnode->list);
 							kfree(lnode);
 							break;
