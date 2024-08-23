@@ -4173,7 +4173,10 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 	page_add_new_anon_rmap(page, vma, vmf->address);
 	lru_cache_add_inactive_or_unevictable(page, vma);
 setpte:
+	// my code
+	make_log_list_usr((unsigned long)vmf->pte, entry, PTE_UPDATE_MASK);
 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
+	finish_log_list_usr((unsigned long)vmf->pte, PTE_UPDATE_MASK);
 
 	/* No need to invalidate - it was non-present before */
 	update_mmu_cache(vma, vmf->address, vmf->pte);
