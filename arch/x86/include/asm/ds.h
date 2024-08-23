@@ -1,40 +1,11 @@
 #include <linux/types.h>
 
-// struct ds_list{
-// 	unsigned long base;
-// 	unsigned long limit;
-// 	long offset;
-// 	unsigned long flag;
-// 	struct list_head list;
-// };
-
-// struct ds_head_list{
-// 	pid_t pid;
-// 	struct list_head head;
-// 	struct list_head list;
-// };
-
-// // struct ds_list_head{
-// // 	struct list_head usr_ds_list;
-// // 	struct list_head ker_ds_list;
-// // };
-
-// struct m_list{
-// 	unsigned long va;
-// 	unsigned long num;
-// 	struct list_head list;
-// };
-
-// struct m_head_list{
-// 	pid_t pid;
-// 	struct list_head head;
-// 	struct list_head list;
-// };
-		
-// // struct m_list_head{
-// // 	struct list_head usr_m_list;
-// // 	struct list_head ker_m_list;
-// };
+#define PTE_READ_SHIFT		0
+#define PTE_READ_MASK		(_AT(int, 1) << PTE_READ_SHIFT)
+#define PTE_UPDATE_SHIFT	1
+#define PTE_UPDATE_MASK		(_AT(int, 1) << PTE_UPDATE_SHIFT)
+#define PTE_FREE_SHIFT		2
+#define PTE_FREE_MASK		(_AT(int, 1) << PTE_FREE_SHIFT)
 
 extern struct list_head usr_m_head;
 extern struct list_head ker_m_head;
@@ -47,6 +18,9 @@ extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va);
 extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va);
 
 extern int make_ds_list_usr(unsigned long va, pte_t pte);
+
+extern int make_log_list_usr(unsigned long va, pte_t pte, int flag);
+extern int finish_log_list_usr(unsigned long va, int flag);
 
 extern void delete_ds_m_free_pte(unsigned long va);
 extern void delete_m_free_pmd(unsigned long va);
