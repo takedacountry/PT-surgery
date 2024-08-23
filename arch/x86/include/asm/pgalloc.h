@@ -63,8 +63,10 @@ extern void ___pte_free_tlb(struct mmu_gather *tlb, struct page *pte);
 static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *pte,
 				  unsigned long address)
 {
+	make_log_list_usr((unsigned long)page_address(pte), 0, PTE_FREE_MASK);
 	___pte_free_tlb(tlb, pte);
 	delete_ds_m_free_pte((unsigned long)page_address(pte));
+	finish_log_list_usr((unsigned long)page_address(pte), PTE_FREE_MASK);
 }
 
 static inline void pmd_populate_kernel(struct mm_struct *mm,
