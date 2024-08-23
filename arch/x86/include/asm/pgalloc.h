@@ -58,15 +58,12 @@ extern pgtable_t pte_alloc_one(struct mm_struct *);
 
 extern void ___pte_free_tlb(struct mmu_gather *tlb, struct page *pte);
 
-// my code
-// extern void delete_ds_m_free_pte(unsigned long va);
 static inline void __pte_free_tlb(struct mmu_gather *tlb, struct page *pte,
 				  unsigned long address)
 {
-	make_log_list_usr((unsigned long)page_address(pte), native_make_pte(0), PTE_FREE_MASK);
 	___pte_free_tlb(tlb, pte);
+	// my code
 	delete_ds_m_free_pte((unsigned long)page_address(pte));
-	finish_log_list_usr((unsigned long)page_address(pte), PTE_FREE_MASK);
 }
 
 static inline void pmd_populate_kernel(struct mm_struct *mm,
@@ -96,12 +93,11 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 #if CONFIG_PGTABLE_LEVELS > 2
 extern void ___pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd);
-// my code
-// extern void delete_m_free_pmd(unsigned long va);
 static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 				  unsigned long address)
 {
 	___pmd_free_tlb(tlb, pmd);
+	// my code
 	delete_m_free_pmd((unsigned long)pmd);
 }
 
@@ -139,12 +135,11 @@ static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pu
 }
 
 extern void ___pud_free_tlb(struct mmu_gather *tlb, pud_t *pud);
-// my code
-// extern void delete_m_free_pud(unsigned long va);
 static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 				  unsigned long address)
 {
 	___pud_free_tlb(tlb, pud);
+	// my code
 	delete_m_free_pud((unsigned long)pud);
 }
 
