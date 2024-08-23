@@ -227,9 +227,9 @@ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 	pgtable_t token = pmd_pgtable(*pmd);
 	pmd_clear(pmd);
 	// my code
-	make_log_list_usr((unsigned long)page_address((struct page *)pte), native_make_pte(0), PTE_FREE_MASK);
+	make_log_list_usr((unsigned long)page_address((struct page *)token), native_make_pte(0), PTE_FREE_MASK);
 	pte_free_tlb(tlb, token, addr);
-	finish_log_list_usr((unsigned long)page_address((struct page *)pte), PTE_FREE_MASK);
+	finish_log_list_usr((unsigned long)page_address((struct page *)token), PTE_FREE_MASK);
 	mm_dec_nr_ptes(tlb->mm);
 }
 
@@ -985,7 +985,7 @@ copy_present_pte(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	 * in the parent and the child
 	 */
 	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
-		\\ my code
+		// my code
 		make_log_list_usr((unsigned long)src_pte, *src_pte, PTE_UPDATE_MASK);
 		ptep_set_wrprotect(src_mm, addr, src_pte);
 		finish_log_list_usr((unsigned long)src_pte, PTE_UPDATE_MASK);
