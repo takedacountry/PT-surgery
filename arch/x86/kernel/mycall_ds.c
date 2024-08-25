@@ -807,7 +807,7 @@ int finish_log_list_usr(unsigned long va, int flag)
 					list_for_each_entry(lnode, &mnode->head, list){
 						if(lnode->base == base && lnode->flag == flag){
 							lnode->commit = 1;
-							printk(KERN_INFO "make log %lx %lx %lx %d %d\n", lnode->base, pte_pfn(lnode->pte), pte_flags(lnode->pte), lnode->flag, lnode->commit);
+							printk(KERN_INFO "delete log %lx %lx %lx %d %d\n", lnode->base, pte_pfn(lnode->pte), pte_flags(lnode->pte), lnode->flag, lnode->commit);
 							list_del(&lnode->list);
 							kfree(lnode);
 							break;
@@ -2053,6 +2053,7 @@ void delete_ds_m_free_pte(unsigned long va)
 	struct ds_head_list *ds_head;
 	struct m_list *m_node;
 	struct m_head_list *m_head;
+	struct log_list *itr;
 
 	unsigned long va_start = 0, va_end = 0;
 
@@ -2063,6 +2064,36 @@ void delete_ds_m_free_pte(unsigned long va)
 				if(m_node->base & PTE_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
 					va_start = m_node->base & PT_PGTABLE_MASK_NOT;
 					va_end = va_start + PT_PGTABLE_SIZE;
+	
+					list_for_each_entry(ds_head, &usr_ds_head, list){
+						if(ds_head->pid == current->pid){
+							list_for_each_entry(ds_node, &ds_head->head, list){
+								if(ds_node->limit <= va_start){
+									continue;
+								}else if(va_end <= ds_node->base){
+									break;
+								}else{
+									delete_ds(ds_node, va_start, va_end);
+									// printk(KERN_INFO "delete ds pte\n");
+									break;					
+								}
+							}
+							if(list_empty(&ds_head->head)){
+								list_del(&ds_head->list);
+								kfree(ds_head);
+								printk(KERN_INFO "delete ds head %d\n", current->pid);
+							}
+							break;
+						}
+					}
+
+					while((&m_node->head)->next != &m_node->head){
+						itr = list_first_entry(&m_node->head, typeof(*itr), list);
+						printk(KERN_INFO "delete log %lx %lx %lx %d %d\n", itr->base, pte_pfn(itr->pte), pte_flags(itr->pte), itr->flag, itr->commit);
+						list_del(&itr->list);
+						kfree(itr);
+					}
+					
 					list_del(&m_node->list);
 					kfree(m_node);
 					printk(KERN_INFO "delete m pte %lx %lx-%lx pid %d\n", va, va_start, va_end, current->pid);
@@ -2072,28 +2103,7 @@ void delete_ds_m_free_pte(unsigned long va)
 			break;
 		}
 	}
-	
-	list_for_each_entry(ds_head, &usr_ds_head, list){
-		if(ds_head->pid == current->pid){
-			list_for_each_entry(ds_node, &ds_head->head, list){
-				if(ds_node->limit <= va_start){
-					continue;
-				}else if(va_end <= ds_node->base){
-					break;
-				}else{
-					delete_ds(ds_node, va_start, va_end);
-					// printk(KERN_INFO "delete ds pte\n");
-					break;					
-				}
-			}
-			if(list_empty(&ds_head->head)){
-				list_del(&ds_head->list);
-				kfree(ds_head);
-				printk(KERN_INFO "delete ds head %d\n", current->pid);
-			}
-			break;
-		}
-	}
+
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_ds_m_free_pte);
