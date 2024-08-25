@@ -49,7 +49,7 @@ int main(void)
 
     
     char *ma = (char*)malloc(INDEX);
-    // char *mb = (char*)malloc(INDEX);
+    char *mb = (char*)malloc(PAGESIZE);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -82,7 +82,7 @@ int main(void)
     // char *mp1 = (char*)malloc(INDEX);
     
     memset(ma, 0, INDEX);
-    // memset(mb, 0, INDEX);
+    memset(mb, 0, PAGESIZE);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -116,7 +116,7 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    // printf("va: %p\n", mb); // print user va 
+    printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -193,7 +193,7 @@ int main(void)
         // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
         
-        memset(ma, 1, INDEX);
+        // memset(ma, 1, INDEX);
         // memset(mb, 1, INDEX);
         // memset(mc, 1, INDEX);
         // memset(md, 1, INDEX);
@@ -210,8 +210,8 @@ int main(void)
         // memset(mo, 1, INDEX);
         // memset(mp, 1, INDEX);
     
-        free(ma);
-        // free(mb);
+        // free(ma);
+        free(mb);
         // free(mc);
         // free(md);
         // free(me);
@@ -242,6 +242,12 @@ int main(void)
         // free(mn1);
         // free(mo1);
         // free(mp1);
+
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+    
+        free(ma);
     
         printf("%ld\n", syscall(SYS_mycall_ds_delete));
         printf("%ld\n", syscall(SYS_mycall_m_delete));
