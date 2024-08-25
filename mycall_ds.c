@@ -49,7 +49,7 @@ int main(void)
 
     
     char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(PAGESIZE);
+    char *mb = (char*)malloc(PAGESIZE*2);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -82,7 +82,7 @@ int main(void)
     // char *mp1 = (char*)malloc(INDEX);
     
     memset(ma, 0, INDEX);
-    memset(mb, 0, PAGESIZE);
+    memset(mb, 0, PAGESIZE*2);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
