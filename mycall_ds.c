@@ -29,7 +29,7 @@
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
-#define PAGESIZE 4096
+#define PAGESIZE 1024*1024
 #define PGD 512
 #define PUD 512
 #define PMD 512
@@ -49,7 +49,7 @@ int main(void)
 
     
     char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(PAGESIZE*2);
+    char *mb = (char*)malloc(PAGESIZE);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -82,7 +82,7 @@ int main(void)
     // char *mp1 = (char*)malloc(INDEX);
     
     memset(ma, 0, INDEX);
-    memset(mb, 0, PAGESIZE*2);
+    memset(mb, 0, PAGESIZE);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
