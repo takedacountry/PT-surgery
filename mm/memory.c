@@ -229,7 +229,7 @@ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 	// my code
 	make_log_list_usr((unsigned long)page_address((struct page *)token), native_make_pte(0), PTE_FREE_MASK);
 	pte_free_tlb(tlb, token, addr);
-	finish_log_list_usr((unsigned long)page_address((struct page *)token), PTE_FREE_MASK);
+	// finish_log_list_usr((unsigned long)page_address((struct page *)token), PTE_FREE_MASK);
 	mm_dec_nr_ptes(tlb->mm);
 }
 
