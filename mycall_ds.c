@@ -210,8 +210,8 @@ int main(void)
         // memset(mo, 1, INDEX);
         // memset(mp, 1, INDEX);
     
-        free(ma);
-        // free(mb);
+        // free(ma);
+        free(mb);
         // free(mc);
         // free(md);
         // free(me);
@@ -247,10 +247,10 @@ int main(void)
         printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     
-        free(mb);
+        free(ma);
     
-        printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        printf("%ld\n", syscall(SYS_mycall_m_delete));
+        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        // printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     // }
 

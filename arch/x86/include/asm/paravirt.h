@@ -554,10 +554,12 @@ static inline void set_pte_atomic(pte_t *ptep, pte_t pte)
 	set_pte(ptep, pte);
 }
 
+extern void print_pte_clear(pte_t *ptep);
 static inline void pte_clear(struct mm_struct *mm, unsigned long addr,
 			     pte_t *ptep)
 {
 	set_pte(ptep, native_make_pte(0));
+	print_pte_clear(ptep);
 }
 
 static inline void pmd_clear(pmd_t *pmdp)

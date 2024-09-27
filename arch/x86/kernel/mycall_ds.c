@@ -767,6 +767,8 @@ EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
 int make_log_list_usr(unsigned long va, pte_t pte, int flag)
 {
+	goto err;
+
 	struct m_head_list *mhead;
 	struct m_list *mnode;
 	unsigned long base;
@@ -793,6 +795,8 @@ EXPORT_SYMBOL_GPL(make_log_list_usr);
 
 int finish_log_list_usr(unsigned long va, int flag)
 {
+	goto err;
+
 	struct m_head_list *mhead;
 	struct m_list *mnode;
 	struct log_list *lnode;
@@ -820,6 +824,8 @@ int finish_log_list_usr(unsigned long va, int flag)
 		}
 	}
 	return 0;
+err:
+	return -1;
 }
 EXPORT_SYMBOL_GPL(finish_log_list_usr);
 
@@ -2313,3 +2319,15 @@ void print_pte_addr(struct page *pte)
 	return;
 }
 EXPORT_SYMBOL_GPL(print_pte_addr);
+
+void print_pte_clear(pte_t *ptep)
+{
+	printk("pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+}
+EXPORT_SYMBOL_GPL(print_pte_clear);
+
+void print_native_pte_clear(pte_t *ptep)
+{
+	printk("native pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+}
+EXPORT_SYMBOL_GPL(print_native_pte_clear);
