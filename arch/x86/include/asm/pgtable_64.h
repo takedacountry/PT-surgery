@@ -16,9 +16,6 @@
 #include <linux/threads.h>
 #include <asm/fixmap.h>
 
-// my code
-#include <asm/ds.h>
-
 extern p4d_t level4_kernel_pgt[512];
 extern p4d_t level4_ident_pgt[512];
 extern pud_t level3_kernel_pgt[512];
@@ -70,13 +67,14 @@ static inline void native_set_pte(pte_t *ptep, pte_t pte)
 	WRITE_ONCE(*ptep, pte);
 }
 
+// my code
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 				    pte_t *ptep)
 {
 	native_set_pte(ptep, native_make_pte(0));
 	// my code
 	make_ds_list_usr((unsigned long)ptep, *ptep);
-	// print_native_pte_clear(ptep);
 }
 
 static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
@@ -100,7 +98,6 @@ static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 	// my code
 	pte_t ret = native_make_pte(xchg(&xp->pte, 0));
 	make_ds_list_usr((unsigned long)xp, *xp);
-	// print_pte_clear(xp);
 	return ret;
 	// return native_make_pte(xchg(&xp->pte, 0));
 #else
