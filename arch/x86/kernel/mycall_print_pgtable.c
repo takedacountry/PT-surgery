@@ -57,10 +57,10 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
   	pte_t *ptep = pte_offset_index(pmdp, pte);
 	*(ptepp) = ptep;
 
-  	// if(pte_none(*ptep) || !pte_present(*ptep)) {
+  	if(pte_none(*ptep) || !pte_present(*ptep)) {
     		// printk(KERN_INFO "pte %lu is not present.\n", pte);
-    		// return 0;
-  	// }
+    		return 0;
+  	}
 		
   	return 1;
 }

@@ -28,6 +28,9 @@
 #include <asm/trap_pf.h>
 #include <asm/trapnr.h>
 #include <asm/init.h>
+
+// my code
+#include <asm/ds.h>
 /* Use the static base for this part of the boot process */
 #undef __PAGE_OFFSET
 #define __PAGE_OFFSET __PAGE_OFFSET_BASE
@@ -251,6 +254,8 @@ static void clflush_page(unsigned long address)
 		clflush(cl);
 }
 
+// my code
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static int set_clr_page_flags(struct x86_mapping_info *info,
 			      unsigned long address,
 			      pteval_t set, pteval_t clr)

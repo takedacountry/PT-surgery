@@ -38,7 +38,6 @@
 int main(void)
 {
     pid_t pid;
-    int status;
     
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
@@ -48,7 +47,7 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     
-    char *ma = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(PAGESIZE);
     char *mb = (char*)malloc(PAGESIZE);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
@@ -81,7 +80,7 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
+    memset(ma, 0, PAGESIZE);
     memset(mb, 0, PAGESIZE);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
@@ -210,8 +209,8 @@ int main(void)
         // memset(mo, 1, INDEX);
         // memset(mp, 1, INDEX);
     
-        // free(ma);
-        free(mb);
+        free(ma);
+        // free(mb);
         // free(mc);
         // free(md);
         // free(me);
@@ -247,10 +246,10 @@ int main(void)
         printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
         printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     
-        free(ma);
+        free(mb);
     
-        // printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        // printf("%ld\n", syscall(SYS_mycall_m_delete));
+        printf("%ld\n", syscall(SYS_mycall_ds_delete));
+        printf("%ld\n", syscall(SYS_mycall_m_delete));
 
     // }
 

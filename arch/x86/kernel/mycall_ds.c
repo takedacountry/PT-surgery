@@ -11,7 +11,9 @@
 #include <asm/ds.h>
 #include <asm/ds_struct.h>
 #include <asm/page.h>
+#include <asm/user_64.h>
 #include <asm/pgtable.h>
+#include <asm/pgtable_64.h>
 #include <asm/pgalloc.h>
 #include <asm/page_types.h>
 #include <asm/pgtable_types.h>
@@ -20,39 +22,41 @@
 #include <asm-generic/barrier.h>
 #include <asm-generic/memory_model.h>
 
-#define USER_MAX 		0x100
-#define MAX 			0x200
-#define USER_MAX_ADDRESS_SHIFT	47
+#define USER_MAX 			(0x100)
+#define MAX 				(0x200)
+#define USER_MAX_ADDRESS_SHIFT	(47)
 #define USER_MAX_ADDRESS  	(_AT(long, 1) << USER_MAX_ADDRESS_SHIFT)
-#define MAX_NUM_SHIFT		36
-#define MAX_NUM		  	(_AT(long, 1) << MAX_NUM_SHIFT)
-#define PT_PGTABLE_SHIFT 	9
+#define MAX_NUM_SHIFT		(36)
+#define MAX_NUM		  		(_AT(long, 1) << MAX_NUM_SHIFT)
+#define PT_PGTABLE_SHIFT 	(9)
 #define PT_PGTABLE_SIZE		(_AT(long, 1) << PT_PGTABLE_SHIFT)
 #define PT_PGTABLE_MASK		(PT_PGTABLE_SIZE - 1)
 #define PT_PGTABLE_MASK_NOT	(~PT_PGTABLE_MASK)
-#define PGD_FLAG_SHIFT		0
+#define PGD_FLAG_SHIFT		(0)
 #define PGD_FLAG_MASK		(_AT(long, 1) << PGD_FLAG_SHIFT)
-#define P4D_FLAG_SHIFT		1
+#define P4D_FLAG_SHIFT		(1)
 #define P4D_FLAG_MASK		(_AT(long, 1) << P4D_FLAG_SHIFT)
-#define PUD_FLAG_SHIFT		2
+#define PUD_FLAG_SHIFT		(2)
 #define PUD_FLAG_MASK		(_AT(long, 1) << PUD_FLAG_SHIFT)
-#define PMD_FLAG_SHIFT		3
+#define PMD_FLAG_SHIFT		(3)
 #define PMD_FLAG_MASK		(_AT(long, 1) << PMD_FLAG_SHIFT)
-#define PTE_FLAG_SHIFT		4
+#define PTE_FLAG_SHIFT		(4)
 #define PTE_FLAG_MASK		(_AT(long, 1) << PTE_FLAG_SHIFT)
-#define OFFSET_SHIFT 		12
-#define OFFSET_SIZE		(_AT(long, 1) << OFFSET_SHIFT)
-#define OFFSET_MASK		(OFFSET_SIZE - 1)
+#define OFFSET_SHIFT 		(12)
+#define OFFSET_SIZE			(_AT(long, 1) << OFFSET_SHIFT)
+#define OFFSET_MASK			(OFFSET_SIZE - 1)
 #define OFFSET_MASK_NOT		(~OFFSET_MASK)
-#define RW_BIT			1
-#define FLAG_RW			(_AT(long, 1) << RW_BIT)
-#define FLAG_RW_NOT		(~FLAG_RW)
+#define RW_BIT				(1)
+#define FLAG_RW				(_AT(long, 1) << RW_BIT)
+#define FLAG_RW_NOT			(~FLAG_RW)
 
 
 unsigned long vaddr;
-struct task_struct *target_task;
+// struct task_struct *target_task;
 
 static long register_pid(pid_t pid);
+void delete_ds(struct ds_list *itr, unsigned long start, unsigned long end);
+static void delete_pte_log_all(struct thread_log_list *t_lhead);
 
 
 static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
@@ -161,10 +165,12 @@ static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
 //   	return get_pfn_scan_pgd(mm, pgd, pud, pmd, pte, ptepp);
 // }
 
-LIST_HEAD(usr_m_head);
-LIST_HEAD(ker_m_head);
-LIST_HEAD(usr_ds_head);
-LIST_HEAD(ker_ds_head);
+// LIST_HEAD(usr_m_head);
+// LIST_HEAD(ker_m_head);
+// LIST_HEAD(usr_ds_head);
+// LIST_HEAD(ker_ds_head);
+LIST_HEAD(user_head);
+LIST_HEAD(kern_head);
 
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
@@ -205,15 +211,25 @@ static struct m_list *make_m_node(unsigned long va, unsigned long base)
 	return list;
 }
 
-static struct log_list *make_log_node(unsigned long base, pte_t pte, int flag, int commit)
+static struct pte_log_list *make_pte_log_node(unsigned long base, pte_t pte, int flag)
 {
-	struct log_list *list = kmalloc(sizeof(struct log_list), GFP_KERNEL);
+	struct pte_log_list *list = kmalloc(sizeof(struct pte_log_list), GFP_KERNEL);
 	if(!list)
 		return NULL;
 
 	list->base = base;
 	list->pte = pte;
 	list->flag = flag;
+	return list;
+}
+
+static struct thread_log_list *make_thread_log_node(u32 cpu, int commit)
+{
+	struct thread_log_list *list = kmalloc(sizeof(struct thread_log_list), GFP_KERNEL);
+	if(!list)
+		return NULL;
+
+	list->cpu = cpu;
 	list->commit = commit;
 	return list;
 }
@@ -304,11 +320,22 @@ static int add_tail_m_node(unsigned long va, unsigned long base, struct m_list *
 	return 0;
 }
 
-static int add_log_node(unsigned long base, pte_t pte, int flag, struct m_list *mnode)
+static int add_pte_log_node(unsigned long base, pte_t pte, int flag, struct thread_log_list *lnode)
 {
-	struct log_list *itr;
+	struct pte_log_list *itr;
 
-	if((itr = make_log_node(base, pte, flag, 0)) == NULL)
+	if((itr = make_pte_log_node(base, pte, flag)) == NULL)
+		return -ENOMEM;
+
+	list_add_tail(&itr->list, &lnode->head);
+	return 0;
+}
+
+static int add_thread_log_node(u32 cpu, struct m_list *mnode)
+{
+	struct thread_log_list *itr;
+
+	if((itr = make_thread_log_node(cpu, 0)) == NULL)
 		return -ENOMEM;
 
 	list_add_tail(&itr->list, &mnode->head);
@@ -705,7 +732,11 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				list_for_each_entry_reverse(prev, &dhead->head, list){
 					if(prev->base <= dnode->base && dnode->limit <= prev->limit){
 						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-						if(dnode->offset != prev->offset){
+						if(pte_value == 0 && pte_flag == 0) {
+							delete_ds(prev, dnode->base, dnode->limit);
+							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+						}
+						else if(dnode->offset != prev->offset){
 							// modify pte value
 							modify_ds_offset(prev, dnode, dhead);
 							printk(KERN_INFO "modify ds offset %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
@@ -765,23 +796,19 @@ int make_ds_list_usr(unsigned long va, pte_t pte)
 }
 EXPORT_SYMBOL_GPL(make_ds_list_usr);
 
-int make_log_list_usr(unsigned long va, pte_t pte, int flag)
+int make_thread_log_list_usr(unsigned long va)
 {
-	goto err;
-
 	struct m_head_list *mhead;
 	struct m_list *mnode;
-	unsigned long base;
 
-	list_for_each_entry(mhead, &usr_m_head, list){
-		if(mhead->pid == current->pid){
-			list_for_each_entry(mnode, &mhead->head, list){
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE){
-					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
-					if(add_log_node(base, pte, flag, mnode) < 0)
+	list_for_each_entry(mhead, &usr_m_head, list) {
+		if(mhead->pid == current->pid) {
+			list_for_each_entry(mnode, &mhead->head, list) {
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+					if(add_thread_log_node(current_thread_info()->cpu, mnode) < 0)
 						goto err;
-					printk(KERN_INFO "make log %lx %lx %lx %d 0\n", base, pte_pfn(pte), pte_flags(pte), flag);
-					return 1;
+					printk(KERN_INFO "make thread log %ld 0\n", current_thread_info()->cpu);
+					break;
 				}
 			}
 			break;
@@ -791,33 +818,29 @@ int make_log_list_usr(unsigned long va, pte_t pte, int flag)
 err:
 	return -1;
 }
-EXPORT_SYMBOL_GPL(make_log_list_usr);
+EXPORT_SYMBOL_GPL(make_thread_log_list_usr);
 
-int finish_log_list_usr(unsigned long va, int flag)
+int make_pte_log_list_usr(unsigned long va, pte_t pte, int flag)
 {
-	goto err;
-
 	struct m_head_list *mhead;
 	struct m_list *mnode;
-	struct log_list *lnode;
+	struct thread_log_list *lnode;
 	unsigned long base;
 
-	list_for_each_entry(mhead, &usr_m_head, list){
-		if(mhead->pid == current->pid){
-			list_for_each_entry(mnode, &mhead->head, list){
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE){
-					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
-					
-					list_for_each_entry(lnode, &mnode->head, list){
-						if(lnode->base == base && lnode->flag == flag){
-							lnode->commit = 1;
-							printk(KERN_INFO "delete log %lx %lx %lx %d %d\n", lnode->base, pte_pfn(lnode->pte), pte_flags(lnode->pte), lnode->flag, lnode->commit);
-							list_del(&lnode->list);
-							kfree(lnode);
+	list_for_each_entry(mhead, &usr_m_head, list) {
+		if(mhead->pid == current->pid) {
+			list_for_each_entry(mnode, &mhead->head, list) {
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+					list_for_each_entry(lnode, &mnode->head, list) {
+						if(lnode->cpu == current_thread_info()->cpu) {
+							base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
+							if(add_pte_log_node(base, pte, flag, lnode) < 0)
+								goto err;
+							printk(KERN_INFO "make pte log %lx %lx %lx %d 0\n", base, pte_pfn(pte), pte_flags(pte), flag);
 							break;
 						}
 					}
-					return 1;
+					break;
 				}
 			}
 			break;
@@ -827,7 +850,73 @@ int finish_log_list_usr(unsigned long va, int flag)
 err:
 	return -1;
 }
-EXPORT_SYMBOL_GPL(finish_log_list_usr);
+EXPORT_SYMBOL_GPL(make_pte_log_list_usr);
+
+int delete_thread_log_list_usr(unsigned long va)
+{
+	struct m_head_list *mhead;
+	struct m_list *mnode;
+	struct thread_log_list *t_lnode;
+
+	list_for_each_entry(mhead, &usr_m_head, list) {
+		if(mhead->pid == current->pid) {
+			list_for_each_entry(mnode, &mhead->head, list) {
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+					list_for_each_entry(t_lnode, &mnode->head, list) {
+						if(t_lnode->cpu == current_thread_info()->cpu) {
+							delete_pte_log_all(t_lnode);
+							t_lnode->commit = 1;
+							printk(KERN_INFO "delete thread log %ld %d\n", t_lnode->cpu, t_lnode->commit);
+							list_del(&t_lnode->list);
+							kfree(t_lnode);
+							break;
+						}
+					}
+					break;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+}
+EXPORT_SYMBOL_GPL(delete_thread_log_list_usr);
+
+int delete_pte_log_list_usr(unsigned long va, int flag)
+{
+	struct m_head_list *mhead;
+	struct m_list *mnode;
+	struct thread_log_list *t_lnode;
+	struct pte_log_list *p_lnode;
+	unsigned long base;
+
+	list_for_each_entry(mhead, &usr_m_head, list) {
+		if(mhead->pid == current->pid) {
+			list_for_each_entry(mnode, &mhead->head, list) {
+				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+					list_for_each_entry(t_lnode, &mnode->head, list) {
+						if(t_lnode->cpu == current_thread_info()->cpu) {
+							base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
+							list_for_each_entry(p_lnode, &t_lnode->head, list) {
+								if(p_lnode->base == base && p_lnode->flag == flag){
+									printk(KERN_INFO "delete pte log %lx %lx %lx %d\n", p_lnode->base, pte_pfn(p_lnode->pte), pte_flags(p_lnode->pte), p_lnode->flag);
+									list_del(&p_lnode->list);
+									kfree(p_lnode);
+									break;
+								}
+							}
+							break;
+						}
+					}
+					break;
+				}
+			}
+			break;
+		}
+	}
+	return 0;
+}
+EXPORT_SYMBOL_GPL(delete_pte_log_list_usr);
 
 // static int make_list_usr_from_pgtable(unsigned long addr, pte_t *ptep)
 // {
@@ -1518,12 +1607,14 @@ SYSCALL_DEFINE1(mycall_m_search2, pid_t, pid)
 	return 0;
 }
 
+pid_t pid_for_clear = 0;
 static long register_pid(pid_t pid)
 {
 	struct ds_head_list *ds_node;
 	struct m_head_list *m_node;
 
 	// target_task = current;
+	pid_for_clear = pid;
 	
 	list_for_each_entry(ds_node, &usr_ds_head, list){
 		if(ds_node->pid == pid){
@@ -2059,7 +2150,6 @@ void delete_ds_m_free_pte(unsigned long va)
 	struct ds_head_list *ds_head;
 	struct m_list *m_node;
 	struct m_head_list *m_head;
-	struct log_list *itr;
 
 	unsigned long va_start = 0, va_end = 0;
 
@@ -2093,12 +2183,13 @@ void delete_ds_m_free_pte(unsigned long va)
 						}
 					}
 
-					while((&m_node->head)->next != &m_node->head){
-						itr = list_first_entry(&m_node->head, typeof(*itr), list);
-						printk(KERN_INFO "delete log %lx %lx %lx %d %d\n", itr->base, pte_pfn(itr->pte), pte_flags(itr->pte), itr->flag, itr->commit);
-						list_del(&itr->list);
-						kfree(itr);
-					}
+					delete_thread_log_all(m_node);
+					// while((&m_node->head)->next != &m_node->head){
+					// 	itr = list_first_entry(&m_node->head, typeof(*itr), list);
+					// 	printk(KERN_INFO "delete log %lx %lx %lx %d %d\n", itr->base, pte_pfn(itr->pte), pte_flags(itr->pte), itr->flag, itr->commit);
+					// 	list_del(&itr->list);
+					// 	kfree(itr);
+					// }
 					
 					list_del(&m_node->list);
 					kfree(m_node);
@@ -2283,6 +2374,40 @@ SYSCALL_DEFINE0(mycall_m_delete)
 	return delete_m_all();
 }
 
+static void delete_thread_log_all(struct m_list *m_head)
+{
+	struct pte_log_list *p_lnode;
+	int count=0;
+
+	while((&t_lhead->head)->next != &t_lhead->head) {
+		p_lnode = list_first_entry(&t_lhead->head, typeof(*p_lnode), list);
+		list_del(&p_lnode->list);
+		kfree(p_lnode);
+		count++;
+	}
+
+	if(count > 0)
+		printk(KERN_INFO "delete pte log fot delete thread log %d\n", count);
+
+}
+
+static void delete_pte_log_all(struct thread_log_list *t_lhead)
+{
+	struct pte_log_list *p_lnode;
+	int count=0;
+
+	while((&t_lhead->head)->next != &t_lhead->head) {
+		p_lnode = list_first_entry(&t_lhead->head, typeof(*p_lnode), list);
+		list_del(&p_lnode->list);
+		kfree(p_lnode);
+		count++;
+	}
+
+	if(count > 0)
+		printk(KERN_INFO "delete pte log fot delete thread log %d\n", count);
+
+}
+
 bool check_parent_is_target(pid_t ppid, pid_t pid)
 {
 	struct ds_head_list *ds_node;
@@ -2322,12 +2447,37 @@ EXPORT_SYMBOL_GPL(print_pte_addr);
 
 void print_pte_clear(pte_t *ptep)
 {
-	printk("pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+	if(pid_for_clear == current->pid)
+		printk("pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
 }
 EXPORT_SYMBOL_GPL(print_pte_clear);
 
 void print_native_pte_clear(pte_t *ptep)
 {
-	printk("native pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+	if(pid_for_clear == current->pid)
+		printk("native pte clear %lx %lx  %lx\n", pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
 }
 EXPORT_SYMBOL_GPL(print_native_pte_clear);
+
+struct user_regs_struct *regs;
+
+long overwrite_user_register(void)
+{
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_overwrite_user_register)
+{
+	return overwrite_user_register();
+}
+
+long store_user_register(void)
+{
+	regs = kmalloc(sizeof(struct user_regs_struct), GFP_KERNEL);
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_store_user_register)
+{
+	return store_user_register();
+}

@@ -226,10 +226,7 @@ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 {
 	pgtable_t token = pmd_pgtable(*pmd);
 	pmd_clear(pmd);
-	// my code
-	make_log_list_usr((unsigned long)page_address((struct page *)token), native_make_pte(0), PTE_FREE_MASK);
 	pte_free_tlb(tlb, token, addr);
-	// finish_log_list_usr((unsigned long)page_address((struct page *)token), PTE_FREE_MASK);
 	mm_dec_nr_ptes(tlb->mm);
 }
 
@@ -985,10 +982,7 @@ copy_present_pte(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	 * in the parent and the child
 	 */
 	if (is_cow_mapping(vm_flags) && pte_write(pte)) {
-		// my code
-		make_log_list_usr((unsigned long)src_pte, *src_pte, PTE_UPDATE_MASK);
 		ptep_set_wrprotect(src_mm, addr, src_pte);
-		finish_log_list_usr((unsigned long)src_pte, PTE_UPDATE_MASK);
 		pte = pte_wrprotect(pte);
 	}
 	VM_BUG_ON(page && PageAnon(page) && PageAnonExclusive(page));
@@ -4179,10 +4173,7 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 	page_add_new_anon_rmap(page, vma, vmf->address);
 	lru_cache_add_inactive_or_unevictable(page, vma);
 setpte:
-	// my code
-	make_log_list_usr((unsigned long)vmf->pte, entry, PTE_UPDATE_MASK);
 	set_pte_at(vma->vm_mm, vmf->address, vmf->pte, entry);
-	finish_log_list_usr((unsigned long)vmf->pte, PTE_UPDATE_MASK);
 
 	/* No need to invalidate - it was non-present before */
 	update_mmu_cache(vma, vmf->address, vmf->pte);

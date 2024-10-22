@@ -429,25 +429,17 @@ static inline pte_t ptep_modify_prot_start(struct vm_area_struct *vma, unsigned 
 	return (pte_t) { .pte = ret };
 }
 
-// my code
-extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned long addr,
 					   pte_t *ptep, pte_t old_pte, pte_t pte)
 {
-
 	PVOP_VCALL4(mmu.ptep_modify_prot_commit, vma, addr, ptep, pte.pte);
-	// my code
-	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
-	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
-	make_ds_list_usr((unsigned long)ptep, pte);
 }
 
+extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 	// my code
-	// if(make_ds_list_usr((unsigned long)ptep, pte) < 0)
-	// 	printk(KERN_INFO "pte ds list failure at set_pte\n");
 	make_ds_list_usr((unsigned long)ptep, pte);
 }
 
@@ -554,12 +546,10 @@ static inline void set_pte_atomic(pte_t *ptep, pte_t pte)
 	set_pte(ptep, pte);
 }
 
-extern void print_pte_clear(pte_t *ptep);
 static inline void pte_clear(struct mm_struct *mm, unsigned long addr,
 			     pte_t *ptep)
 {
 	set_pte(ptep, native_make_pte(0));
-	print_pte_clear(ptep);
 }
 
 static inline void pmd_clear(pmd_t *pmdp)

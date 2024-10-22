@@ -14,11 +14,17 @@ struct ds_head_list{
 	struct list_head list;
 };
 
-struct log_list{
-	unsigned long base;
-	pte_t pte;	// if update
-	int flag;	// update, free, read
+struct pte_log_list{
+	unsigned long base; // for update
+	pte_t pte; // if pte update
+	int flag; // pte update, or read, or free
+	struct list_head list;
+};
+
+struct thread_log_list{
+	u32 cpu;
 	int commit;
+	struct list_head head;
 	struct list_head list;
 };
 

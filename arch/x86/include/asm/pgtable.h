@@ -318,7 +318,10 @@ static inline pte_t pte_mkold(pte_t pte)
 
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	return pte_clear_flags(pte, _PAGE_RW);
+	pte_t ret = pte_clear_flags(pte, _PAGE_RW);
+	make_ds_list_usr((unsigned long)&pte, pte);
+	return ret;
+	// return pte_clear_flags(pte, _PAGE_RW);
 }
 
 static inline pte_t pte_mkexec(pte_t pte)
@@ -338,7 +341,10 @@ static inline pte_t pte_mkyoung(pte_t pte)
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-	return pte_set_flags(pte, _PAGE_RW);
+	pte_t ret = pte_set_flags(pte, _PAGE_RW);
+	make_ds_list_usr((unsigned long)&pte, pte);
+	return ret;
+	// return pte_set_flags(pte, _PAGE_RW);
 }
 
 static inline pte_t pte_mkhuge(pte_t pte)
@@ -1047,6 +1053,7 @@ extern int ptep_clear_flush_young(struct vm_area_struct *vma,
 				  unsigned long address, pte_t *ptep);
 
 #define __HAVE_ARCH_PTEP_GET_AND_CLEAR
+extern void print_pte_clear(pte_t *ptep);
 static inline pte_t ptep_get_and_clear(struct mm_struct *mm, unsigned long addr,
 				       pte_t *ptep)
 {
