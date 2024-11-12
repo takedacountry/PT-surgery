@@ -35,5 +35,5 @@ extern void delete_m_free_pgd(unsigned long va);
 extern bool check_parent_is_target(pid_t ppid, pid_t pid);
 extern void register_child(struct task_struct *p);
 
-extern long make_user_pgtable(struct task_struct *p);
-extern long make_user_pgtable2(struct task_struct *p);
+extern long print_user_pgtable(struct task_struct *p);
+extern long print_user_pgtable2(struct task_struct *p);

@@ -477,8 +477,6 @@ void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 	pgd_dtor(pgd);
 	paravirt_pgd_free(mm, pgd);
 	_pgd_free(pgd);
-	// my code
-	delete_m_free_pgd((unsigned long)pgd);
 }
 
 /*

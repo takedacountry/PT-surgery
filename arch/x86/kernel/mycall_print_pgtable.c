@@ -120,7 +120,7 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 }
 
 
-long make_user_pgtable(struct task_struct *p)
+long print_user_pgtable(struct task_struct *p)
 {
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
@@ -194,9 +194,9 @@ end:
 	
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_user_pgtable);
+EXPORT_SYMBOL_GPL(print_user_pgtable);
 
-long make_user_pgtable2(struct task_struct *p)
+long print_user_pgtable2(struct task_struct *p)
 {
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
@@ -270,7 +270,7 @@ end:
 	
 	return 0;
 }
-EXPORT_SYMBOL_GPL(make_user_pgtable2);
+EXPORT_SYMBOL_GPL(print_user_pgtable2);
 
 // static long make_kernel_pgtable(void)
 // {
@@ -441,8 +441,8 @@ EXPORT_SYMBOL_GPL(make_user_pgtable2);
 // }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable){
-	// return make_user_pgtable(target_task);
-	return make_user_pgtable(current);
+	// return print_user_pgtable(target_task);
+	return print_user_pgtable(current);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
@@ -452,8 +452,8 @@ SYSCALL_DEFINE0(mycall_print_kernel_pgtable){
 }
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable2){
-	// return make_user_pgtable2(target_task);
-	return make_user_pgtable2(current);
+	// return print_user_pgtable2(target_task);
+	return print_user_pgtable2(current);
 }
 
 SYSCALL_DEFINE0(mycall_print_kernel_pgtable2){
