@@ -377,20 +377,18 @@
 459     common  mycall_ds_make          sys_mycall_ds_make
 460     common  mycall_ds_search        sys_mycall_ds_search
 461     common  mycall_recover_all_pgtable  sys_mycall_recover_all_pgtable
-462     common  mycall_ds_delete        sys_mycall_ds_delete
+462     common  mycall_ds_m_delete      sys_mycall_ds_m_delete
 463     common  mycall_ds_make_user     sys_mycall_ds_make_user
 464     common  mycall_ds_make_kernel   sys_mycall_ds_make_kernel
 465     common  mycall_print_kernel_pgtable2  sys_mycall_print_kernel_pgtable2
 466     common  mycall_print_user_pgtable2  sys_mycall_print_user_pgtable2
 467     common  mycall_m_search         sys_mycall_m_search
-468     common  mycall_m_delete         sys_mycall_m_delete
+
 469     common  mycall_recover_pgtable  sys_mycall_recover_pgtable
 472     common  mycall_ds_register_pid  sys_mycall_ds_register_pid
 473     common  mycall_make_ds_usr_from_pgtable  sys_mycall_make_ds_usr_from_pgtable
 474     common  mycall_ds_search2       sys_mycall_ds_search2
 475     common  mycall_m_search2        sys_mycall_m_search2
-476     common  mycall_overwrite_user_register  sys_mycall_overwrite_user_register
-477     common  mycall_store_user_register  sys_mycall_store_user_register
 #
 # Due to a historical design error, certain syscalls are numbered differently
 # in x32 as compared to native x86_64.  These syscalls have numbers 512-547.

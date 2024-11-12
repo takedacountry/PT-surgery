@@ -58,11 +58,11 @@ static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
 	*(ptepp) = ptep;
 
   	if(pte_none(*ptep) || !pte_present(*ptep)) {
-    		// printk(KERN_INFO "pte %lu is not present.\n", pte);
-    		return 0;
+    	// printk(KERN_INFO "pte %lu is not present.\n", pte);
+    	return -1;
   	}
 		
-  	return 1;
+  	return 0;
 }
 
 static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
@@ -71,11 +71,11 @@ static int get_pmdp(pud_t *pudp, unsigned long pmd, pmd_t **pmdpp)
 	*(pmdpp) = pmdp;
 
   	if(pmd_none(*pmdp) || !pmd_present(*pmdp) || pmd_large(*pmdp)){
-    		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
-    		return 0;
+   		// printk(KERN_INFO "pmd %lu is not present.\n", pmd);
+   		return -1;
   	}
 
-	return 1;
+	return 0;
 }
 
 static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
@@ -84,11 +84,11 @@ static int get_pudp(p4d_t *p4dp, unsigned long pud, pud_t **pudpp)
 	*(pudpp) = pudp;
 	  
   	if(pud_none(*pudp) || !pud_present(*pudp) || pud_large(*pudp)){
-	    	// printk(KERN_INFO "pud %lu is not present", pud);
-	    	return 0;
+	    // printk(KERN_INFO "pud %lu is not present", pud);
+	    return -1;
   	}
 
-  	return 1;  
+  	return 0;  
 }
 
 static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
@@ -97,10 +97,11 @@ static int get_p4dp(pgd_t *pgdp, unsigned long p4d, p4d_t **p4dpp)
 	*(p4dpp) = p4dp;
 	
 	if(p4d_none(*p4dp) || !p4d_present(*p4dp)){
-	    	// printk(KERN_INFO "p4d %lu is not present", pgd);
-    		return 0;
+	    // printk(KERN_INFO "p4d %lu is not present", pgd);
+    	return -1;
   	}
-  	return 1;
+
+  	return 0;
 }
 
 static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
@@ -108,12 +109,12 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
   	pgd_t *pgdp = pgd_offset_index(mm, pgd);
 
   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
-	    	// printk(KERN_INFO "pgd %lu is not present.\n", pgd);
-    		return 0;
+	    // printk(KERN_INFO "pgd %lu is not present.\n", pgd);
+    	return -1;
   	}
 
-	if(get_p4dp(pgdp, pgd, p4dpp) > 0)
-		return 1;
+	if(get_p4dp(pgdp, pgd, p4dpp) < 0)
+		return -1;
 	
 	return 0;
 }
@@ -133,7 +134,7 @@ long make_user_pgtable(struct task_struct *p)
 	char *filename = "./user_pgtable";
 	int size;
 	char *buf;
-        loff_t pos = 0;
+    loff_t pos = 0;
 
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)) {
@@ -151,26 +152,26 @@ long make_user_pgtable(struct task_struct *p)
 	vfs_fsync_range(file, 0, size, 1);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
-		if(get_pgdp(p->mm, pgd, &p4dp) > 0) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
 			size = sprintf(buf, "%ld-0-0-0 %lx  %lx %lx  %lx\n", pgd, make_ds_va(pgd, 0, 0, 0), p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 
 			for(unsigned long pud=0; pud<MAX; pud++) {
-				if(get_pudp(p4dp, pud, &pudp) > 0) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
 					size = sprintf(buf, "    %ld-%ld-0-0 %lx  %lx %lx  %lx\n", pgd, pud, make_ds_va(pgd, pud, 0, 0), pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 			
 		            for(unsigned long pmd=0; pmd<MAX; pmd++) {
-						if(get_pmdp(pudp, pmd, &pmdp) > 0) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
 							entry_count++;
 							size = sprintf(buf, "        %ld-%ld-%ld-0 %lx  %lx %lx  %lx\n", pgd, pud, pmd, make_ds_va(pgd, pud, pmd, 0), pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 
 							for(unsigned long pte=0; pte<MAX; pte++) {
-			                    if(get_ptep(pmdp, pte, &ptep) > 0) {
+			                    if(get_ptep(pmdp, pte, &ptep) == 0) {
 									size = sprintf(buf, "            %ld-%ld-%ld-%ld %lx  %lx %lx  %lx\n", pgd, pud, pmd, pte, make_ds_va(pgd, pud, pmd, pte), pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
 									kernel_write(file, buf, size, &pos);
 									vfs_fsync_range(file, 0, size, 1);
@@ -182,13 +183,12 @@ long make_user_pgtable(struct task_struct *p)
 	        }
 		}
     }
-end:
 	printk(KERN_INFO "user PT count: %d", entry_count);
 	
 	size = sprintf(buf, "user PT count: %d", entry_count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
-	
+end:	
 	kfree(buf);
 	filp_close(file, NULL);
 	
@@ -210,7 +210,7 @@ long make_user_pgtable2(struct task_struct *p)
 	char *filename = "./user_pgtable2";
 	int size;
 	char *buf;
-        loff_t pos = 0;
+    loff_t pos = 0;
 
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)){
@@ -228,26 +228,26 @@ long make_user_pgtable2(struct task_struct *p)
 	vfs_fsync_range(file, 0, size, 1);
 
 	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
-		if(get_pgdp(p->mm, pgd, &p4dp) > 0) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
 			size = sprintf(buf, "%ld-0-0-0 %lx  %lx %lx  %lx\n", pgd, make_ds_va(pgd,0,0,0), p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
 			kernel_write(file, buf, size, &pos);
 			vfs_fsync_range(file, 0, size, 1);
 			
 			for(unsigned long pud=0; pud<MAX; pud++) {
-				if(get_pudp(p4dp, pud, &pudp) > 0) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
 					size = sprintf(buf, "    %ld-%ld-0-0 %lx  %lx %lx  %lx\n", pgd, pud, make_ds_va(pgd,pud,0,0), pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
 					kernel_write(file, buf, size, &pos);
 					vfs_fsync_range(file, 0, size, 1);
 			
             		for(unsigned long pmd=0; pmd<MAX; pmd++) {
-						if(get_pmdp(pudp, pmd, &pmdp) > 0) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
 							entry_count++;
 							size = sprintf(buf, "        %ld-%ld-%ld-0 %lx  %lx %lx  %lx\n", pgd, pud, pmd, make_ds_va(pgd,pud,pmd,0), pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 
 							for(unsigned long pte=0; pte<MAX; pte++) {
-	                   			if(get_ptep(pmdp, pte, &ptep) > 0) {
+	                   			if(get_ptep(pmdp, pte, &ptep) == 0) {
 									size = sprintf(buf, "            %ld-%ld-%ld-%ld %lx  %lx %lx  %lx\n", pgd, pud, pmd, pte, make_ds_va(pgd,pud,pmd,pte), pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
 									kernel_write(file, buf, size, &pos);
 									vfs_fsync_range(file, 0, size, 1);
@@ -259,13 +259,12 @@ long make_user_pgtable2(struct task_struct *p)
 	        }
 		}
     }
-end:
 	printk(KERN_INFO "user PT count: %d", entry_count);
 	
 	size = sprintf(buf, "user PT count: %d", entry_count);
 	kernel_write(file, buf, size, &pos);
 	vfs_fsync_range(file, 0, size, 1);
-	
+end:	
 	kfree(buf);
 	filp_close(file, NULL);
 	

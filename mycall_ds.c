@@ -15,13 +15,12 @@
 #define SYS_mycall_ds_make 459
 #define SYS_mycall_ds_search 460
 #define SYS_mycall_recover_all_pgtable 461
-#define SYS_mycall_ds_delete 462
+#define SYS_mycall_ds_m_delete 462
 #define SYS_mycall_ds_make_user 463
 #define SYS_mycall_ds_make_kernel 464
 #define SYS_mycall_print_kernel_pgtable2 465
 #define SYS_mycall_print_user_pgtable2 466
 #define SYS_mycall_m_search 467
-#define SYS_mycall_m_delete 468
 #define SYS_mycall_recover_pgtable 469
 #define SYS_mycall_ds_register_pid 472
 #define SYS_mycall_make_ds_usr_from_pgtable 473
@@ -48,7 +47,7 @@ int main(void)
 
     
     char *ma = (char*)malloc(PAGESIZE);
-    char *mb = (char*)malloc(PAGESIZE);
+    // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -81,7 +80,7 @@ int main(void)
     // char *mp1 = (char*)malloc(INDEX);
     
     memset(ma, 0, PAGESIZE);
-    memset(mb, 0, PAGESIZE);
+    // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -115,7 +114,7 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    printf("va: %p\n", mb); // print user va 
+    // printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -166,7 +165,7 @@ int main(void)
     //     printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
     //     printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     //     // exit(0);
-    //     printf("%ld\n", syscall(SYS_mycall_ds_delete));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
     //     printf("%ld\n", syscall(SYS_mycall_m_delete));
     // }else{
     //     //parent
@@ -181,9 +180,9 @@ int main(void)
 
     // mremap(ma, INDEX, INDEX, MREMAP_FIXED, (ma + INDEX) & OFFSET_MASK_NOT);
     
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
         
         // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
@@ -242,15 +241,13 @@ int main(void)
         // free(mo1);
         // free(mp1);
 
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
     
-        free(mb);
+        // free(mb);
     
-        printf("%ld\n", syscall(SYS_mycall_ds_delete));
-        printf("%ld\n", syscall(SYS_mycall_m_delete));
-
+        printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
     // }
 
     return 0;

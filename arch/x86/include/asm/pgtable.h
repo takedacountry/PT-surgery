@@ -316,12 +316,10 @@ static inline pte_t pte_mkold(pte_t pte)
 	return pte_clear_flags(pte, _PAGE_ACCESSED);
 }
 
+
 static inline pte_t pte_wrprotect(pte_t pte)
 {
-	pte_t ret = pte_clear_flags(pte, _PAGE_RW);
-	make_ds_list_usr((unsigned long)&pte, pte);
-	return ret;
-	// return pte_clear_flags(pte, _PAGE_RW);
+	return pte_clear_flags(pte, _PAGE_RW);
 }
 
 static inline pte_t pte_mkexec(pte_t pte)
@@ -341,10 +339,7 @@ static inline pte_t pte_mkyoung(pte_t pte)
 
 static inline pte_t pte_mkwrite(pte_t pte)
 {
-	pte_t ret = pte_set_flags(pte, _PAGE_RW);
-	make_ds_list_usr((unsigned long)&pte, pte);
-	return ret;
-	// return pte_set_flags(pte, _PAGE_RW);
+	return pte_set_flags(pte, _PAGE_RW);
 }
 
 static inline pte_t pte_mkhuge(pte_t pte)
