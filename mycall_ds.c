@@ -28,7 +28,7 @@
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
-#define PAGESIZE 1024*1024
+#define PAGESIZE 4*1024*1024 // 4MB
 #define PGD 512
 #define PUD 512
 #define PMD 512
@@ -46,14 +46,14 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
     
-    char *ma = (char*)malloc(PAGESIZE);
-    // char *mb = (char*)malloc(INDEX);
-    // char *mc = (char*)malloc(INDEX);
-    // char *md = (char*)malloc(INDEX);
-    // char *me = (char*)malloc(INDEX);
-    // char *mf = (char*)malloc(INDEX);
-    // char *mg = (char*)malloc(INDEX);
-    // char *mh = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(INDEX);
+    char *mb = (char*)malloc(INDEX);
+    char *mc = (char*)malloc(INDEX);
+    char *md = (char*)malloc(INDEX);
+    char *me = (char*)malloc(INDEX);
+    char *mf = (char*)malloc(INDEX);
+    char *mg = (char*)malloc(INDEX);
+    char *mh = (char*)malloc(INDEX);
     // char *mi = (char*)malloc(INDEX);
     // char *mj = (char*)malloc(INDEX);
     // char *mk = (char*)malloc(INDEX);
@@ -79,14 +79,14 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, PAGESIZE);
-    // memset(mb, 0, INDEX);
-    // memset(mc, 0, INDEX);
-    // memset(md, 0, INDEX);
-    // memset(me, 0, INDEX);
-    // memset(mf, 0, INDEX);
-    // memset(mg, 0, INDEX);
-    // memset(mh, 0, INDEX);
+    memset(ma, 0, INDEX);
+    memset(mb, 0, INDEX);
+    memset(mc, 0, INDEX);
+    memset(md, 0, INDEX);
+    memset(me, 0, INDEX);
+    memset(mf, 0, INDEX);
+    memset(mg, 0, INDEX);
+    memset(mh, 0, INDEX);
     // memset(mi, 0, INDEX);
     // memset(mj, 0, INDEX);
     // memset(mk, 0, INDEX);
@@ -114,13 +114,13 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    // printf("va: %p\n", mb); // print user va 
-    // printf("va: %p\n", mc); // print user va 
-    // printf("va: %p\n", md); // print user va 
-    // printf("va: %p\n", me); // print user va
-    // printf("va: %p\n", mf); // print user va
-    // printf("va: %p\n", mg); // print user va
-    // printf("va: %p\n", mh); // print user va
+    printf("va: %p\n", mb); // print user va 
+    printf("va: %p\n", mc); // print user va 
+    printf("va: %p\n", md); // print user va 
+    printf("va: %p\n", me); // print user va
+    printf("va: %p\n", mf); // print user va
+    printf("va: %p\n", mg); // print user va
+    printf("va: %p\n", mh); // print user va
     // printf("va: %p\n", mi); // print user va
     // printf("va: %p\n", mj); // print user va
     // printf("va: %p\n", mk); // print user va
@@ -146,7 +146,7 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
 
@@ -209,13 +209,13 @@ int main(void)
         // memset(mp, 1, INDEX);
     
         free(ma);
-        // free(mb);
-        // free(mc);
-        // free(md);
-        // free(me);
-        // free(mf);
-        // free(mg);
-        // free(mh);
+        free(mb);
+        free(mc);
+        free(md);
+        free(me);
+        free(mf);
+        free(mg);
+        free(mh);
         // free(mi);
         // free(mj);
         // free(mk);
@@ -247,7 +247,7 @@ int main(void)
     
         // free(mb);
     
-        printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
+        // printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
     // }
 
     return 0;

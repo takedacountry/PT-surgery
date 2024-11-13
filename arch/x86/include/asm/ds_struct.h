@@ -46,4 +46,3 @@ struct m_head_list{
 	struct list_head head;
 	struct list_head list;
 };
-

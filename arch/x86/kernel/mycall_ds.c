@@ -166,6 +166,8 @@ static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
 LIST_HEAD(user_head);
 LIST_HEAD(kern_head);
 
+DEFINE_RWLOCK(user_head_lock);
+
 static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
 {
 	unsigned long va = a << 27 | b << 18 | c << 9 | d;
@@ -804,17 +806,22 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 					break;
 				}
 			}
-			m_list_read_unlock(mhead);
-
-			if(base == MAX_NUM)
+			
+			if(base == MAX_NUM) {
+				m_list_read_unlock(mhead);
 				goto err;
+			}
 
-			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
+			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL) {
+				m_list_read_unlock(mhead);
 				goto err;
+			}
 
 			ds_list_write_lock(mnode);
 			if(list_empty(&mnode->ds_head)) {
 				list_add(&dnode->list, &mnode->ds_head);
+				ds_list_write_unlock(mnode);
+				m_list_read_unlock(mhead);
 				goto end;
 			}
 			else {
@@ -848,6 +855,8 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
 							}
 						}
+						ds_list_write_unlock(mnode);
+						m_list_read_unlock(mhead);
 						goto end;
 					}
 					else if(dnode->base >= prev->limit) {
@@ -855,11 +864,15 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						// printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						if(list_is_last(&dnode->list, &mnode->ds_head)) {
 							ds_node_merge(prev, dnode);
+							ds_list_write_unlock(mnode);
+							m_list_read_unlock(mhead);
 							goto end;
 						}
 						next = list_next_entry(dnode, list);
 						ds_node_merge(dnode, next);
 						ds_node_merge(prev, dnode);
+						ds_list_write_unlock(mnode);
+						m_list_read_unlock(mhead);
 						goto end;
 					}
 				}
@@ -867,77 +880,14 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 				// printk(KERN_INFO "make ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 				next = list_next_entry(dnode, list);
 				ds_node_merge(dnode, next);
+				ds_list_write_unlock(mnode);
+				m_list_read_unlock(mhead);
 				goto end;
 			}
-			break;
 		}
 	}
 	
-	// list_for_each_entry(dhead, &usr_ds_head, list){
-	// 	if(dhead->pid == pid){
-	// 		if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
-	// 			return -ENOMEM;
-
-	// 		if(list_empty(&dhead->head)){ //no node
-	// 			list_add(&dnode->list, &dhead->head);
-	// 			goto end;
-	// 		}else{
-	// 			list_for_each_entry_reverse(prev, &dhead->head, list){
-	// 				if(prev->base <= dnode->base && dnode->limit <= prev->limit){
-	// 					// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-	// 					if(pte_value == 0 && pte_flag == 0) {
-	// 						delete_ds(prev, dnode->base, dnode->limit);
-	// 						printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
-	// 					}
-	// 					else if(dnode->offset != prev->offset){
-	// 						// modify pte value
-	// 						modify_ds_offset(prev, dnode, dhead);
-	// 						printk(KERN_INFO "modify ds offset %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-	// 					}
-	// 					else if(dnode->flag != prev->flag){
-	// 						// modify pte flag 
-	// 						if(!is_ds_write(prev) && is_ds_write(dnode)){
-	// 							// ds_mkwrite
-	// 							// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
-	// 							modify_ds_flag(prev, dnode, dhead);
-	// 							printk(KERN_INFO "make write %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-	// 						}
-	// 						else if(is_ds_write(prev) && !is_ds_write(dnode)){
-	// 							// ds_wrprotect
-	// 							// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
-	// 							modify_ds_flag(prev, dnode, dhead);
-	// 							printk(KERN_INFO "make wrprotect %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
-	// 						}
-	// 						else{
-	// 							printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %lx %d\n", base, prev->flag, pte_flag, va, pid);
-	// 						}
-	// 					}
-	// 					flag = 0;
-	// 					goto end;
-	// 				}
-	// 				else if(dnode->base >= prev->limit){
-	// 					list_add(&dnode->list, &prev->list);
-	// 					if(list_is_last(&dnode->list, &dhead->head)){
-	// 						ds_node_merge(prev, dnode);
-	// 						goto end;
-	// 					}
-	// 					next = list_next_entry(dnode, list);
-	// 					ds_node_merge(dnode, next);
-	// 					ds_node_merge(prev, dnode);
-	// 					goto end;
-	// 				}
-	// 			}
-	// 			list_add(&dnode->list, &dhead->head);
-	// 			next = list_next_entry(dnode, list);
-	// 			ds_node_merge(dnode, next);
-	// 			goto end;
-	// 		}
-	// 		break;
-	// 	}
-	// }
-	
 end:
-	ds_list_write_unlock(mnode);
 	return 0;
 err:
 	return -1;
