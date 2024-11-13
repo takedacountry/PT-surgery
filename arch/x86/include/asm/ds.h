@@ -7,14 +7,6 @@
 #define PTE__SHIFT		(2)
 #define PTE__MASK		(_AT(int, 1) << PTE__SHIFT)
 
-
-// extern struct list_head usr_m_head;
-// extern struct list_head ker_m_head;
-// extern struct list_head usr_ds_head;
-// extern struct list_head ker_ds_head;
-extern struct list_head user_head;
-extern struct list_head kern_head;
-
 extern int make_pgd_m_list(unsigned long pgd_va);
 extern int make_pud_m_list(unsigned long p4d_va, unsigned long pud_va);
 extern int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va);

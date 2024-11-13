@@ -4,6 +4,7 @@
 #include <linux/uaccess.h>
 #include <linux/fs.h>
 #include <linux/mm.h>
+#include <linux/rwlock.h>
 #include <linux/spinlock.h>
 #include <linux/export.h>
 #include <asm/current.h>
@@ -231,10 +232,12 @@ static struct thread_log_list *make_thread_log_node(u32 cpu, int commit)
 
 static bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
 {
-	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag)
+	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag) {
 		return true;
-	else
+	}
+	else {
 		return false;
+	}
 }
 
 static void ds_node_merge(struct ds_list *prev, struct ds_list *next)
@@ -2403,15 +2406,17 @@ void delete_m_free_pgd(unsigned long va)
 			m_list_write_lock(m_head);
 			list_for_each_entry(m_node, &m_head->head, list) {
 				if(m_node->base & PGD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE) {
-					printk(KERN_INFO "delete m pgd %lx %lx pid %d\n", va, PGD_FLAG_MASK, current->pid);
-					list_del(&m_node->list);
-					kfree(m_node);
-					break;
+					if(list_is_last(&m_node->list, &m_head->head)) {
+						printk(KERN_INFO "delete m pgd %lx %lx pid %d\n", va, PGD_FLAG_MASK, current->pid);
+						list_del(&m_node->list);
+						kfree(m_node);
+						break;
+					}
 				}
 			}
 			m_list_write_unlock(m_head);
 
-			if(list_empty(&m_head->head)){
+			if(list_empty(&m_head->head)) {
 				list_del(&m_head->list);
 				kfree(m_head);
 				printk(KERN_INFO "delete m head %d\n", current->pid);
