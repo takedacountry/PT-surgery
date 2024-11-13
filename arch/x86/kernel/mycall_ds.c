@@ -1913,7 +1913,7 @@ static void pmd_reinstall(struct mm_struct *mm, pmd_t *pmdp, pte_t *ptep, struct
 	spin_unlock(ptl);
 	
 	if (ptep)
-		pte_free_recover(mm, virt_to_page(ptep));
+		pte_free(mm, virt_to_page(ptep));
 }
 
 static pte_t *pte_realloc(struct mm_struct *mm)

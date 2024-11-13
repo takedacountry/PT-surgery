@@ -7,9 +7,6 @@
 #include <asm/fixmap.h>
 #include <asm/mtrr.h>
 
-// my code
-#include <asm/ds.h>
-
 #ifdef CONFIG_DYNAMIC_PHYSICAL_MASK
 phys_addr_t physical_mask __ro_after_init = (1ULL << __PHYSICAL_MASK_SHIFT) - 1;
 EXPORT_SYMBOL(physical_mask);
