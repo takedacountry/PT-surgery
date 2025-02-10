@@ -17,6 +17,9 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
+// my code
+#include <asm/ds.h>
+
 static int migrate_vma_collect_skip(unsigned long start,
 				    unsigned long end,
 				    struct mm_walk *walk)
@@ -118,7 +121,9 @@ again:
 		swp_entry_t entry;
 		pte_t pte;
 
-		pte = *ptep;
+		// my code
+		// pte = *ptep;
+		pte = check_pte_is_broken_for_pte_read(ptep);
 
 		if (pte_none(pte)) {
 			if (vma_is_anonymous(vma)) {
@@ -201,7 +206,8 @@ again:
 			bool anon_exclusive;
 			pte_t swp_pte;
 
-			flush_cache_page(vma, addr, pte_pfn(*ptep));
+			// my code
+			flush_cache_page(vma, addr, pte_pfn(check_pte_is_broken_for_pte_read(ptep)));
 			anon_exclusive = PageAnon(page) && PageAnonExclusive(page);
 			if (anon_exclusive) {
 				pte = ptep_clear_flush(vma, addr, ptep);
@@ -580,6 +586,8 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
+	// my code
+	pte_t my_pte;
 
 	/* Only allow populating anonymous memory */
 	if (!vma_is_anonymous(vma))
@@ -654,13 +662,16 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 	if (check_stable_address_space(mm))
 		goto unlock_abort;
 
-	if (pte_present(*ptep)) {
-		unsigned long pfn = pte_pfn(*ptep);
+	// my code
+	my_pte = check_pte_is_broken_for_pte_read(ptep);
+
+	if (pte_present(my_pte)) {
+		unsigned long pfn = pte_pfn(my_pte);
 
 		if (!is_zero_pfn(pfn))
 			goto unlock_abort;
 		flush = true;
-	} else if (!pte_none(*ptep))
+	} else if (!pte_none(my_pte))
 		goto unlock_abort;
 
 	/*
@@ -677,7 +688,7 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 	get_page(page);
 
 	if (flush) {
-		flush_cache_page(vma, addr, pte_pfn(*ptep));
+		flush_cache_page(vma, addr, pte_pfn(my_pte));
 		ptep_clear_flush_notify(vma, addr, ptep);
 		set_pte_at_notify(mm, addr, ptep, entry);
 		update_mmu_cache(vma, addr, ptep);

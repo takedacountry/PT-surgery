@@ -15,6 +15,9 @@ unsigned long arbitrary_virt_to_mfn(void *vaddr)
 	return PFN_DOWN(maddr.maddr);
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 xmaddr_t arbitrary_virt_to_machine(void *vaddr)
 {
 	unsigned long address = (unsigned long)vaddr;
@@ -33,8 +36,10 @@ xmaddr_t arbitrary_virt_to_machine(void *vaddr)
 
 	pte = lookup_address(address, &level);
 	BUG_ON(pte == NULL);
+	
+	// my code
 	offset = address & ~PAGE_MASK;
-	return XMADDR(((phys_addr_t)pte_mfn(*pte) << PAGE_SHIFT) + offset);
+	return XMADDR(((phys_addr_t)pte_mfn(check_pte_is_broken_for_pte_read(pte)) << PAGE_SHIFT) + offset);
 }
 EXPORT_SYMBOL_GPL(arbitrary_virt_to_machine);
 

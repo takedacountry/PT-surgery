@@ -7,6 +7,9 @@
 #include <asm/cacheflush.h>
 #include <asm/tlbflush.h>
 
+// my code
+#include <asm/ds.h>
+
 /**
  * struct wp_walk - Private struct for pagetable walk callbacks
  * @range: Range for mmu notifiers
@@ -35,7 +38,9 @@ static int wp_pte(pte_t *pte, unsigned long addr, unsigned long end,
 		  struct mm_walk *walk)
 {
 	struct wp_walk *wpwalk = walk->private;
-	pte_t ptent = *pte;
+	// my code
+	// pte_t ptent = *pte;
+	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 
 	if (pte_write(ptent)) {
 		pte_t old_pte = ptep_modify_prot_start(walk->vma, addr, pte);
@@ -91,7 +96,9 @@ static int clean_record_pte(pte_t *pte, unsigned long addr,
 {
 	struct wp_walk *wpwalk = walk->private;
 	struct clean_walk *cwalk = to_clean_walk(wpwalk);
-	pte_t ptent = *pte;
+	// my code
+	// pte_t ptent = *pte;
+	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 
 	if (pte_dirty(ptent)) {
 		pgoff_t pgoff = ((addr - walk->vma->vm_start) >> PAGE_SHIFT) +

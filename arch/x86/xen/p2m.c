@@ -104,6 +104,9 @@ EXPORT_SYMBOL_GPL(xen_max_p2m_pfn);
 #define P2M_LIMIT 0
 #endif
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static DEFINE_SPINLOCK(p2m_update_lock);
 
 static unsigned long *p2m_mid_missing_mfn;
@@ -248,7 +251,9 @@ void __ref xen_build_mfn_list_list(void)
 		ptep = lookup_address((unsigned long)(xen_p2m_addr + pfn),
 				      &level);
 		BUG_ON(!ptep || level != PG_LEVEL_4K);
-		mfn = pte_mfn(*ptep);
+
+		// my code
+		mfn = pte_mfn(check_pte_is_broken_for_pte_read(ptep));
 		ptep = (pte_t *)((unsigned long)ptep & ~(PAGE_SIZE - 1));
 
 		/* Don't bother allocating any mfn mid levels if
@@ -452,7 +457,8 @@ unsigned long get_phys_to_machine(unsigned long pfn)
 	 * and in p2m_*missing, so returning the INVALID_P2M_ENTRY
 	 * would be wrong.
 	 */
-	if (pte_pfn(*ptep) == PFN_DOWN(__pa(p2m_identity)))
+	// my code
+	if (pte_pfn(check_pte_is_broken_for_pte_read(ptep)) == PFN_DOWN(__pa(p2m_identity)))
 		return IDENTITY_FRAME(pfn);
 
 	return xen_p2m_addr[pfn];
@@ -537,6 +543,8 @@ int xen_alloc_p2m_entry(unsigned long pfn)
 	unsigned long flags;
 	unsigned long addr = (unsigned long)(xen_p2m_addr + pfn);
 	unsigned long p2m_pfn;
+	// my code
+	pte_t entry;
 
 	ptep = lookup_address(addr, &level);
 	BUG_ON(!ptep || level != PG_LEVEL_4K);
@@ -582,7 +590,10 @@ int xen_alloc_p2m_entry(unsigned long pfn)
 		mid_mfn = NULL;
 	}
 
-	p2m_pfn = pte_pfn(READ_ONCE(*ptep));
+	// my code
+	entry = check_pte_is_broken_for_pte_read(ptep);
+
+	p2m_pfn = pte_pfn(READ_ONCE(entry));
 	if (p2m_pfn == PFN_DOWN(__pa(p2m_identity)) ||
 	    p2m_pfn == PFN_DOWN(__pa(p2m_missing))) {
 		/* p2m leaf page is missing */
@@ -599,7 +610,7 @@ int xen_alloc_p2m_entry(unsigned long pfn)
 
 		spin_lock_irqsave(&p2m_update_lock, flags);
 
-		if (pte_pfn(*ptep) == p2m_pfn) {
+		if (pte_pfn(entry) == p2m_pfn) {
 			HYPERVISOR_shared_info->arch.p2m_generation++;
 			wmb(); /* Tools are synchronizing via p2m_generation. */
 			set_pte(ptep,
@@ -651,6 +662,8 @@ bool __set_phys_to_machine(unsigned long pfn, unsigned long mfn)
 {
 	pte_t *ptep;
 	unsigned int level;
+	// my code
+	pte_t entry;
 
 	/* Only invalid entries allowed above the highest p2m covered frame. */
 	if (unlikely(pfn >= xen_p2m_size))
@@ -666,10 +679,13 @@ bool __set_phys_to_machine(unsigned long pfn, unsigned long mfn)
 	ptep = lookup_address((unsigned long)(xen_p2m_addr + pfn), &level);
 	BUG_ON(!ptep || level != PG_LEVEL_4K);
 
-	if (pte_pfn(*ptep) == PFN_DOWN(__pa(p2m_missing)))
+	// my code
+	entry = check_pte_is_broken_for_pte_read(ptep);
+
+	if (pte_pfn(entry) == PFN_DOWN(__pa(p2m_missing)))
 		return mfn == INVALID_P2M_ENTRY;
 
-	if (pte_pfn(*ptep) == PFN_DOWN(__pa(p2m_identity)))
+	if (pte_pfn(entry) == PFN_DOWN(__pa(p2m_identity)))
 		return mfn == IDENTITY_FRAME(pfn);
 
 	return false;
@@ -720,7 +736,8 @@ int set_foreign_p2m_mapping(struct gnttab_map_grant_ref *map_ops,
 		if (map_ops[i].flags & GNTMAP_contains_pte) {
 			pte = (pte_t *)(mfn_to_virt(PFN_DOWN(map_ops[i].host_addr)) +
 				(map_ops[i].host_addr & ~PAGE_MASK));
-			mfn = pte_mfn(*pte);
+			// my code
+			mfn = pte_mfn(check_pte_is_broken_for_pte_read(pte));
 		} else {
 			mfn = PFN_DOWN(map_ops[i].dev_bus_addr);
 		}

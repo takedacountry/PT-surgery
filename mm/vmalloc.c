@@ -46,6 +46,9 @@
 #include "internal.h"
 #include "pgalloc-track.h"
 
+// my code
+#include <asm/ds.h>
+
 #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
 static unsigned int __ro_after_init ioremap_max_page_shift = BITS_PER_LONG - 1;
 
@@ -111,7 +114,8 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 	if (!pte)
 		return -ENOMEM;
 	do {
-		BUG_ON(!pte_none(*pte));
+		// my code
+		BUG_ON(!pte_none(check_pte_is_broken_for_pte_read(pte)));
 
 #ifdef CONFIG_HUGETLB_PAGE
 		size = arch_vmap_pte_range_map_size(addr, end, pfn, max_page_shift);
@@ -480,7 +484,8 @@ static int vmap_pages_pte_range(pmd_t *pmd, unsigned long addr,
 	do {
 		struct page *page = pages[*nr];
 
-		if (WARN_ON(!pte_none(*pte)))
+		// my code
+		if (WARN_ON(!pte_none(check_pte_is_broken_for_pte_read(pte))))
 			return -EBUSY;
 		if (WARN_ON(!page))
 			return -ENOMEM;
@@ -711,7 +716,9 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
 		return NULL;
 
 	ptep = pte_offset_map(pmd, addr);
-	pte = *ptep;
+	// my code
+	// pte = *ptep;
+	pte = check_pte_is_broken_for_pte_read(ptep);
 	if (pte_present(pte))
 		page = pte_page(pte);
 	pte_unmap(ptep);
@@ -2879,10 +2886,27 @@ struct vmap_pfn_data {
 static int vmap_pfn_apply(pte_t *pte, unsigned long addr, void *private)
 {
 	struct vmap_pfn_data *data = private;
+	// my code
+	int ret;
 
 	if (WARN_ON_ONCE(pfn_valid(data->pfns[data->idx])))
 		return -EINVAL;
-	*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+
+	// my code
+	// *pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+
+	if((ret = check_pte_is_broken_for_pte_write(pte)) < 0) {
+		*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+	}
+	else if(ret == 0) {
+		*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+		make_ds_list_usr((unsigned long)pte, *pte);
+	}
+	else {
+		pte_t entry = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+		make_ds_list_usr((unsigned long)pte, entry);
+	}
+	
 	return 0;
 }
 

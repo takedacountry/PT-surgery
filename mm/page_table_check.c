@@ -7,6 +7,9 @@
 #include <linux/mm.h>
 #include <linux/page_table_check.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 #undef pr_fmt
 #define pr_fmt(fmt)	"page_table_check: " fmt
 
@@ -194,7 +197,7 @@ void __page_table_check_pte_set(struct mm_struct *mm, unsigned long addr,
 	if (&init_mm == mm)
 		return;
 
-	__page_table_check_pte_clear(mm, addr, *ptep);
+	__page_table_check_pte_clear(mm, addr, check_pte_is_broken_for_pte_read(ptep));
 	if (pte_user_accessible_page(pte)) {
 		page_table_check_set(mm, addr, pte_pfn(pte),
 				     PAGE_SIZE >> PAGE_SHIFT,
@@ -245,7 +248,7 @@ void __page_table_check_pte_clear_range(struct mm_struct *mm,
 		unsigned long i;
 
 		for (i = 0; i < PTRS_PER_PTE; i++) {
-			__page_table_check_pte_clear(mm, addr, *ptep);
+			__page_table_check_pte_clear(mm, addr, check_pte_is_broken_for_pte_read(ptep));
 			addr += PAGE_SIZE;
 			ptep++;
 		}

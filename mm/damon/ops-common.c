@@ -12,6 +12,9 @@
 
 #include "ops-common.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * Get an online page for a pfn if it's in the LRU list.  Otherwise, returns
  * NULL.
@@ -36,14 +39,31 @@ struct page *damon_get_page(unsigned long pfn)
 void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 {
 	bool referenced = false;
-	struct page *page = damon_get_page(pte_pfn(*pte));
+	// my code
+	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	int ret;
+	struct page *page = damon_get_page(pte_pfn(entry));
 
 	if (!page)
 		return;
 
-	if (pte_young(*pte)) {
+	if (pte_young(entry)) {
 		referenced = true;
-		*pte = pte_mkold(*pte);
+		// my code
+		// *pte = pte_mkold(*pte);
+		entry = pte_mkold(entry);
+
+		if((ret = check_pte_is_broken_for_pte_write(pte)) < 0) {
+			*pte = entry;
+		}
+		else if(ret == 0) {
+			*pte = entry;
+			make_ds_list_usr((unsigned long)pte, *pte);	
+		}
+		else {
+			make_ds_list_usr((unsigned long)pte, entry);
+		}
+		// fin
 	}
 
 #ifdef CONFIG_MMU_NOTIFIER

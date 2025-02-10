@@ -86,6 +86,9 @@
 #include "mmu.h"
 #include "debugfs.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 #ifdef CONFIG_X86_VSYSCALL_EMULATION
 /* l3 pud for userspace vsyscall mapping */
 static pud_t level3_user_vsyscall[PTRS_PER_PUD] __page_aligned_bss;
@@ -134,7 +137,8 @@ void make_lowmem_page_readonly(void *vaddr)
 	if (pte == NULL)
 		return;		/* vaddr missing */
 
-	ptev = pte_wrprotect(*pte);
+	// my code
+	ptev = pte_wrprotect(check_pte_is_broken_for_pte_read(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
 		BUG();
@@ -149,8 +153,9 @@ void make_lowmem_page_readwrite(void *vaddr)
 	pte = lookup_address(address, &level);
 	if (pte == NULL)
 		return;		/* vaddr missing */
-
-	ptev = pte_mkwrite(*pte);
+	
+	// my code
+	ptev = pte_mkwrite(check_pte_is_broken_for_pte_read(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
 		BUG();
@@ -292,9 +297,10 @@ static void xen_set_pte(pte_t *ptep, pte_t pteval)
 pte_t xen_ptep_modify_prot_start(struct vm_area_struct *vma,
 				 unsigned long addr, pte_t *ptep)
 {
+	// my code
 	/* Just return the pte as-is.  We preserve the bits on commit */
-	trace_xen_mmu_ptep_modify_prot_start(vma->vm_mm, addr, ptep, *ptep);
-	return *ptep;
+	trace_xen_mmu_ptep_modify_prot_start(vma->vm_mm, addr, ptep, check_pte_is_broken_for_pte_read(ptep));
+	return check_pte_is_broken_for_pte_read(ptep);
 }
 
 void xen_ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned long addr,

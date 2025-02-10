@@ -37,6 +37,9 @@
 #define CREATE_TRACE_POINTS
 #include <asm/trace/exceptions.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * Returns 0 if mmiotrace is disabled, or if the fault is not
  * handled by mmiotrace:
@@ -227,12 +230,13 @@ static inline pmd_t *vmalloc_sync_one(pgd_t *pgd, unsigned long address)
  *   which are not mapped in every page-table in the system, causing an
  *   unhandled page-fault when they are accessed.
  */
+
 static noinline int vmalloc_fault(unsigned long address)
 {
 	unsigned long pgd_paddr;
 	pmd_t *pmd_k;
 	pte_t *pte_k;
-
+	
 	/* Make sure we are in vmalloc area: */
 	if (!(address >= VMALLOC_START && address < VMALLOC_END))
 		return -1;
@@ -253,7 +257,9 @@ static noinline int vmalloc_fault(unsigned long address)
 		return 0;
 
 	pte_k = pte_offset_kernel(pmd_k, address);
-	if (!pte_present(*pte_k))
+	
+	// my code
+	if (!pte_present(check_pte_is_broken_for_pte_read(pte_k)))
 		return -1;
 
 	return 0;
@@ -318,6 +324,8 @@ static void dump_pagetable(unsigned long address)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	// my code
+	pte_t entry;
 
 #ifdef CONFIG_X86_PAE
 	pr_info("*pdpt = %016Lx ", pgd_val(*pgd));
@@ -343,7 +351,11 @@ static void dump_pagetable(unsigned long address)
 		goto out;
 
 	pte = pte_offset_kernel(pmd, address);
-	pr_cont("*pte = %0*Lx ", sizeof(*pte) * 2, (u64)pte_val(*pte));
+	
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	pr_cont("*pte = %0*Lx ", sizeof(entry) * 2, (u64)pte_val(entry));
 out:
 	pr_cont("\n");
 }
@@ -411,7 +423,8 @@ static void dump_pagetable(unsigned long address)
 	if (bad_address(pte))
 		goto bad;
 
-	pr_cont("PTE %lx", pte_val(*pte));
+	// my code
+	pr_cont("PTE %lx", pte_val(check_pte_is_broken_for_pte_read(pte)));
 out:
 	pr_cont("\n");
 	return;
@@ -534,16 +547,21 @@ show_fault_oops(struct pt_regs *regs, unsigned long error_code, unsigned long ad
 		unsigned int level;
 		pgd_t *pgd;
 		pte_t *pte;
+		// my code 
+		pte_t entry;
 
 		pgd = __va(read_cr3_pa());
 		pgd += pgd_index(address);
 
 		pte = lookup_address_in_pgd(pgd, address, &level);
+		
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
 
-		if (pte && pte_present(*pte) && !pte_exec(*pte))
+		if (pte && pte_present(entry) && !pte_exec(entry))
 			pr_crit("kernel tried to execute NX-protected page - exploit attempt? (uid: %d)\n",
 				from_kuid(&init_user_ns, current_uid()));
-		if (pte && pte_present(*pte) && pte_exec(*pte) &&
+		if (pte && pte_present(entry) && pte_exec(entry) &&
 				(pgd_flags(*pgd) & _PAGE_USER) &&
 				(__read_cr4() & X86_CR4_SMEP))
 			pr_crit("unable to execute userspace code (SMEP?) (uid: %d)\n",
@@ -1004,10 +1022,13 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
 
 static int spurious_kernel_fault_check(unsigned long error_code, pte_t *pte)
 {
-	if ((error_code & X86_PF_WRITE) && !pte_write(*pte))
+	// my code
+	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+
+	if ((error_code & X86_PF_WRITE) && !pte_write(entry))
 		return 0;
 
-	if ((error_code & X86_PF_INSTR) && !pte_exec(*pte))
+	if ((error_code & X86_PF_INSTR) && !pte_exec(entry))
 		return 0;
 
 	return 1;
@@ -1083,7 +1104,9 @@ spurious_kernel_fault(unsigned long error_code, unsigned long address)
 		return spurious_kernel_fault_check(error_code, (pte_t *) pmd);
 
 	pte = pte_offset_kernel(pmd, address);
-	if (!pte_present(*pte))
+
+	// my code
+	if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
 		return 0;
 
 	ret = spurious_kernel_fault_check(error_code, pte);

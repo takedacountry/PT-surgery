@@ -35,6 +35,9 @@ static __init void *early_alloc(size_t size, int nid, bool should_panic)
 	return ptr;
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static void __init kasan_populate_pmd(pmd_t *pmd, unsigned long addr,
 				      unsigned long end, int nid)
 {
@@ -61,7 +64,8 @@ static void __init kasan_populate_pmd(pmd_t *pmd, unsigned long addr,
 		pte_t entry;
 		void *p;
 
-		if (!pte_none(*pte))
+		// my code
+		if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
 			continue;
 
 		p = early_alloc(PAGE_SIZE, nid, true);

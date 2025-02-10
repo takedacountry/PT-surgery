@@ -25,6 +25,9 @@
 #include "internal.h"
 #include "swap.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * swapper_space is a fiction, retained to simplify the path through
  * vmscan's shrink_page_list.
@@ -766,7 +769,9 @@ static void swap_ra_info(struct vm_fault *vmf,
 #else
 	tpte = ra_info->ptes;
 	for (pfn = start; pfn != end; pfn++)
-		*tpte++ = *pte++;
+		// my code
+		// *tpte++ = *pte++;
+		*tpte++ = check_pte_is_broken_for_pte_read(pte++);
 #endif
 	pte_unmap(orig_pte);
 }
@@ -807,7 +812,9 @@ static struct page *swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 	blk_start_plug(&plug);
 	for (i = 0, pte = ra_info.ptes; i < ra_info.nr_pte;
 	     i++, pte++) {
-		pentry = *pte;
+		// my code
+		// pentry = *pte;
+		pentry = check_pte_is_broken_for_pte_read(pte);
 		if (!is_swap_pte(pentry))
 			continue;
 		entry = pte_to_swp_entry(pentry);

@@ -46,6 +46,9 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/thp.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * By default, transparent hugepage support is disabled in order to avoid
  * risking an increased memory footprint for applications that are not
@@ -2030,12 +2033,18 @@ static void __split_huge_zero_page_pmd(struct vm_area_struct *vma,
 
 	for (i = 0; i < HPAGE_PMD_NR; i++, haddr += PAGE_SIZE) {
 		pte_t *pte, entry;
+		// my code
+		pte_t _entry;
+
 		entry = pfn_pte(my_zero_pfn(haddr), vma->vm_page_prot);
 		entry = pte_mkspecial(entry);
 		if (pmd_uffd_wp(old_pmd))
 			entry = pte_mkuffd_wp(entry);
 		pte = pte_offset_map(&_pmd, haddr);
-		VM_BUG_ON(!pte_none(*pte));
+		// my code
+		_entry = check_pte_is_broken_for_pte_read(pte);
+
+		VM_BUG_ON(!pte_none(_entry));
 		set_pte_at(mm, haddr, pte, entry);
 		pte_unmap(pte);
 	}

@@ -28,6 +28,9 @@
 
 #include "internal.h"
 
+// my code
+#include <asm/ds.h>
+
 struct mlock_pvec {
 	local_lock_t lock;
 	struct pagevec vec;
@@ -330,9 +333,11 @@ static int mlock_pte_range(pmd_t *pmd, unsigned long addr,
 
 	start_pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	for (pte = start_pte; addr != end; pte++, addr += PAGE_SIZE) {
-		if (!pte_present(*pte))
+		// my code
+		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		if (!pte_present(entry))
 			continue;
-		page = vm_normal_page(vma, addr, *pte);
+		page = vm_normal_page(vma, addr, entry);
 		if (!page || is_zone_device_page(page))
 			continue;
 		if (PageTransCompound(page))

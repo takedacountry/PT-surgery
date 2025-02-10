@@ -83,6 +83,9 @@
 
 #include "internal.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static struct kmem_cache *anon_vma_cachep;
 static struct kmem_cache *anon_vma_chain_cachep;
 
@@ -962,11 +965,13 @@ static int page_vma_mkclean_one(struct page_vma_mapped_walk *pvmw)
 		if (pvmw->pte) {
 			pte_t entry;
 			pte_t *pte = pvmw->pte;
+			// my code
+			pte_t my_pte = check_pte_is_broken_for_pte_read(pte);
 
-			if (!pte_dirty(*pte) && !pte_write(*pte))
+			if (!pte_dirty(my_pte) && !pte_write(my_pte))
 				continue;
 
-			flush_cache_page(vma, address, pte_pfn(*pte));
+			flush_cache_page(vma, address, pte_pfn(my_pte));
 			entry = ptep_clear_flush(vma, address, pte);
 			entry = pte_wrprotect(entry);
 			entry = pte_mkclean(entry);

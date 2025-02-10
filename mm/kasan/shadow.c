@@ -26,6 +26,9 @@
 
 #include "kasan.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 bool __kasan_check_read(const volatile void *p, unsigned int size)
 {
 	return kasan_check_range((unsigned long)p, size, false, _RET_IP_);
@@ -150,6 +153,8 @@ static bool shadow_mapped(unsigned long addr)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	// my code
+	pte_t entry;
 
 	if (pgd_none(*pgd))
 		return false;
@@ -174,7 +179,9 @@ static bool shadow_mapped(unsigned long addr)
 	if (pmd_bad(*pmd))
 		return true;
 	pte = pte_offset_kernel(pmd, addr);
-	return !pte_none(*pte);
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+	return !pte_none(entry);
 }
 
 static int __meminit kasan_mem_notifier(struct notifier_block *nb,
@@ -264,8 +271,10 @@ static int kasan_populate_vmalloc_pte(pte_t *ptep, unsigned long addr,
 {
 	unsigned long page;
 	pte_t pte;
+	// my code
+	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
-	if (likely(!pte_none(*ptep)))
+	if (likely(!pte_none(entry)))
 		return 0;
 
 	page = __get_free_page(GFP_KERNEL);
@@ -276,7 +285,7 @@ static int kasan_populate_vmalloc_pte(pte_t *ptep, unsigned long addr,
 	pte = pfn_pte(PFN_DOWN(__pa(page)), PAGE_KERNEL);
 
 	spin_lock(&init_mm.page_table_lock);
-	if (likely(pte_none(*ptep))) {
+	if (likely(pte_none(entry))) {
 		set_pte_at(&init_mm, addr, ptep, pte);
 		page = 0;
 	}
@@ -365,12 +374,14 @@ static int kasan_depopulate_vmalloc_pte(pte_t *ptep, unsigned long addr,
 					void *unused)
 {
 	unsigned long page;
+	// my code
+	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
-	page = (unsigned long)__va(pte_pfn(*ptep) << PAGE_SHIFT);
+	page = (unsigned long)__va(pte_pfn(entry) << PAGE_SHIFT);
 
 	spin_lock(&init_mm.page_table_lock);
 
-	if (likely(!pte_none(*ptep))) {
+	if (likely(!pte_none(entry))) {
 		pte_clear(&init_mm, addr, ptep);
 		free_page(page);
 	}

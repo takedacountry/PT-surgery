@@ -47,6 +47,9 @@
 #include <linux/swap_cgroup.h>
 #include "swap.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static bool swap_count_continued(struct swap_info_struct *, pgoff_t,
 				 unsigned char);
 static void free_swap_count_continuations(struct swap_info_struct *);
@@ -1767,6 +1770,8 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 	spinlock_t *ptl;
 	pte_t *pte, new_pte;
 	int ret = 1;
+	// my code
+	pte_t my_pte;
 
 	swapcache = page;
 	page = ksm_might_need_to_copy(page, vma, addr);
@@ -1774,7 +1779,8 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		return -ENOMEM;
 
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
-	if (unlikely(!pte_same_as_swp(*pte, swp_entry_to_pte(entry)))) {
+	// my code
+	if (unlikely(!pte_same_as_swp(check_pte_is_broken_for_pte_read(pte), swp_entry_to_pte(entry)))) {
 		ret = 0;
 		goto out;
 	}
@@ -1806,7 +1812,8 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		 * call and have the page locked.
 		 */
 		VM_BUG_ON_PAGE(PageWriteback(page), page);
-		if (pte_swp_exclusive(*pte))
+		// my code
+		if (pte_swp_exclusive(check_pte_is_broken_for_pte_read(pte)))
 			rmap_flags |= RMAP_EXCLUSIVE;
 
 		page_add_anon_rmap(page, vma, addr, rmap_flags);
@@ -1815,9 +1822,11 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		lru_cache_add_inactive_or_unevictable(page, vma);
 	}
 	new_pte = pte_mkold(mk_pte(page, vma->vm_page_prot));
-	if (pte_swp_soft_dirty(*pte))
+	// my code
+	my_pte = check_pte_is_broken_for_pte_read(pte);
+	if (pte_swp_soft_dirty(my_pte))
 		new_pte = pte_mksoft_dirty(new_pte);
-	if (pte_swp_uffd_wp(*pte))
+	if (pte_swp_uffd_wp(my_pte))
 		new_pte = pte_mkuffd_wp(new_pte);
 	set_pte_at(vma->vm_mm, addr, pte, new_pte);
 	swap_free(entry);
@@ -1845,11 +1854,13 @@ static int unuse_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
 	do {
 		struct folio *folio;
 		unsigned long offset;
+		// my code
+		pte_t my_pte = check_pte_is_broken_for_pte_read(pte);
 
-		if (!is_swap_pte(*pte))
+		if (!is_swap_pte(my_pte))
 			continue;
 
-		entry = pte_to_swp_entry(*pte);
+		entry = pte_to_swp_entry(my_pte);
 		if (swp_type(entry) != type)
 			continue;
 

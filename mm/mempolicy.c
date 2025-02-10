@@ -109,6 +109,9 @@
 
 #include "internal.h"
 
+// my code
+#include <asm/ds.h>
+
 /* Internal flags */
 #define MPOL_MF_DISCONTIG_OK (MPOL_MF_INTERNAL << 0)	/* Skip checks for continuous vmas */
 #define MPOL_MF_INVERT (MPOL_MF_INTERNAL << 1)		/* Invert check for nodemask */
@@ -519,9 +522,11 @@ static int queue_pages_pte_range(pmd_t *pmd, unsigned long addr,
 
 	mapped_pte = pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
-		if (!pte_present(*pte))
+		// my code
+		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		if (!pte_present(entry))
 			continue;
-		page = vm_normal_page(vma, addr, *pte);
+		page = vm_normal_page(vma, addr, entry);
 		if (!page || is_zone_device_page(page))
 			continue;
 		/*

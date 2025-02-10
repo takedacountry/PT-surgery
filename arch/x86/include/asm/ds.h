@@ -14,12 +14,18 @@ extern int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va);
 
 extern int make_ds_list_usr(unsigned long va, pte_t pte);
 
-extern int make_thread_log_list_usr(unsigned long va);
-extern int make_pte_log_list_usr(unsigned long va, pte_t pte, int flag);
-extern int delete_thread_log_list_usr(unsigned long va);
-extern int delete_pte_log_list_usr(unsigned long va, int flag);
+extern int clear_wrbit_ds_list(unsigned long va);
+extern int register_broken_pte_and_recover_broken_pgtable(unsigned long va);
+extern int register_broken_pte_and_make_recovery_thread(unsigned long va);
+extern int check_pte_is_broken_for_pte_write(pte_t *ptep);
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern int wait_to_recover_broken_pgtable(unsigned long pmd_va);
+// extern int recover_broken_pte_from_pgtable_va(unsigned long va);
 
-extern void delete_ds_m_free_pte(unsigned long va);
+extern int increment_m_list_ref_count(unsigned long va);
+extern int decrement_m_list_ref_count(unsigned long va);
+
+extern void delete_m_free_pte(unsigned long va);
 extern void delete_m_free_pmd(unsigned long va);
 extern void delete_m_free_pud(unsigned long va);
 extern void delete_m_free_pgd(unsigned long va);

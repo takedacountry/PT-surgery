@@ -16,6 +16,9 @@
 #include <asm/cacheflush.h>
 #include <asm/kdebug.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * Only print the results of the first pass:
  */
@@ -58,6 +61,8 @@ static int print_split(struct split_state *s)
 		unsigned long addr = (unsigned long)__va(i << PAGE_SHIFT);
 		unsigned int level;
 		pte_t *pte;
+		// my code
+		pte_t entry;
 
 		pte = lookup_address(addr, &level);
 		if (!pte) {
@@ -66,14 +71,17 @@ static int print_split(struct split_state *s)
 			continue;
 		}
 
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
+
 		if (level == PG_LEVEL_1G && sizeof(long) == 8) {
 			s->gpg++;
 			i += GPS/PAGE_SIZE;
 		} else if (level == PG_LEVEL_2M) {
-			if ((pte_val(*pte) & _PAGE_PRESENT) && !(pte_val(*pte) & _PAGE_PSE)) {
+			if ((pte_val(entry) & _PAGE_PRESENT) && !(pte_val(entry) & _PAGE_PSE)) {
 				printk(KERN_ERR
 					"%lx level %d but not PSE %Lx\n",
-					addr, level, (u64)pte_val(*pte));
+					addr, level, (u64)pte_val(entry));
 				err = 1;
 			}
 			s->lpg++;
@@ -82,7 +90,7 @@ static int print_split(struct split_state *s)
 			s->spg++;
 			i++;
 		}
-		if (!(pte_val(*pte) & _PAGE_NX)) {
+		if (!(pte_val(entry) & _PAGE_NX)) {
 			s->exec++;
 			if (addr < s->min_exec)
 				s->min_exec = addr;
@@ -123,6 +131,8 @@ static int pageattr_test(void)
 	unsigned int level;
 	int i, k;
 	int err;
+	// my code
+	pte_t entry;
 
 	if (print)
 		printk(KERN_INFO "CPA self-test:\n");
@@ -150,15 +160,18 @@ static int pageattr_test(void)
 
 		for (k = 0; k < len[i]; k++) {
 			pte = lookup_address(addr[i] + k*PAGE_SIZE, &level);
-			if (!pte || pgprot_val(pte_pgprot(*pte)) == 0 ||
-			    !(pte_val(*pte) & _PAGE_PRESENT)) {
+
+			// my code
+			entry = check_pte_is_broken_for_pte_read(pte);
+			if (!pte || pgprot_val(pte_pgprot(entry)) == 0 ||
+			    !(pte_val(entry) & _PAGE_PRESENT)) {
 				addr[i] = 0;
 				break;
 			}
 			if (k == 0) {
-				pte0 = *pte;
+				pte0 = entry;
 			} else {
-				if (pgprot_val(pte_pgprot(*pte)) !=
+				if (pgprot_val(pte_pgprot(entry)) !=
 					pgprot_val(pte_pgprot(pte0))) {
 					len[i] = k;
 					break;
@@ -198,9 +211,12 @@ static int pageattr_test(void)
 		}
 
 		pte = lookup_address(addr[i], &level);
-		if (!pte || !pte_testbit(*pte) || pte_huge(*pte)) {
+
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
+		if (!pte || !pte_testbit(entry) || pte_huge(entry)) {
 			printk(KERN_ERR "CPA %lx: bad pte %Lx\n", addr[i],
-				pte ? (u64)pte_val(*pte) : 0ULL);
+				pte ? (u64)pte_val(entry) : 0ULL);
 			failed++;
 		}
 		if (level != PG_LEVEL_4K) {
@@ -229,9 +245,12 @@ static int pageattr_test(void)
 			failed++;
 		}
 		pte = lookup_address(addr[i], &level);
-		if (!pte || pte_testbit(*pte)) {
+		
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
+		if (!pte || pte_testbit(entry)) {
 			printk(KERN_ERR "CPA %lx: bad pte after revert %Lx\n",
-				addr[i], pte ? (u64)pte_val(*pte) : 0ULL);
+				addr[i], pte ? (u64)pte_val(entry) : 0ULL);
 			failed++;
 		}
 

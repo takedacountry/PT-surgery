@@ -76,16 +76,24 @@ static bool is_enabled(void)
 	return atomic_read(&mmiotrace_enabled);
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static void print_pte(unsigned long address)
 {
 	unsigned int level;
 	pte_t *pte = lookup_address(address, &level);
+	// my code
+	pte_t entry;
 
 	if (!pte) {
 		pr_err("Error in %s: no pte for page 0x%08lx\n",
 		       __func__, address);
 		return;
 	}
+
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (level == PG_LEVEL_2M) {
 		pr_emerg("4MB pages are not currently supported: 0x%08lx\n",
@@ -94,8 +102,8 @@ static void print_pte(unsigned long address)
 	}
 	pr_info("pte for 0x%lx: 0x%llx 0x%llx\n",
 		address,
-		(unsigned long long)pte_val(*pte),
-		(unsigned long long)pte_val(*pte) & _PAGE_PRESENT);
+		(unsigned long long)pte_val(entry),
+		(unsigned long long)pte_val(entry) & _PAGE_PRESENT);
 }
 
 /*

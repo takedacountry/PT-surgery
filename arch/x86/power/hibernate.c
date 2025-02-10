@@ -147,6 +147,9 @@ int arch_hibernation_header_restore(void *addr)
 	return 0;
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 int relocate_restore_code(void)
 {
 	pgd_t *pgd;
@@ -180,7 +183,8 @@ int relocate_restore_code(void)
 		goto out;
 	}
 	pte = pte_offset_kernel(pmd, relocated_restore_code);
-	set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_NX));
+	// my code
+	set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) & ~_PAGE_NX));
 out:
 	__flush_tlb_all();
 	return 0;

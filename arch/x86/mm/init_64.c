@@ -60,6 +60,9 @@
 
 #include "ident_map.c"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 #define DEFINE_POPULATE(fname, type1, type2, init)		\
 static inline void fname##_init(struct mm_struct *mm,		\
 		type1##_t *arg1, type2##_t *arg2, bool init)	\
@@ -446,6 +449,7 @@ void __init cleanup_highmap(void)
 	}
 }
 
+
 /*
  * Create PTE level page table mapping for physical addresses.
  * It returns the last physical address mapped.
@@ -473,14 +477,15 @@ phys_pte_init(pte_t *pte_page, unsigned long paddr, unsigned long paddr_end,
 				set_pte_init(pte, __pte(0), init);
 			continue;
 		}
-
+		
 		/*
 		 * We will re-use the existing mapping.
 		 * Xen for example has some special requirements, like mapping
 		 * pagetable pages as RO. So assume someone who pre-setup
 		 * these mappings are more intelligent.
 		 */
-		if (!pte_none(*pte)) {
+		// my code
+		if (!pte_none(check_pte_is_broken_for_pte_read(pte))) {
 			if (!after_bootmem)
 				pages++;
 			continue;
@@ -1009,7 +1014,8 @@ static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd)
 
 	for (i = 0; i < PTRS_PER_PTE; i++) {
 		pte = pte_start + i;
-		if (!pte_none(*pte))
+		// my code
+		if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
 			return;
 	}
 
@@ -1063,14 +1069,19 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 	unsigned long next, pages = 0;
 	pte_t *pte;
 	phys_addr_t phys_addr;
+	// my code
+	pte_t entry;
 
 	pte = pte_start + pte_index(addr);
 	for (; addr < end; addr = next, pte++) {
 		next = (addr + PAGE_SIZE) & PAGE_MASK;
 		if (next > end)
 			next = end;
+		
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
 
-		if (!pte_present(*pte))
+		if (!pte_present(entry))
 			continue;
 
 		/*
@@ -1078,12 +1089,12 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 		 * initializing, in arch/x86/kernel/head_64.S. These
 		 * pagetables cannot be removed.
 		 */
-		phys_addr = pte_val(*pte) + (addr & PAGE_MASK);
+		phys_addr = pte_val(entry) + (addr & PAGE_MASK);
 		if (phys_addr < (phys_addr_t)0x40000000)
 			return;
 
 		if (!direct)
-			free_pagetable(pte_page(*pte), 0);
+			free_pagetable(pte_page(entry), 0);
 
 		spin_lock(&init_mm.page_table_lock);
 		pte_clear(&init_mm, addr, pte);
@@ -1424,6 +1435,8 @@ int kern_addr_valid(unsigned long addr)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	// my code
+	pte_t entry;
 
 	if (above != 0 && above != -1UL)
 		return 0;
@@ -1451,10 +1464,14 @@ int kern_addr_valid(unsigned long addr)
 		return pfn_valid(pmd_pfn(*pmd));
 
 	pte = pte_offset_kernel(pmd, addr);
-	if (pte_none(*pte))
+
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	if (pte_none(entry))
 		return 0;
 
-	return pfn_valid(pte_pfn(*pte));
+	return pfn_valid(pte_pfn(entry));
 }
 
 /*
@@ -1640,6 +1657,8 @@ void register_page_bootmem_memmap(unsigned long section_nr,
 
 	for (; addr < end; addr = next) {
 		pte_t *pte = NULL;
+		// my code
+		pte_t entry;
 
 		pgd = pgd_offset_k(addr);
 		if (pgd_none(*pgd)) {
@@ -1671,9 +1690,13 @@ void register_page_bootmem_memmap(unsigned long section_nr,
 					 MIX_SECTION_INFO);
 
 			pte = pte_offset_kernel(pmd, addr);
-			if (pte_none(*pte))
+			
+			// my code
+			entry = check_pte_is_broken_for_pte_read(pte);
+
+			if (pte_none(entry))
 				continue;
-			get_page_bootmem(section_nr, pte_page(*pte),
+			get_page_bootmem(section_nr, pte_page(entry),
 					 SECTION_INFO);
 		} else {
 			next = pmd_addr_end(addr, end);

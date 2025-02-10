@@ -35,6 +35,9 @@
 
 #include "../mm_internal.h"
 
+// my code
+#include <asm/ds.h>
+
 /*
  * The current flushing context - we pass it instead of 5 arguments:
  */
@@ -386,11 +389,12 @@ static void cpa_flush(struct cpa_data *data, int cache)
 		unsigned int level;
 
 		pte_t *pte = lookup_address(addr, &level);
-
+		
 		/*
 		 * Only flush present addresses:
 		 */
-		if (pte && (pte_val(*pte) & _PAGE_PRESENT))
+		// my code
+		if (pte && (pte_val(check_pte_is_broken_for_pte_read(pte)) & _PAGE_PRESENT))
 			clflush_cache_range_opt((void *)fix_addr(addr), PAGE_SIZE);
 	}
 	mb();
@@ -754,7 +758,7 @@ phys_addr_t slow_virt_to_phys(void *__virt_addr)
 		offset = virt_addr & ~PMD_PAGE_MASK;
 		break;
 	default:
-		phys_addr = (phys_addr_t)pte_pfn(*pte) << PAGE_SHIFT;
+		phys_addr = (phys_addr_t)pte_pfn(check_pte_is_broken_for_pte_read(pte)) << PAGE_SHIFT; // my code
 		offset = virt_addr & ~PAGE_MASK;
 	}
 
@@ -1130,8 +1134,14 @@ static bool try_to_free_pte_page(pte_t *pte)
 {
 	int i;
 
-	for (i = 0; i < PTRS_PER_PTE; i++)
-		if (!pte_none(pte[i]))
+	// for (i = 0; i < PTRS_PER_PTE; i++)
+	// 	if (!pte_none(pte[i]))
+	// 		return false;
+
+	// my code	
+	pte_t *my_pte = pte;
+	for (i = 0; i < PTRS_PER_PTE; i++, my_pte++)
+		if(!pte_none(check_pte_is_broken_for_pte_read(my_pte)))
 			return false;
 
 	free_page((unsigned long)pte);
@@ -1565,7 +1575,9 @@ repeat:
 	if (!kpte)
 		return __cpa_process_fault(cpa, address, primary);
 
-	old_pte = *kpte;
+	// my code
+	old_pte = check_pte_is_broken_for_pte_read(kpte);
+
 	if (pte_none(old_pte))
 		return __cpa_process_fault(cpa, address, primary);
 
@@ -2345,7 +2357,8 @@ bool kernel_page_present(struct page *page)
 		return false;
 
 	pte = lookup_address((unsigned long)page_address(page), &level);
-	return (pte_val(*pte) & _PAGE_PRESENT);
+	
+	return (pte_val(check_pte_is_broken_for_pte_read(pte)) & _PAGE_PRESENT);
 }
 
 int __init kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,

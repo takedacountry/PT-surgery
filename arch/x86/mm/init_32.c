@@ -60,6 +60,9 @@ unsigned long highstart_pfn, highend_pfn;
 
 bool __read_mostly __vmalloc_start_set = false;
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * Creates a middle page table and puts a pointer to it in the
  * given global directory entry. This only returns the gd entry
@@ -475,7 +478,9 @@ void __init native_pagetable_init(void)
 		}
 
 		pte = pte_offset_kernel(pmd, va);
-		if (!pte_present(*pte))
+
+		// my code
+		if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
 			break;
 
 		printk(KERN_DEBUG "clearing pte for ram above max_low_pfn: pfn: %lx pmd: %p pmd phys: %lx pte: %p pte phys: %lx\n",

@@ -477,6 +477,9 @@ fault:
 	return ES_EXCEPTION;
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt *ctxt,
 					   unsigned long vaddr, phys_addr_t *paddr)
 {
@@ -485,6 +488,8 @@ static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt 
 	phys_addr_t pa;
 	pgd_t *pgd;
 	pte_t *pte;
+	// my code
+	pte_t entry;
 
 	pgd = __va(read_cr3_pa());
 	pgd = &pgd[pgd_index(va)];
@@ -500,11 +505,14 @@ static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt 
 		return ES_EXCEPTION;
 	}
 
-	if (WARN_ON_ONCE(pte_val(*pte) & _PAGE_ENC))
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	if (WARN_ON_ONCE(pte_val(entry) & _PAGE_ENC))
 		/* Emulated MMIO to/from encrypted memory not supported */
 		return ES_UNSUPPORTED;
 
-	pa = (phys_addr_t)pte_pfn(*pte) << PAGE_SHIFT;
+	pa = (phys_addr_t)pte_pfn(entry) << PAGE_SHIFT;
 	pa |= va & ~page_level_mask(level);
 
 	*paddr = pa;

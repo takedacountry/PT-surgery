@@ -19,6 +19,9 @@
 
 #include "kasan.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * This page serves two purposes:
  *   - It used as early shadow memory. The entire shadow region populated
@@ -282,11 +285,15 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
 static void kasan_free_pte(pte_t *pte_start, pmd_t *pmd)
 {
 	pte_t *pte;
+	// my code
+	pte_t entry;
 	int i;
 
 	for (i = 0; i < PTRS_PER_PTE; i++) {
 		pte = pte_start + i;
-		if (!pte_none(*pte))
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
+		if (!pte_none(entry))
 			return;
 	}
 
@@ -343,16 +350,21 @@ static void kasan_remove_pte_table(pte_t *pte, unsigned long addr,
 				unsigned long end)
 {
 	unsigned long next;
+	// my code
+	pte_t entry;
 
 	for (; addr < end; addr = next, pte++) {
 		next = (addr + PAGE_SIZE) & PAGE_MASK;
 		if (next > end)
 			next = end;
 
-		if (!pte_present(*pte))
+		// my code
+		entry = check_pte_is_broken_for_pte_read(pte);
+
+		if (!pte_present(entry))
 			continue;
 
-		if (WARN_ON(!kasan_early_shadow_page_entry(*pte)))
+		if (WARN_ON(!kasan_early_shadow_page_entry(entry)))
 			continue;
 		pte_clear(&init_mm, addr, pte);
 	}

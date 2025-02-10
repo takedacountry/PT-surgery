@@ -37,6 +37,9 @@
 #include "internal.h"
 #include "swap.h"
 
+// my code
+#include <asm/ds.h>
+
 struct madvise_walk_private {
 	struct mmu_gather *tlb;
 	bool pageout;
@@ -211,7 +214,10 @@ static int swapin_walk_pmd_entry(pmd_t *pmd, unsigned long start,
 		pte_t *ptep;
 
 		ptep = pte_offset_map_lock(vma->vm_mm, pmd, index, &ptl);
-		pte = *ptep;
+		// my code
+		// pte = *ptep;
+		pte = check_pte_is_broken_for_pte_read(ptep);
+
 		pte_unmap_unlock(ptep, ptl);
 
 		if (!is_swap_pte(pte))
@@ -413,7 +419,9 @@ regular_page:
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr < end; pte++, addr += PAGE_SIZE) {
-		ptent = *pte;
+		// my code
+		// ptent = *pte;
+		ptent = check_pte_is_broken_for_pte_read(pte);
 
 		if (pte_none(ptent))
 			continue;
@@ -619,7 +627,9 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
-		ptent = *pte;
+		// my code
+		// ptent = *pte;
+		ptent = check_pte_is_broken_for_pte_read(pte);
 
 		if (pte_none(ptent))
 			continue;

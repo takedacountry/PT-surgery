@@ -66,6 +66,9 @@
 #include "internal.h"
 #include "ras/ras_event.h"
 
+// my code
+#include <asm/ds.h>
+
 int sysctl_memory_failure_early_kill __read_mostly = 0;
 
 int sysctl_memory_failure_recovery __read_mostly = 1;
@@ -315,6 +318,8 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	// my code
+	pte_t entry;
 
 	VM_BUG_ON_VMA(address == -EFAULT, vma);
 	pgd = pgd_offset(vma->vm_mm, address);
@@ -334,7 +339,10 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	if (pmd_devmap(*pmd))
 		return PMD_SHIFT;
 	pte = pte_offset_map(pmd, address);
-	if (pte_present(*pte) && pte_devmap(*pte))
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+	
+	if (pte_present(entry) && pte_devmap(entry))
 		ret = PAGE_SHIFT;
 	pte_unmap(pte);
 	return ret;
@@ -692,7 +700,10 @@ static int hwpoison_pte_range(pmd_t *pmdp, unsigned long addr,
 	mapped_pte = ptep = pte_offset_map_lock(walk->vma->vm_mm, pmdp,
 						addr, &ptl);
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
-		ret = check_hwpoisoned_entry(*ptep, addr, PAGE_SHIFT,
+		// my code
+		pte_t entry = check_pte_is_broken_for_pte_read(ptep);
+
+		ret = check_hwpoisoned_entry(entry, addr, PAGE_SHIFT,
 					     hwp->pfn, &hwp->tk);
 		if (ret == 1)
 			break;

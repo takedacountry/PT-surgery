@@ -91,6 +91,9 @@
 
 #include "../kernel/cpu/cpu.h" /* get_cpu_cap() */
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 void *xen_initial_gdt;
 
 static int xen_cpu_up_prepare_pv(unsigned int cpu);
@@ -336,7 +339,8 @@ static void set_aliased_prot(void *v, pgprot_t prot)
 	ptep = lookup_address((unsigned long)v, &level);
 	BUG_ON(ptep == NULL);
 
-	pfn = pte_pfn(*ptep);
+	// my code
+	pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
 	pte = pfn_pte(pfn, prot);
 
 	/*
@@ -443,7 +447,8 @@ static void xen_load_gdt(const struct desc_ptr *dtr)
 	ptep = lookup_address(va, &level);
 	BUG_ON(ptep == NULL);
 
-	pfn = pte_pfn(*ptep);
+	// my code
+	pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
 	mfn = pfn_to_mfn(pfn);
 	virt = __va(PFN_PHYS(pfn));
 

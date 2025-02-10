@@ -9,6 +9,9 @@
 #include <linux/userfaultfd_k.h>
 #include <linux/swapops.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /**
  * folio_is_file_lru - Should the folio be on a file LRU or anon LRU?
  * @folio: The folio to test.
@@ -556,7 +559,10 @@ pte_install_uffd_wp_if_needed(struct vm_area_struct *vma, unsigned long addr,
 	bool arm_uffd_pte = false;
 
 	/* The current status of the pte should be "cleared" before calling */
-	WARN_ON_ONCE(!pte_none(*pte));
+	// my code
+	// WARN_ON_ONCE(!pte_none(*pte));
+	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	WARN_ON_ONCE(!pte_none(entry));
 
 	if (vma_is_anonymous(vma) || !userfaultfd_wp(vma))
 		return;

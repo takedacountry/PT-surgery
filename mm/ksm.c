@@ -44,6 +44,9 @@
 #include "internal.h"
 #include "mm_slot.h"
 
+// my code
+#include <asm/ds.h>
+
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
 #define DO_NUMA(x)	do { (x); } while (0)
@@ -1020,6 +1023,8 @@ static u32 calc_checksum(struct page *page)
 	return checksum;
 }
 
+// my code
+// How to check broken pte.
 static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 			      pte_t *orig_pte)
 {
@@ -1126,6 +1131,8 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	unsigned long addr;
 	int err = -EFAULT;
 	struct mmu_notifier_range range;
+	// my code
+	pte_t entry;
 
 	addr = page_address_in_vma(page, vma);
 	if (addr == -EFAULT)
@@ -1149,7 +1156,10 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	mmu_notifier_invalidate_range_start(&range);
 
 	ptep = pte_offset_map_lock(mm, pmd, addr, &ptl);
-	if (!pte_same(*ptep, orig_pte)) {
+	// my code
+	entry = check_pte_is_broken_for_pte_read(ptep);
+
+	if (!pte_same(entry, orig_pte)) {
 		pte_unmap_unlock(ptep, ptl);
 		goto out_mn;
 	}
@@ -1176,7 +1186,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 		dec_mm_counter(mm, MM_ANONPAGES);
 	}
 
-	flush_cache_page(vma, addr, pte_pfn(*ptep));
+	flush_cache_page(vma, addr, pte_pfn(entry));
 	/*
 	 * No need to notify as we are replacing a read only page with another
 	 * read only page with the same content.

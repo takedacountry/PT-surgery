@@ -54,6 +54,9 @@
 
 #include <asm/tlbflush.h>
 
+// my code
+#include <asm/ds.h>
+
 #include <trace/events/migrate.h>
 
 #include "internal.h"
@@ -299,7 +302,9 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 	swp_entry_t entry;
 
 	spin_lock(ptl);
-	pte = *ptep;
+	// my code
+	// pte = *ptep;
+	pte = check_pte_is_broken_for_pte_read(ptep);
 	if (!is_swap_pte(pte))
 		goto out;
 

@@ -22,6 +22,9 @@
 #define DAMON_MIN_REGION 1
 #endif
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * 't->pid' should be the pointer to the relevant 'struct pid' having reference
  * count.  Caller must put the returned task, unless it is NULL.
@@ -301,6 +304,8 @@ static int damon_mkold_pmd_entry(pmd_t *pmd, unsigned long addr,
 		unsigned long next, struct mm_walk *walk)
 {
 	pte_t *pte;
+	// my code
+	pte_t entry;
 	spinlock_t *ptl;
 
 	if (pmd_trans_huge(*pmd)) {
@@ -321,7 +326,10 @@ static int damon_mkold_pmd_entry(pmd_t *pmd, unsigned long addr,
 	if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd)))
 		return 0;
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
-	if (!pte_present(*pte))
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	if (!pte_present(entry))
 		goto out;
 	damon_ptep_mkold(pte, walk->mm, addr);
 out:
@@ -430,6 +438,8 @@ static int damon_young_pmd_entry(pmd_t *pmd, unsigned long addr,
 		unsigned long next, struct mm_walk *walk)
 {
 	pte_t *pte;
+	// my code
+	pte_t entry;
 	spinlock_t *ptl;
 	struct page *page;
 	struct damon_young_walk_private *priv = walk->private;
@@ -467,12 +477,16 @@ regular_page:
 	if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd)))
 		return -EINVAL;
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
-	if (!pte_present(*pte))
+	
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	if (!pte_present(entry))
 		goto out;
-	page = damon_get_page(pte_pfn(*pte));
+	page = damon_get_page(pte_pfn(entry));
 	if (!page)
 		goto out;
-	if (pte_young(*pte) || !page_is_idle(page) ||
+	if (pte_young(entry) || !page_is_idle(page) ||
 			mmu_notifier_test_young(walk->mm, addr)) {
 		*priv->page_sz = PAGE_SIZE;
 		priv->young = true;

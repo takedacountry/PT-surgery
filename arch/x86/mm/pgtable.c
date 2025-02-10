@@ -7,6 +7,9 @@
 #include <asm/fixmap.h>
 #include <asm/mtrr.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 #ifdef CONFIG_DYNAMIC_PHYSICAL_MASK
 phys_addr_t physical_mask __ro_after_init = (1ULL << __PHYSICAL_MASK_SHIFT) - 1;
 EXPORT_SYMBOL(physical_mask);
@@ -487,7 +490,8 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
 			  unsigned long address, pte_t *ptep,
 			  pte_t entry, int dirty)
 {
-	int changed = !pte_same(*ptep, entry);
+	// my code
+	int changed = !pte_same(check_pte_is_broken_for_pte_read(ptep), entry);
 
 	if (changed && dirty)
 		set_pte(ptep, entry);
@@ -542,8 +546,8 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma,
 			      unsigned long addr, pte_t *ptep)
 {
 	int ret = 0;
-
-	if (pte_young(*ptep))
+	// my code
+	if (pte_young(check_pte_is_broken_for_pte_read(ptep)))
 		ret = test_and_clear_bit(_PAGE_BIT_ACCESSED,
 					 (unsigned long *) &ptep->pte);
 

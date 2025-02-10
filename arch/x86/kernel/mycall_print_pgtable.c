@@ -1,56 +1,16 @@
 #include <linux/kernel.h>
 #include <linux/syscalls.h>
-#include <linux/types.h>
-#include <linux/uaccess.h>
+// #include <linux/types.h>
 #include <linux/fs.h>
+// #include <linux/slab.h>
+// #include <linux/printk.h>
 #include <asm/current.h>
-#include <asm/io.h>
-#include <asm/page.h>
-#include <asm/pgtable.h>
-#include <asm/pgalloc.h>
-#include <asm/page_types.h>
-#include <asm/string_64.h>
-#include <asm/paravirt.h>
-#include <asm-generic/pgalloc.h>
+// #include <asm/pgtable.h>
+#include "ds.h"
+// #include "ds_struct.h"
 
-#define USER_MAX 0x100
-#define MAX 0x200
 
-extern struct task_struct *target_task;
-
-static pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
-{
-	return (pte_t *)pmd_page_vaddr(*pmd) + index;
-}
-
-static pmd_t *pmd_offset_index(pud_t *pud, unsigned long index)
-{
-	return pud_pgtable(*pud) + index;
-}
-
-static pud_t *pud_offset_index(p4d_t *p4d, unsigned long index)
-{
-	return p4d_pgtable(*p4d) + index;
-}
-
-static p4d_t *p4d_offset_index(pgd_t *pgd, unsigned long index)
-{
-	if(!pgtable_l5_enabled())
-    		return (p4d_t *)pgd;
-	printk(KERN_INFO "pagetable level 5");
-  	return (p4d_t *)pgd_page_vaddr(*pgd) + index;
-}
-
-static pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
-{
-  	return mm->pgd + index;
-}
-
-static long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
-{
-	unsigned long va = a << 27 | b << 18 | c << 9 | d;
-	return va;	
-}
+// extern struct task_struct *target_task;
 
 static int get_ptep(pmd_t *pmdp, unsigned long pte, pte_t **ptepp)
 {

@@ -17,6 +17,9 @@
 #include <asm/tlbflush.h>
 #include "hugetlb_vmemmap.h"
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /**
  * struct vmemmap_remap_walk - walk vmemmap page table
  *
@@ -105,7 +108,8 @@ static void vmemmap_pte_range(pmd_t *pmd, unsigned long addr,
 	 * remapping (which is calling @walk->remap_pte).
 	 */
 	if (!walk->reuse_page) {
-		walk->reuse_page = pte_page(*pte);
+		// my code
+		walk->reuse_page = pte_page(check_pte_is_broken_for_pte_read(pte));
 		/*
 		 * Because the reuse address is part of the range that we are
 		 * walking, skip the reuse address range.
@@ -247,7 +251,8 @@ static void vmemmap_remap_pte(pte_t *pte, unsigned long addr,
 	 */
 	pgprot_t pgprot = PAGE_KERNEL_RO;
 	pte_t entry = mk_pte(walk->reuse_page, pgprot);
-	struct page *page = pte_page(*pte);
+	// my code
+	struct page *page = pte_page(check_pte_is_broken_for_pte_read(pte));
 
 	list_add_tail(&page->lru, walk->vmemmap_pages);
 	set_pte_at(&init_mm, addr, pte, entry);
@@ -279,7 +284,8 @@ static void vmemmap_restore_pte(pte_t *pte, unsigned long addr,
 	struct page *page;
 	void *to;
 
-	BUG_ON(pte_page(*pte) != walk->reuse_page);
+	// my code
+	BUG_ON(pte_page(check_pte_is_broken_for_pte_read(pte)) != walk->reuse_page);
 
 	page = list_first_entry(walk->vmemmap_pages, struct page, lru);
 	list_del(&page->lru);

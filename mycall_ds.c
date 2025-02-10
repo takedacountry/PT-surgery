@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define SYS_mycall_print_user_pgtable 457
 #define SYS_mycall_print_kernel_pgtable 458
@@ -21,39 +22,84 @@
 #define SYS_mycall_print_kernel_pgtable2 465
 #define SYS_mycall_print_user_pgtable2 466
 #define SYS_mycall_m_search 467
+#define SYS_mycall_register_broken_pte 468
 #define SYS_mycall_recover_pgtable 469
+#define SYS_mycall_recover_broken_pte 470
 #define SYS_mycall_ds_register_pid 472
 #define SYS_mycall_make_ds_usr_from_pgtable 473
 #define SYS_mycall_ds_search2 474
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
-#define PAGESIZE 4*1024*1024 // 4MB
+#define PAGESIZE 4*1024*1024 // 2MB
 #define PGD 512
 #define PUD 512
 #define PMD 512
 #define PTE 512
 
+#define OFFSET_SHIFT 		(12)
+#define OFFSET_SIZE			(1 << OFFSET_SHIFT)
+#define OFFSET_MASK			(OFFSET_SIZE - 1)
+#define OFFSET_MASK_NOT		(~OFFSET_MASK)
+
+pthread_mutex_t mutex;
+
+void* thread_func(void* arg)
+{
+    // pthread_mutex_lock(&mutex);
+    // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
+    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+
+    // char *ma = (char*)malloc(PAGESIZE);
+    // memset(ma, 0, PAGESIZE);
+    // printf("va: %p\n", ma); // print user va 
+    // free(ma);
+
+    pid_t pid;
+    if((pid = fork()) == -1){
+        printf("fork() failed");
+        return NULL;
+    }else if(pid == 0){
+        // child
+        // memset(ma, 1, PAGESIZE);
+    }else{
+        //parent
+        int status;
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("exit: %d\n", WEXITSTATUS(status));
+        }
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    }
+    
+    // pthread_mutex_unlock(&mutex);
+    return NULL;
+}
+
 int main(void)
 {
     pid_t pid;
-    
-    printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
+    pthread_t thread1;
+    // pthread_t thread2;
+
+    // printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
+
+    printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search));
+    // printf("%ld\n", syscall(SYS_mycall_m_search));
 
     
-    char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(INDEX);
-    char *mc = (char*)malloc(INDEX);
-    char *md = (char*)malloc(INDEX);
-    char *me = (char*)malloc(INDEX);
-    char *mf = (char*)malloc(INDEX);
-    char *mg = (char*)malloc(INDEX);
-    char *mh = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(PAGESIZE);
+    char *mb = (char*)malloc(PAGESIZE);
+    // char *mc = (char*)malloc(INDEX);
+    // char *md = (char*)malloc(INDEX);
+    // char *me = (char*)malloc(INDEX);
+    // char *mf = (char*)malloc(INDEX);
+    // char *mg = (char*)malloc(INDEX);
+    // char *mh = (char*)malloc(INDEX);
     // char *mi = (char*)malloc(INDEX);
     // char *mj = (char*)malloc(INDEX);
     // char *mk = (char*)malloc(INDEX);
@@ -79,14 +125,14 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
-    memset(mb, 0, INDEX);
-    memset(mc, 0, INDEX);
-    memset(md, 0, INDEX);
-    memset(me, 0, INDEX);
-    memset(mf, 0, INDEX);
-    memset(mg, 0, INDEX);
-    memset(mh, 0, INDEX);
+    memset(ma, 0, PAGESIZE);
+    memset(mb, 0, PAGESIZE);
+    // memset(mc, 0, INDEX);
+    // memset(md, 0, INDEX);
+    // memset(me, 0, INDEX);
+    // memset(mf, 0, INDEX);
+    // memset(mg, 0, INDEX);
+    // memset(mh, 0, INDEX);
     // memset(mi, 0, INDEX);
     // memset(mj, 0, INDEX);
     // memset(mk, 0, INDEX);
@@ -115,12 +161,12 @@ int main(void)
 
     printf("va: %p\n", ma); // print user va 
     printf("va: %p\n", mb); // print user va 
-    printf("va: %p\n", mc); // print user va 
-    printf("va: %p\n", md); // print user va 
-    printf("va: %p\n", me); // print user va
-    printf("va: %p\n", mf); // print user va
-    printf("va: %p\n", mg); // print user va
-    printf("va: %p\n", mh); // print user va
+    // printf("va: %p\n", mc); // print user va 
+    // printf("va: %p\n", md); // print user va 
+    // printf("va: %p\n", me); // print user va
+    // printf("va: %p\n", mf); // print user va
+    // printf("va: %p\n", mg); // print user va
+    // printf("va: %p\n", mh); // print user va
     // printf("va: %p\n", mi); // print user va
     // printf("va: %p\n", mj); // print user va
     // printf("va: %p\n", mk); // print user va
@@ -146,50 +192,67 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+
+    printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
+
+    // pthread_mutex_init(&mutex, NULL);
+    // if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
+    //     perror("failure thread1 create");
+    //     return 0;
+    // }
+    // if(pthread_create(&thread2, NULL, thread_func, NULL) != 0) {
+    //     perror("failure thread2 create");
+    //     return 0;
+    // }
+
+    // pthread_join(thread1, NULL);
+    // pthread_join(thread2, NULL);
+
+    // pthread_mutex_destroy(&mutex);
+
+    // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
+    // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)mb));
+
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search));
+    // printf("%ld\n", syscall(SYS_mycall_m_search));
 
     // if((pid = fork()) == -1){
     //     printf("fork() failed");
     //     return -1;
     // }else if(pid == 0){
-    //     // child
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    //     printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    //     printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
-
-    //     printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
-    
-    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    //     printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-    //     printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
-    //     // exit(0);
-    //     printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
-    //     printf("%ld\n", syscall(SYS_mycall_m_delete));
+    //     exit(0);
     // }else{
     //     //parent
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    //     // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-    //     // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    //     // printf("%ld\n", syscall(SYS_mycall_ds_search));
+    //     // printf("%ld\n", syscall(SYS_mycall_m_search));
         
+    //     int status;
     //     wait(&status);
     //     if (WIFEXITED(status)) {
     //         printf("exit: %d\n", WEXITSTATUS(status));
     //     }
+    // }
+        // if(mprotect((void*)(((unsigned long)ma) & OFFSET_MASK_NOT), 1024*1024, PROT_READ) < 0){
+        //     perror("mprotect");
+        //     exit(0);
+        // }
 
-    // mremap(ma, INDEX, INDEX, MREMAP_FIXED, (ma + INDEX) & OFFSET_MASK_NOT);
-    
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search));
+        // printf("%ld\n", syscall(SYS_mycall_m_search));
         
         // printf("%ld\n", syscall(SYS_mycall_recover_all_pgtable));
         // printf("%ld\n", syscall(SYS_mycall_recover_pgtable, 0x0, pid));
+
+        // printf("%ld\n",syscall(SYS_mycall_recover_broken_pte, (unsigned long)ma));
+        // printf("%ld\n", syscall(SYS_mycall_recover_broken_pte, (unsigned long)mb));
         
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2));
         
         // memset(ma, 1, INDEX);
         // memset(mb, 1, INDEX);
@@ -207,15 +270,16 @@ int main(void)
         // memset(mn, 1, INDEX);
         // memset(mo, 1, INDEX);
         // memset(mp, 1, INDEX);
+
     
         free(ma);
         free(mb);
-        free(mc);
-        free(md);
-        free(me);
-        free(mf);
-        free(mg);
-        free(mh);
+        // free(mc);
+        // free(md);
+        // free(me);
+        // free(mf);
+        // free(mg);
+        // free(mh);
         // free(mi);
         // free(mj);
         // free(mk);
@@ -242,8 +306,8 @@ int main(void)
         // free(mp1);
 
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        // printf("%ld\n", syscall(SYS_mycall_ds_search2, getpid()));
-        // printf("%ld\n", syscall(SYS_mycall_m_search2, getpid()));
+        // printf("%ld\n", syscall(SYS_mycall_ds_search2));
+        // printf("%ld\n", syscall(SYS_mycall_m_search2));
     
         // free(mb);
     

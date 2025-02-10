@@ -14,6 +14,9 @@
 #include <asm-generic/pgtable_uffd.h>
 #include <linux/page_table_check.h>
 
+// my code
+#include <asm/ds.h>
+
 #if 5 - defined(__PAGETABLE_P4D_FOLDED) - defined(__PAGETABLE_PUD_FOLDED) - \
 	defined(__PAGETABLE_PMD_FOLDED) != CONFIG_PGTABLE_LEVELS
 #error CONFIG_PGTABLE_LEVELS is not consistent with __PAGETABLE_{P4D,PUD,PMD}_FOLDED
@@ -94,14 +97,29 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 #define pte_offset_kernel pte_offset_kernel
 #endif
 
+// my code
+static inline pte_t *pte_offset_map_alternative(pmd_t *pmd, unsigned long address)
+{
+	increment_m_list_ref_count(pmd_page_vaddr(*pmd));
+	return pte_offset_kernel(pmd, address);
+}
+
+// my code
+static inline void pte_unmap_alternative(pte_t *pte)
+{
+	decrement_m_list_ref_count((unsigned long)pte);
+}
+
 #if defined(CONFIG_HIGHPTE)
 #define pte_offset_map(dir, address)				\
 	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
 	 pte_index((address)))
 #define pte_unmap(pte) kunmap_atomic((pte))
 #else
-#define pte_offset_map(dir, address)	pte_offset_kernel((dir), (address))
-#define pte_unmap(pte) ((void)(pte))	/* NOP */
+// #define pte_offset_map(dir, address)	pte_offset_kernel((dir), (address))
+#define pte_offset_map(dir, address)	pte_offset_map_alternative((dir), (address)) // my code
+// #define pte_unmap(pte) ((void)(pte))	/* NOP */
+#define pte_unmap(pte) 					pte_unmap_alternative((pte)) // my code
 #endif
 
 /* Find an entry in the second-level page table.. */
@@ -209,7 +227,9 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
 					    unsigned long address,
 					    pte_t *ptep)
 {
-	pte_t pte = *ptep;
+	// my code
+	// pte_t pte = *ptep;
+	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 	int r = 1;
 	if (!pte_young(pte))
 		r = 0;
@@ -296,7 +316,10 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 				       unsigned long address,
 				       pte_t *ptep)
 {
-	pte_t pte = *ptep;
+	// my code
+	// pte_t pte = *ptep;
+	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+
 	pte_clear(mm, address, ptep);
 	page_table_check_pte_clear(mm, address, pte);
 	return pte;
@@ -312,7 +335,10 @@ static inline void ptep_clear(struct mm_struct *mm, unsigned long addr,
 #ifndef __HAVE_ARCH_PTEP_GET
 static inline pte_t ptep_get(pte_t *ptep)
 {
-	return READ_ONCE(*ptep);
+	// my code
+	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+	return pte;
+	// return READ_ONCE(*ptep);
 }
 #endif
 
@@ -482,7 +508,10 @@ extern pud_t pudp_huge_clear_flush(struct vm_area_struct *vma,
 struct mm_struct;
 static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long address, pte_t *ptep)
 {
-	pte_t old_pte = *ptep;
+	// my code
+	// pte_t old_pte = *ptep;
+	pte_t old_pte = check_pte_is_broken_for_pte_read(ptep);
+	
 	set_pte_at(mm, address, ptep, pte_wrprotect(old_pte));
 }
 #endif

@@ -37,6 +37,8 @@ static inline bool arch_kfence_init_pool(void)
 	return true;
 }
 
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /* Protect the given page and flush TLB. */
 static inline bool kfence_protect_page(unsigned long addr, bool protect)
 {
@@ -53,10 +55,11 @@ static inline bool kfence_protect_page(unsigned long addr, bool protect)
 	 * lazy fault handling takes care of faults after the page is PRESENT.
 	 */
 
+	// my code
 	if (protect)
-		set_pte(pte, __pte(pte_val(*pte) & ~_PAGE_PRESENT));
+		set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) & ~_PAGE_PRESENT));
 	else
-		set_pte(pte, __pte(pte_val(*pte) | _PAGE_PRESENT));
+		set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) | _PAGE_PRESENT));
 
 	/*
 	 * Flush this CPU's TLB, assuming whoever did the allocation/free is

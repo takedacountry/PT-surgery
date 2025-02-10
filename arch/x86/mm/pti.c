@@ -39,6 +39,9 @@
 #include <asm/sections.h>
 #include <asm/set_memory.h>
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 #undef pr_fmt
 #define pr_fmt(fmt)     "Kernel/User page tables isolation: " fmt
 
@@ -266,7 +269,8 @@ static pte_t *pti_user_pagetable_walk_pte(unsigned long address)
 	}
 
 	pte = pte_offset_kernel(pmd, address);
-	if (pte_flags(*pte) & _PAGE_USER) {
+	// my code
+	if (pte_flags(check_pte_is_broken_for_pte_read(pte)) & _PAGE_USER) {
 		WARN_ONCE(1, "attempt to walk to user pte\n");
 		return NULL;
 	}
@@ -278,16 +282,21 @@ static void __init pti_setup_vsyscall(void)
 {
 	pte_t *pte, *target_pte;
 	unsigned int level;
+	// my code
+	pte_t entry;
 
 	pte = lookup_address(VSYSCALL_ADDR, &level);
-	if (!pte || WARN_ON(level != PG_LEVEL_4K) || pte_none(*pte))
+	// my code
+	entry = check_pte_is_broken_for_pte_read(pte);
+
+	if (!pte || WARN_ON(level != PG_LEVEL_4K) || pte_none(entry))
 		return;
 
 	target_pte = pti_user_pagetable_walk_pte(VSYSCALL_ADDR);
 	if (WARN_ON(!target_pte))
 		return;
 
-	*target_pte = *pte;
+	*target_pte = entry;
 	set_vsyscall_pgtable_user_bits(kernel_to_user_pgdp(swapper_pg_dir));
 }
 #else
@@ -315,6 +324,8 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 		pgd_t *pgd;
 		p4d_t *p4d;
 		pud_t *pud;
+		// my code
+		pte_t entry;
 
 		/* Overflow check */
 		if (addr < start)
@@ -380,13 +391,17 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 
 			/* Walk the page-table down to the pte level */
 			pte = pte_offset_kernel(pmd, addr);
-			if (pte_none(*pte)) {
+			
+			// my code
+			entry = check_pte_is_broken_for_pte_read(pte);
+
+			if (pte_none(entry)) {
 				addr += PAGE_SIZE;
 				continue;
 			}
 
 			/* Only clone present PTEs */
-			if (WARN_ON(!(pte_flags(*pte) & _PAGE_PRESENT)))
+			if (WARN_ON(!(pte_flags(entry) & _PAGE_PRESENT)))
 				return;
 
 			/* Allocate PTE in the user page-table */
@@ -396,10 +411,10 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 
 			/* Set GLOBAL bit in both PTEs */
 			if (boot_cpu_has(X86_FEATURE_PGE))
-				*pte = pte_set_flags(*pte, _PAGE_GLOBAL);
+				entry = pte_set_flags(entry, _PAGE_GLOBAL);
 
 			/* Clone the PTE */
-			*target_pte = *pte;
+			*target_pte = entry;
 
 			addr += PAGE_SIZE;
 

@@ -1085,15 +1085,20 @@ void sgx_encl_put_backing(struct sgx_backing *backing)
 	put_page(backing->contents);
 }
 
+// my code
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 static int sgx_encl_test_and_clear_young_cb(pte_t *ptep, unsigned long addr,
 					    void *data)
 {
 	pte_t pte;
 	int ret;
+	// my code
+	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
-	ret = pte_young(*ptep);
+	ret = pte_young(entry);
 	if (ret) {
-		pte = pte_mkold(*ptep);
+		pte = pte_mkold(entry);
 		set_pte_at((struct mm_struct *)data, addr, ptep, pte);
 	}
 

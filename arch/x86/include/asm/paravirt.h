@@ -18,6 +18,9 @@
 #include <linux/static_call_types.h>
 #include <asm/frame.h>
 
+// my code
+#include <asm/ds.h>
+
 u64 dummy_steal_clock(int cpu);
 u64 dummy_sched_clock(void);
 
@@ -435,12 +438,23 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned 
 	PVOP_VCALL4(mmu.ptep_modify_prot_commit, vma, addr, ptep, pte.pte);
 }
 
-extern int make_ds_list_usr(unsigned long va, pte_t pte);
 static inline void set_pte(pte_t *ptep, pte_t pte)
 {
-	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 	// my code
-	make_ds_list_usr((unsigned long)ptep, pte);
+	int ret;
+	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) { //
+		PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
+	}
+	else if(ret == 0) {
+		PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
+		make_ds_list_usr((unsigned long)ptep, pte);
+	}
+	else {
+		// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
+		make_ds_list_usr((unsigned long)ptep, pte);	
+	}
+
+	// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 }
 
 // my code

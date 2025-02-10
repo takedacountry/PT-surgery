@@ -48,4 +48,4 @@
 1. /mycall_ds.c にて起動したユーザプロセスの PID を登録し、そのプロセスのページテーブルに対して耐性を付与する。
 2. user が malloc (mmap) を実行し、そのメモリ領域を初期化した際、kernel はページテーブルを割り当てる。この時、ページテーブルの割り当ては __pte_alloc (/mm/memory.c) で行われる。その際に、M_list を作成する make_pte_m_list (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
 3. 実際にページテーブルの PTE に値を代入する処理は set_pte(/arch/x86/include/asm/paravirt.h) で行われており、この際に DS_list を作成する make_ds_list_usr (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
-4. user が free (munmap) を実行し、そのメモリ領域の解放を行う場合、kernel はページテーブルも解放する。ページテーブルの解放は __pte_free_tlb (/arch/x86/include/asm/pgalloc.h) で行われており、この際に DS_list, M_list を解放する delete_ds_m_free_pte (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
+4. user が free (munmap) を実行し、そのメモリ領域の解放を行う場合、kernel はページテーブルも解放する。ページテーブルの解放は __pte_free_tlb (/arch/x86/include/asm/pgalloc.h) で行われており、この際に DS_list, M_list を解放する delete_m_free_pte (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
