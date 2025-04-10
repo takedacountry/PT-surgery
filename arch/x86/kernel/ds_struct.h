@@ -52,6 +52,7 @@ struct m_list{
 
 struct m_head_list{
 	pid_t pid;
+	struct mm_struct *mm;
 	rwlock_t m_lock;
 	struct list_head head;
 	struct list_head list;

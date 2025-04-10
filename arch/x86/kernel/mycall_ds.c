@@ -9,9 +9,12 @@
 #include <linux/kthread.h> //
 #include <linux/preempt.h> //
 #include <linux/pid.h>
-#include <linux/mm_types.h>
 #include <linux/hugetlb.h>
-#include <asm-generic/tlb.h>
+#include <linux/sched/mm.h>
+#include <linux/sched/task.h>
+#include <linux/oom.h>
+#include <linux/rcupdate.h>
+#include <asm/tlbflush.h>
 // #include <linux/list.h> //
 // #include <linux/slab.h> //
 #include <linux/err.h> //
@@ -25,31 +28,32 @@
 
 LIST_HEAD(user_head);
 LIST_HEAD(kern_head);
+LIST_HEAD(count_head);
 
-// DEFINE_RWLOCK(user_head_lock);
+DEFINE_RWLOCK(user_head_lock);
 
 // struct task_struct *target_task;
 
 static int make_recovery_thread(struct m_list *mnode);
-static int recover_broken_pgtable(struct m_list *mnode);
-static void print_dup_pte(pte_t *ptep, unsigned long base);
+static int recover_broken_pgtable(struct mm_struct *mm, struct m_list *mnode);
 
 static struct task_struct *k_thread;
-static struct task_struct *current_kproc;
-// static struct mm_struct *current_mm;
-// static pgd_t *current_pgd;
+static pid_t current_tgid = 0;
 static int recover_count = 0;
 
 static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 {
 	struct m_head_list *mhead;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == pid) {
 			m_list_write_lock(mhead);
 			if(add_first_m_node(pgd_va & PAGE_MASK, PGD_FLAG_MASK, mhead) < 0) {
 				m_list_write_unlock(mhead);
-				return -1;
+				ret = -1;
+				goto end;
 			}
 			m_list_write_unlock(mhead);
 			// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, pid);
@@ -57,7 +61,9 @@ static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 			break;
 		}
 	}
-	return 0;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 int make_pgd_m_list(unsigned long pgd_va)
@@ -69,7 +75,7 @@ EXPORT_SYMBOL_GPL(make_pgd_m_list);
 static unsigned long get_p4d_base(unsigned long p4d_va, unsigned long pud_va, struct m_head_list *mhead, pid_t pid)
 {
 	struct m_list *itr;
-	unsigned long base;
+	unsigned long base = 0;
 
 	list_for_each_entry(itr, &mhead->head, list) {
 		if(itr->base & PGD_FLAG_MASK && itr->va <= p4d_va && p4d_va < itr->va + OFFSET_SIZE) {
@@ -109,20 +115,25 @@ err:
 static int __make_pud_m_list(unsigned long p4d_va, unsigned long pud_va, pid_t pid)
 {
 	struct m_head_list *mhead;
-	unsigned long base;
+	unsigned long base = 0;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == pid) {
 			m_list_write_lock(mhead);
 			if((base = get_p4d_base(p4d_va, pud_va, mhead, pid)) >= MAX_NUM) {
 				m_list_write_unlock(mhead);
-				return -1;
+				ret = -1;
+				goto end;
 			}
 			m_list_write_unlock(mhead);
 			break;
 		}
 	}
-	return 0;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 int make_pud_m_list(unsigned long p4d_va, unsigned long pud_va)
@@ -174,20 +185,25 @@ err:
 static int __make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va, pid_t pid)
 {
 	struct m_head_list *mhead;
-	unsigned long base;
+	unsigned long base = 0;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == pid) {
 			m_list_write_lock(mhead);
 			if((base = get_pud_base(pud_va, pmd_va, mhead, pid)) >= MAX_NUM) {
 				m_list_write_unlock(mhead);
-				return -1;
+				ret = -1;
+				goto end;
 			}
 			m_list_write_unlock(mhead);
 			break;
 		}
 	}
-	return 0;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 int make_pmd_m_list(unsigned long pud_va, unsigned long pmd_va)
@@ -239,20 +255,25 @@ err:
 static int __make_pte_m_list(unsigned long pmd_va, unsigned long pte_va, pid_t pid)
 {
 	struct m_head_list *mhead;
-	unsigned long base;
+	unsigned long base = 0;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == pid) {
 			m_list_write_lock(mhead);
 			if((base = get_pmd_base(pmd_va, pte_va, mhead, pid)) >= MAX_NUM) {
 				m_list_write_unlock(mhead);
-				return -1;
+				ret = -1;
+				goto end;
 			}
 			m_list_write_unlock(mhead);
 			break;
 		}
 	}
-	return 0;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 int make_pte_m_list(unsigned long pmd_va, unsigned long pte_va)
@@ -413,16 +434,18 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
 	unsigned long base = MAX_NUM;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == pid) {
+		if (mhead->pid == pid) {
 			// if((base = get_pte_base(va, mhead)) >= MAX_NUM)
 			// 	return -1;
 			// break;
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+				if (mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
 					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
 					member_read_unlock(mnode);
 					break;
@@ -431,19 +454,23 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 			}
 			m_list_read_unlock(mhead);
 			
-			if(base == MAX_NUM)
-				goto err;
+			if (base == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
 			member_write_lock(mnode);
-			if(mnode->dup_pte)
+			if (mnode->dup_pte)
 				dup_pte_update(base, mnode->dup_pte, pte);
 			member_write_unlock(mnode);
 
-			if((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL)
-				goto err;
+			if ((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL) {
+				ret = -1;
+				goto end;
+			}
 
 			ds_list_write_lock(mnode);
-			if(list_empty(&mnode->ds_head)) {
+			if (list_empty(&mnode->ds_head)) {
 				list_add(&dnode->list, &mnode->ds_head);
 				ds_list_write_unlock(mnode);
 				goto end;
@@ -454,12 +481,12 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %lx %d\n", base, pte_value, pte_flag, va, pid);
 						if(pte_value == 0 && pte_flag == 0) {
 							delete_ds(prev, dnode, mnode);
-							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
 						}
 						else if(dnode->offset != prev->offset) {
 							// modify pte value
 							modify_ds_offset(prev, dnode, mnode);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+							// printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						}
 						else if(dnode->flag != prev->flag) {
 							// modify pte flag 
@@ -467,16 +494,16 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 								// ds_mkwrite
 								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, mnode);
-								printk(KERN_INFO "make write %lx %lx %d\n", base, pte_flag, pid);
+								// printk(KERN_INFO "make write %lx %lx %d\n", base, pte_flag, pid);
 							}
 							else if(is_ds_write(prev) && !is_ds_write(dnode)) {
 								// ds_wrprotect
 								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
 								modify_ds_flag(prev, dnode, mnode);
-								printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, pte_flag, pid);
+								// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, pte_flag, pid);
 							}
 							else {
-								printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %d\n", base, prev->flag, pte_flag, pid);
+								// printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %d\n", base, prev->flag, pte_flag, pid);
 							}
 						}
 						ds_list_write_unlock(mnode);
@@ -508,9 +535,8 @@ static int __make_ds_list_usr(unsigned long va, pte_t pte, pid_t pid)
 	}
 	
 end:
-	return 0;
-err:
-	return -1;
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 int make_ds_list_usr(unsigned long va, pte_t pte)
@@ -589,13 +615,15 @@ int clear_wrbit_ds_list(unsigned long va)
 	struct ds_list *prev;
 	unsigned long base = MAX_NUM;
 	unsigned long limit;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
+		if (mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+				if (mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
 					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK);
 					limit = base + 1;
 					member_read_unlock(mnode);
@@ -605,8 +633,10 @@ int clear_wrbit_ds_list(unsigned long va)
 			}
 			m_list_read_unlock(mhead);
 			
-			if(base == MAX_NUM) 
-				goto err;
+			if (base == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
 			member_write_lock(mnode);
 			if(mnode->dup_pte)
@@ -627,9 +657,9 @@ int clear_wrbit_ds_list(unsigned long va)
 		}
 	}
 
-	return 0;
-err:
-	return -1;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 EXPORT_SYMBOL_GPL(clear_wrbit_ds_list);
 
@@ -641,24 +671,26 @@ int register_broken_pte_and_recover_broken_pgtable(unsigned long va)
 	unsigned int offset;
 	unsigned long va_start = MAX_NUM;
 	pte_t *ptep_new;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
+		if (mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+				if (mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
 					offset = ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK;
 					va_start = mnode->base & PT_PGTABLE_MASK_NOT;
 					member_read_unlock(mnode);
 
 					broken_list_read_lock(mnode);
 					list_for_each_entry(bnode, &mnode->broken_head, list) {
-						if(offset == bnode->offset) {
+						if (offset == bnode->offset) {
 							printk(KERN_INFO "Have already registered the broken pte %lx\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset));
 							broken_list_read_unlock(mnode);
 							m_list_read_unlock(mhead);
-							return 0;
+							goto end;
 						}
 					}
 					broken_list_read_unlock(mnode);
@@ -668,24 +700,28 @@ int register_broken_pte_and_recover_broken_pgtable(unsigned long va)
 			}
 			m_list_read_unlock(mhead);
 
-			if(va_start == MAX_NUM)
-				goto err;
+			if (va_start == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
 			broken_list_write_lock(mnode);
-			if(add_broken_pte_node(offset, mnode) < 0) {
+			if (add_broken_pte_node(offset, mnode) < 0) {
 				broken_list_write_unlock(mnode);
-				goto err;
+				ret = -1;
+				goto end;
 			}
 			broken_list_write_unlock(mnode);
 			printk(KERN_INFO "register broken pte %lx %d\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset), offset);
 			
 			member_write_lock(mnode);
-			if(!mnode->dup_pte) {
-				ptep_new = pte_realloc(current->mm);
-				if(!ptep_new) {
+			if (!mnode->dup_pte) {
+				ptep_new = pte_realloc(mhead->mm);
+				if (!ptep_new) {
 					printk(KERN_INFO "out of memory\n");
 					member_write_unlock(mnode);
-					goto err;
+					ret = -1;
+					goto end;
 				}
 				printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
 				update_dup_pgtable(va_start, ptep_new, mnode);
@@ -693,8 +729,8 @@ int register_broken_pte_and_recover_broken_pgtable(unsigned long va)
 
 				member_write_unlock(mnode);
 				// check ref count 
-				if(recover_broken_pgtable(mnode) < 0)
-					goto err;
+				if (recover_broken_pgtable(mhead->mm, mnode) < 0)
+					ret = -1;
 				goto end;
 			}
 			member_write_unlock(mnode);
@@ -702,9 +738,8 @@ int register_broken_pte_and_recover_broken_pgtable(unsigned long va)
 		}
 	}
 end:
-	return 0;
-err:
-	return -1;
+	read_unlock(&user_head_lock);
+	return ret;
 }
 EXPORT_SYMBOL_GPL(register_broken_pte_and_recover_broken_pgtable);
 
@@ -716,24 +751,26 @@ int register_broken_pte_and_make_recovery_thread(unsigned long va)
 	unsigned int offset;
 	unsigned long va_start = MAX_NUM;
 	pte_t *ptep_new;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
+		if (mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
+				if (mnode->base & PTE_FLAG_MASK && mnode->va <= va && va < mnode->va + OFFSET_SIZE) {
 					offset = ((va - mnode->va) / 0x8) & PT_PGTABLE_MASK;
 					va_start = mnode->base & PT_PGTABLE_MASK_NOT;
 					member_read_unlock(mnode);
 
 					broken_list_read_lock(mnode);
 					list_for_each_entry(bnode, &mnode->broken_head, list) {
-						if(offset == bnode->offset) {
+						if (offset == bnode->offset) {
 							printk(KERN_INFO "Have already registered the broken pte %lx\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset));
 							broken_list_read_unlock(mnode);
 							m_list_read_unlock(mhead);
-							return 0;
+							goto end;
 						}
 					}
 					broken_list_read_unlock(mnode);
@@ -743,13 +780,16 @@ int register_broken_pte_and_make_recovery_thread(unsigned long va)
 			}
 			m_list_read_unlock(mhead);
 
-			if(va_start == MAX_NUM)
-				goto err;
+			if (va_start == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
 			broken_list_write_lock(mnode);
 			if(add_broken_pte_node(offset, mnode) < 0) {
 				broken_list_write_unlock(mnode);
-				goto err;
+				ret = -1;
+				goto end;
 			}
 			broken_list_write_unlock(mnode);
 			printk(KERN_INFO "register broken pte %lx %d\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset), offset);
@@ -760,7 +800,8 @@ int register_broken_pte_and_make_recovery_thread(unsigned long va)
 				if(!ptep_new) {
 					printk(KERN_INFO "out of memory\n");
 					member_write_unlock(mnode);
-					goto err;
+					ret = -1;
+					goto end;
 				}
 				printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
 				update_dup_pgtable(va_start, ptep_new, mnode);
@@ -769,7 +810,7 @@ int register_broken_pte_and_make_recovery_thread(unsigned long va)
 				member_write_unlock(mnode);
 				// check ref count 
 				if(make_recovery_thread(mnode) < 0)
-					goto err;
+					ret = -1;
 				goto end;
 			}
 			member_write_unlock(mnode);
@@ -777,9 +818,8 @@ int register_broken_pte_and_make_recovery_thread(unsigned long va)
 		}
 	}
 end:
-	return 0;
-err:
-	return -1;
+	read_unlock(&user_head_lock);
+	return ret;
 }
 EXPORT_SYMBOL_GPL(register_broken_pte_and_make_recovery_thread);
 
@@ -792,24 +832,26 @@ static long register_broken_pte_from_user(unsigned long va)
 	unsigned long base = va >> OFFSET_SHIFT;
 	unsigned long va_start = MAX_NUM;
 	pte_t *ptep_new; 
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
+		if (mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && (mnode->base & PT_PGTABLE_MASK_NOT) == (base & PT_PGTABLE_MASK_NOT)) {
+				if (mnode->base & PTE_FLAG_MASK && (mnode->base & PT_PGTABLE_MASK_NOT) == (base & PT_PGTABLE_MASK_NOT)) {
 					offset = (base - (mnode->base & PT_PGTABLE_MASK_NOT)) & PT_PGTABLE_MASK;
 					va_start = mnode->base & PT_PGTABLE_MASK_NOT;
 					member_read_unlock(mnode);
 
 					broken_list_read_lock(mnode);
 					list_for_each_entry(bnode, &mnode->broken_head, list) {
-						if(offset == bnode->offset) {
+						if (offset == bnode->offset) {
 							printk(KERN_INFO "Have already registered the broken pte %lx\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset));
 							broken_list_read_unlock(mnode);
 							m_list_read_unlock(mhead);
-							return 0;
+							goto end;
 						}
 					}
 					broken_list_read_unlock(mnode);
@@ -819,24 +861,28 @@ static long register_broken_pte_from_user(unsigned long va)
 			}
 			m_list_read_unlock(mhead);
 
-			if(va_start == MAX_NUM)
-				goto err;
+			if (va_start == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
 			broken_list_write_lock(mnode);
-			if(add_broken_pte_node(offset, mnode) < 0) {
+			if (add_broken_pte_node(offset, mnode) < 0) {
 				broken_list_write_unlock(mnode);
-				goto err;
+				ret = -1;
+				goto end;
 			}
 			broken_list_write_unlock(mnode);
 			printk(KERN_INFO "register broken pte %lx %d\n", make_ds_va((va_start >> 27) & PT_PGTABLE_MASK, (va_start >> 18) & PT_PGTABLE_MASK, (va_start >> 9) & PT_PGTABLE_MASK, offset), offset);
 			
 			member_write_lock(mnode);
 			if(!mnode->dup_pte) {
-				ptep_new = pte_realloc(current->mm);
+				ptep_new = pte_realloc(mhead->mm);
 				if(!ptep_new) {
 					printk(KERN_INFO "out of memory\n");
 					member_write_unlock(mnode);
-					goto err;
+					ret = -1;
+					goto end;
 				}
 				printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
 				update_dup_pgtable(va_start, ptep_new, mnode);
@@ -844,8 +890,8 @@ static long register_broken_pte_from_user(unsigned long va)
 				
 				member_write_unlock(mnode);
 				// check ref count 
-				if(recover_broken_pgtable(mnode) < 0) 
-					goto err;
+				if(recover_broken_pgtable(mhead->mm, mnode) < 0) 
+					ret = -1;
 				goto end;
 			}
 			member_write_unlock(mnode);
@@ -853,9 +899,8 @@ static long register_broken_pte_from_user(unsigned long va)
 		}
 	}
 end:
-	return 0;
-err:
-	return -1;
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 SYSCALL_DEFINE1(mycall_register_broken_pte, unsigned long, va)
@@ -880,6 +925,7 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 
 	entry = *ptep; // check EMEs and register broken pte
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			// register broken pte
@@ -902,12 +948,14 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 							broken_list_read_unlock(mnode);
 							member_read_unlock(mnode);
 							m_list_read_unlock(mhead);
+							read_unlock(&user_head_lock);
 							return 1; // pte is broken
 						}
 					}
 					broken_list_read_unlock(mnode);
 					member_read_unlock(mnode);
 					m_list_read_unlock(mhead);
+					read_unlock(&user_head_lock);
 					return 0; // pte is safety
 				}
 				member_read_unlock(mnode);
@@ -916,6 +964,7 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return -1; // pte is not managed by ds_list
 }
 EXPORT_SYMBOL_GPL(check_pte_is_broken_for_pte_write);
@@ -938,15 +987,16 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 
 	entry = *ptep; // check EMEs and register broken pte
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			// register broken pte
-			if(recover_count == 50) {
-				register_broken_pte_and_make_recovery_thread(va);
-				recover_count++;
-			} else {
-				recover_count++;
-			}
+			// if(recover_count == 800) {
+			// 	register_broken_pte_and_make_recovery_thread(va);
+			// 	recover_count++;
+			// } else {
+			// 	recover_count++;
+			// }
 
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
@@ -958,12 +1008,13 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 						if(offset == bnode->offset) {
 							printk(KERN_INFO "Hit broken pte %lx %lx\n", va, make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK, (mnode->base >> 9) & PT_PGTABLE_MASK, offset));
 							pte = mnode->dup_pte + offset;
+							entry = *pte;
 							printk(KERN_INFO "get broken    pte %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
 							printk(KERN_INFO "get recovered pte %lx %lx\n", pte_pfn(*pte), pte_flags(*pte));
 							broken_list_read_unlock(mnode);
 							member_read_unlock(mnode);
 							m_list_read_unlock(mhead);
-							return *pte; // pte is broken
+							goto end; // pte is broken
 						}
 					}
 					broken_list_read_unlock(mnode);
@@ -976,6 +1027,8 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 			break;
 		}
 	}
+end:
+	read_unlock(&user_head_lock);
 	return entry; // pte is safety or not managed by ds_list
 }
 EXPORT_SYMBOL_GPL(check_pte_is_broken_for_pte_read);
@@ -1031,29 +1084,88 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
   	return 0;
 }
 
-static int get_pgdp_for_kthread(unsigned long pgd, p4d_t **p4dpp)
-{
-	pgd_t *pgdp;
+// static int get_pgdp_for_kthread(unsigned long pgd, p4d_t **p4dpp)
+// {
+// 	pgd_t *pgdp;
+// 	// struct pid *p;
+// 	// struct task_struct *task_pid;
+// 	// struct task_struct *task_tgid;
+// 	// struct task_struct *task;
+// 	// struct mm_struct *mm;
 
-	printk(KERN_INFO "start get pgdp\n");
+// 	printk(KERN_INFO "start get pgdp\n");
 
-	pgdp = current_kproc->mm->pgd + pgd;
+// 	// rcu_read_lock();
 
-	printk(KERN_INFO "before: success to get pgdp\n");
+// 	// p = find_get_pid(current_tgid);
+// 	// if (!p) {
+// 	// 	printk(KERN_INFO "pid is NULL\n");
+// 	// 	rcu_read_unlock();
+// 	// 	return -1;
+// 	// }
 
-  	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
-	    // printk(KERN_INFO "pgd %lu is not present.\n", pgd);
-    	return -1;
-  	}
-	printk(KERN_INFO "after: success to get pgdp %lx\n", (unsigned long)pgd_val(*pgdp));
+// 	// // task_pid = get_pid_task(find_get_pid(current_pid), PIDTYPE_PID);
+// 	// task_tgid = get_pid_task(p, PIDTYPE_PID);
+// 	// put_pid(p);
+// 	// if (!task_tgid) {
+// 	// 	printk(KERN_INFO "task is NULL\n");
+// 	// 	rcu_read_unlock();
+// 	// 	return -1;
+// 	// }
 
-	if(get_p4dp(pgdp, pgd, p4dpp) < 0){
-		return -1;
-	}
-  	return 0;
-}
+// 	// // printk(KERN_INFO "get task_pid struct %d %d\n", task_pid->pid, task_pid->tgid);
+// 	// printk(KERN_INFO "get task_tgid struct %d %d\n", task_tgid->pid, task_tgid->tgid);
+// 	// printk(KERN_INFO "get current task struct %d %d\n", current->pid, current->tgid);
 
-static int get_pmdp_from_pgtable(unsigned long base, pmd_t **pmdpp)
+// 	// task = find_lock_task_mm(task_tgid);
+// 	// if (!task) {
+// 	// 	printk(KERN_INFO "active mm is nothing\n");
+// 	// 	mm = task_tgid->active_mm;
+// 	// 	put_task_struct(task_tgid);
+// 	// 	if (!mm) {
+// 	// 		printk(KERN_INFO "current active mm is NULL\n");
+// 	// 		rcu_read_unlock();
+// 	// 		return -1;
+// 	// 	}
+// 	// 	pgdp = mm->pgd + pgd;
+// 	// } else {
+// 	// 	put_task_struct(task_tgid);
+// 	// 	task_unlock(task);
+// 	// 	mm = get_task_mm(task);
+// 	// 	if (!mm) {
+// 	// 		printk(KERN_INFO "task mm is NULL\n");
+// 	// 		rcu_read_unlock();
+// 	// 		return -1;
+// 	// 	}
+// 	// 	pgdp = mm->pgd + pgd;
+// 	// 	mmput(mm);
+// 	// }
+// 	// rcu_read_unlock();
+
+// 	if (!current_mm) {
+// 		printk(KERN_INFO "current mm is NULL\n");
+// 		return -1;
+// 	}
+
+// 	pgdp = current_mm->pgd + pgd;
+// 	if (!pgdp) {
+// 		printk(KERN_INFO "pgdp is NULL\n");
+// 		return -1;
+// 	}
+
+//   	if(pgd_none(*pgdp) || !pgd_present(*pgdp)){
+// 	    // printk(KERN_INFO "pgd %lu is not present.\n", pgd);
+//     	return -1;
+//   	}
+// 	printk(KERN_INFO "after: success to get pgdp %lx\n", (unsigned long)pgd_val(*pgdp));
+
+// 	if(get_p4dp(pgdp, pgd, p4dpp) < 0){
+// 		return -1;
+// 	}
+//   	return 0;
+// }
+
+static int get_pmdp_for_recover_pgtable(struct mm_struct *mm, unsigned long base, pmd_t **pmdpp)
 {
 	p4d_t *p4dp;
 	pud_t *pudp;
@@ -1062,9 +1174,9 @@ static int get_pmdp_from_pgtable(unsigned long base, pmd_t **pmdpp)
 	unsigned long pud = (base >> 18) & PT_PGTABLE_MASK;
 	unsigned long pmd = (base >> 9) & PT_PGTABLE_MASK;
 
-  	if(get_pgdp(current->mm, pgd, &p4dp) == 0) {
-		if(get_pudp(p4dp, pud, &pudp) == 0) {
-			if(get_pmdp(pudp, pmd, pmdpp) == 0) {
+  	if (get_pgdp(mm, pgd, &p4dp) == 0) {
+		if (get_pudp(p4dp, pud, &pudp) == 0) {
+			if (get_pmdp(pudp, pmd, pmdpp) == 0) {
 				return 0;
 			}
 		}
@@ -1072,12 +1184,27 @@ static int get_pmdp_from_pgtable(unsigned long base, pmd_t **pmdpp)
 	return -1;
 }
 
-static int update_pmdp(struct m_list *mnode, pmd_t *pmdp)
+static void print_dup_pte(pte_t *ptep, unsigned long base)
+{
+	unsigned long pgd = (base >> 27) & PT_PGTABLE_MASK;
+	unsigned long pud = (base >> 18) & PT_PGTABLE_MASK;
+	unsigned long pmd = (base >> 9) & PT_PGTABLE_MASK;
+
+	printk(KERN_INFO "print dup pte\n");
+	for(unsigned long pte=0; pte<MAX; pte++, ptep++) {
+		if(!pte_none(*ptep) && pte_present(*ptep)) {
+			printk(KERN_INFO "  %lx  %lx %lx  %lx\n", make_ds_va(pgd, pud, pmd, pte), pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+		}
+	}
+}
+
+static int update_pmdp(struct mm_struct *mm, struct m_list *mnode, pmd_t *pmdp)
 {
 	struct broken_pte_list *bnode;
 
 	broken_list_read_lock(mnode);
 	if(list_empty(&mnode->broken_head)) {
+		printk(KERN_INFO "DO NOT have broken pte\n");
 		broken_list_read_unlock(mnode);
 		return -1;
 	}
@@ -1093,7 +1220,7 @@ static int update_pmdp(struct m_list *mnode, pmd_t *pmdp)
 
 	member_write_lock(mnode);
 	print_dup_pte(mnode->dup_pte, mnode->base);
-	pmd_reinstall(current->mm, pmdp, mnode->dup_pte);
+	pmd_reinstall(mm, pmdp, mnode->dup_pte);
 	modify_m_va(mnode, (unsigned long)mnode->dup_pte);
 	mnode->dup_pte = NULL;
 	member_write_unlock(mnode);
@@ -1103,50 +1230,58 @@ static int update_pmdp(struct m_list *mnode, pmd_t *pmdp)
 	return 0;
 }
 
-static int recover_broken_pgtable(struct m_list *mnode)
+static int recover_broken_pgtable(struct mm_struct *mm, struct m_list *mnode)
 {
-	struct mmu_gather *tlb;
+	// struct vm_area_struct *vma;
 	pmd_t *pmdp;
 	spinlock_t *ptl;
-	unsigned long va = mnode->base & PT_PGTABLE_MASK_NOT;
+	unsigned long va = 0;
+	unsigned long addr = 0;
 
+	member_read_lock(mnode);
+	va = mnode->base & PT_PGTABLE_MASK_NOT;
+	member_read_unlock(mnode);
+	
 	printk(KERN_INFO "start recovery %lx\n",va);
-	// here
-	if(get_pmdp_from_pgtable(va, &pmdp) < 0)
+
+	if(get_pmdp_for_recover_pgtable(mm, va, &pmdp) < 0)
 		return -1;
 
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
-	printk(KERN_INFO "get pmd lock\n");
 
-	for(;;) {
+	preempt_enable();
+	for(int i=0; i < 100; i++) {
 		ref_count_lock(mnode);
 		printk(KERN_INFO "pgtable ref count %d\n", mnode->ref_count);
 		if(mnode->ref_count == 0) {
-			if(update_pmdp(mnode, pmdp) < 0) {
+			if(update_pmdp(mm, mnode, pmdp) < 0) {
 				ref_count_unlock(mnode);
+				preempt_disable();
 				spin_unlock(ptl);
-				printk(KERN_INFO "cannot recovery\n");
-				return -1;
+				goto err;
 			}
 			ref_count_unlock(mnode);
 			break;
 		}
 		ref_count_unlock(mnode);
 		// wait some time msec
-		// msleep(100);
+		msleep(30);
 	}
-
+	preempt_disable();
 	spin_unlock(ptl);
 
 	// want to add TLB flush operation
-	// tlb_gather_mmu(tlb, current->mm);
-	// pte_free_tlb(tlb, pmd_pgtable(*pmdp), va << OFFSET_SHIFT);
-	// tlb_finish_mmu(tlb);
+	addr = va << OFFSET_SHIFT;
+	// vma = vma_lookup(mm, addr);
+	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
 
 	printk(KERN_INFO "finish recovery\n");
 
 	return 0;
+err:
+	printk(KERN_INFO "cannot recovery\n");
+	return -1;
 }
 
 // int recover_broken_pte_from_pgtable_va(unsigned long va)
@@ -1216,42 +1351,47 @@ static long recover_broken_pte_from_user(unsigned long va)
 	unsigned long base = va >> OFFSET_SHIFT;
 	unsigned long va_start = MAX_NUM;
 	pmd_t *pmdp;
+	int ret = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
 			list_for_each_entry(mnode, &mhead->head, list) {
 				member_read_lock(mnode);
-				if(mnode->base & PTE_FLAG_MASK && (mnode->base & PT_PGTABLE_MASK_NOT) == (base & PT_PGTABLE_MASK_NOT)) {
+				if (mnode->base & PTE_FLAG_MASK && (mnode->base & PT_PGTABLE_MASK_NOT) == (base & PT_PGTABLE_MASK_NOT)) {
 					va_start = mnode->base & PT_PGTABLE_MASK_NOT;
 					if(!mnode->dup_pte) {
 						member_read_unlock(mnode);
 						m_list_read_unlock(mhead);
-						printk(KERN_INFO "NOT registerd broken pte %lx\n",va_start);
-						goto err;
+						printk(KERN_INFO "NOT registered broken pte %lx\n",va_start);
+						ret = -1;
+						goto end;
 					}
 					member_read_unlock(mnode);
-					printk(KERN_INFO "recover broken pte %lx\n",va_start);
-					
-					broken_list_read_lock(mnode);
-					list_for_each_entry(bnode, &mnode->broken_head, list) {
-						printk(KERN_INFO "        broken pte %d\n", bnode->offset);
-					}
-					broken_list_read_unlock(mnode);
 					break;
 				}
 				member_read_unlock(mnode);
 			}
 			m_list_read_unlock(mhead);
 
-			if(va_start == MAX_NUM)
-				goto err;
+			if (va_start == MAX_NUM) {
+				ret = -1;
+				goto end;
+			}
 
-			if(get_pmdp_from_pgtable(va_start, &pmdp) == 0) {
+			printk(KERN_INFO "recover broken pte %lx\n",va_start);
+			broken_list_read_lock(mnode);
+			list_for_each_entry(bnode, &mnode->broken_head, list) {
+				printk(KERN_INFO "        broken pte %d\n", bnode->offset);
+			}
+			broken_list_read_unlock(mnode);
+
+			if (get_pmdp_for_recover_pgtable(mhead->mm, va_start, &pmdp) == 0) {
 				printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
 
 				member_write_lock(mnode);
-				pmd_reinstall_lock(current->mm, pmdp, mnode->dup_pte);
+				pmd_reinstall_lock(mhead->mm, pmdp, mnode->dup_pte);
 				modify_m_va(mnode, (unsigned long)mnode->dup_pte);
 				mnode->dup_pte = NULL;
 				member_write_unlock(mnode);
@@ -1262,9 +1402,9 @@ static long recover_broken_pte_from_user(unsigned long va)
 			break;
 		}
 	}
-	return 0;
-err:
-	return -1;
+end:
+	read_unlock(&user_head_lock);
+	return ret;
 }
 
 
@@ -1273,11 +1413,208 @@ SYSCALL_DEFINE1(mycall_recover_broken_pte, unsigned long, va)
 	return recover_broken_pte_from_user(va);
 }
 
+// static int get_pmdp_for_kthread(struct mm_struct *mm, unsigned long base, pmd_t **pmdpp)
+// {
+// 	p4d_t *p4dp;
+// 	pud_t *pudp;
+// 	pmd_t *pmdp;
+
+// 	unsigned long pgd = (base >> 27) & PT_PGTABLE_MASK;
+// 	unsigned long pud = (base >> 18) & PT_PGTABLE_MASK;
+// 	unsigned long pmd = (base >> 9) & PT_PGTABLE_MASK;
+
+//   	if(get_pgdp(mm, pgd, &p4dp) == 0) {
+// 		// printk(KERN_INFO "success to get p4dp %lx\n", (unsigned long)p4d_val(*p4dp));
+// 		if(get_pudp(p4dp, pud, &pudp) == 0) {
+// 			// printk(KERN_INFO "success to get pudp %lx\n", (unsigned long)pud_val(*pudp));
+// 			if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+// 				*(pmdpp) = pmdp;
+// 				// printk(KERN_INFO "success to get pmdp %lx\n", (unsigned long)pmd_val(*pmdp));
+// 				return 0;
+// 			}
+// 		}
+// 	}
+// 	return -1;
+// }
+
+// static int update_pmdp_for_kthread(struct mm_struct *mm, struct m_list *mnode, pmd_t *pmdp)
+// {
+// 	struct broken_pte_list *bnode;
+
+// 	broken_list_read_lock(mnode);
+// 	if(list_empty(&mnode->broken_head)) {
+// 		printk(KERN_INFO "DO NOT have broken pte\n");
+// 		broken_list_read_unlock(mnode);
+// 		return -1;
+// 	}
+	
+// 	printk(KERN_INFO "recover broken pte %lx\n",mnode->base);
+
+// 	list_for_each_entry(bnode, &mnode->broken_head, list) {
+// 		printk(KERN_INFO "        broken pte %d\n", bnode->offset);
+// 	}
+// 	broken_list_read_unlock(mnode);
+
+// 	printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+
+// 	member_write_lock(mnode);
+// 	print_dup_pte(mnode->dup_pte, mnode->base);
+// 	pmd_reinstall(mm, pmdp, mnode->dup_pte);
+// 	modify_m_va(mnode, (unsigned long)mnode->dup_pte);
+// 	mnode->dup_pte = NULL;
+// 	member_write_unlock(mnode);
+// 	delete_broken_pte_all(mnode);
+
+// 	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+// 	return 0;
+// }
+
+static int recovery_thread(void *data)
+{
+	struct m_list *mnode = (struct m_list *)data;
+	struct m_head_list *mhead;
+	struct mm_struct *mm;
+	// struct vm_area_struct *vma;
+	pmd_t *pmdp;
+	spinlock_t *ptl;
+	unsigned long va = 0;
+	unsigned long addr = 0;
+	
+	member_read_lock(mnode);
+	va = mnode->base & PT_PGTABLE_MASK_NOT;
+	member_read_unlock(mnode);
+
+	printk(KERN_INFO "start recovery thread %lx\n",va);
+
+	read_lock(&user_head_lock);
+	list_for_each_entry(mhead, &user_head, list) {
+		if (mhead->pid == current_tgid) {
+			mm = mhead->mm;
+			break;
+		}
+	}
+	read_unlock(&user_head_lock);
+	if (!mm) {
+		printk(KERN_INFO "m_head_list->mm is NULL\n");
+		return -1;
+	}
+
+	if (get_pmdp_for_recover_pgtable(mm, va, &pmdp) < 0)
+		return -1;
+	
+	ptl = ptlock_ptr(pmd_to_page(pmdp));
+	spin_lock(ptl);
+
+	preempt_enable();
+	for(int i=0; i < 100; i++) {
+		ref_count_lock(mnode);
+		printk(KERN_INFO "pgtable ref count %d\n", mnode->ref_count);
+		if(mnode->ref_count == 0) {
+			if(update_pmdp(mm, mnode, pmdp) < 0) {
+				ref_count_unlock(mnode);
+				preempt_disable();
+				spin_unlock(ptl);
+				goto err;			
+			}
+			ref_count_unlock(mnode);
+			break;
+		}
+		ref_count_unlock(mnode);
+		// wait some time msec
+		msleep(30);
+	}
+	preempt_disable();
+	spin_unlock(ptl);
+
+	// want to add TLB flush operation
+	addr = va << OFFSET_SHIFT;
+	// vma = vma_lookup(mm, addr);
+	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
+
+	printk(KERN_INFO "finish kthread\n");
+
+	return 0;
+err:
+	printk(KERN_INFO "cannot recovery\n");
+	return -1;
+}
+
+static int make_recovery_thread(struct m_list *mnode)
+{
+	current_tgid = current->tgid;
+	printk(KERN_INFO "current pid %d, tgid %d\n", current->pid, current->tgid);
+	preempt_enable();
+	k_thread = kthread_run(recovery_thread, mnode, "kcheckd");
+	preempt_disable();
+	if(IS_ERR(k_thread)) {
+		printk(KERN_INFO "kthread_run error\n");
+		return -1;
+	}
+	printk(KERN_INFO "recovery thread pid %d comm %s\n", k_thread->pid, k_thread->comm);
+	return 0;
+}
+
+int wait_to_recover_broken_pgtable(unsigned long pmd_va) 
+{
+	struct m_head_list *mhead;
+	struct m_list *mnode;
+	unsigned long base = 0;
+	int flag = 0;
+
+	read_lock(&user_head_lock);
+	list_for_each_entry(mhead, &user_head, list) {
+		if(mhead->pid == current->tgid) {
+			m_list_read_lock(mhead);
+			list_for_each_entry(mnode, &mhead->head, list) {
+				member_read_lock(mnode);
+				if(!flag && mnode->base & PMD_FLAG_MASK && mnode->va <= pmd_va && pmd_va < mnode->va + OFFSET_SIZE) {
+					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK,  ((pmd_va - mnode->va) / 0x8) & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
+					flag = 1;
+				}
+				if(flag && mnode->base == base) {
+					if(mnode->dup_pte == NULL){
+						member_read_unlock(mnode);
+						m_list_read_unlock(mhead);
+						goto end;
+					}
+
+					member_read_unlock(mnode);
+					printk(KERN_INFO "wait to recover broken pgtable %lx\n",base);
+					preempt_enable();
+					for(int i=0; i < 100; i++) {
+						member_read_lock(mnode);
+						if(mnode->dup_pte == NULL) {
+							member_read_unlock(mnode);
+							m_list_read_unlock(mhead);
+							printk(KERN_INFO "DONE dup_pte\n");
+							preempt_disable();
+							goto end;
+						}
+						member_read_unlock(mnode);
+						// wait some time msec
+						msleep(100);
+					}
+					preempt_disable();
+					break;
+				}
+				member_read_unlock(mnode);
+			}
+			m_list_read_unlock(mhead);
+			break;
+		}
+	}
+end:
+	read_unlock(&user_head_lock);
+	return 0;		
+}
+EXPORT_SYMBOL_GPL(wait_to_recover_broken_pgtable);
+
 int increment_m_list_ref_count(unsigned long va)
 {
 	struct m_head_list *mhead;
 	struct m_list *mnode;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
@@ -1302,6 +1639,7 @@ int increment_m_list_ref_count(unsigned long va)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(increment_m_list_ref_count);
@@ -1311,6 +1649,7 @@ int decrement_m_list_ref_count(unsigned long va)
 	struct m_head_list *mhead;
 	struct m_list *mnode;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			m_list_read_lock(mhead);
@@ -1337,207 +1676,10 @@ int decrement_m_list_ref_count(unsigned long va)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(decrement_m_list_ref_count);
-
-static int get_pmdp_for_kthread(unsigned long base, pmd_t **pmdpp)
-{
-	p4d_t *p4dp;
-	pud_t *pudp;
-	pmd_t *pmdp;
-	// struct mm_struct *mm;
-	// pgd_t *pgdp;
-
-	unsigned long pgd = (base >> 27) & PT_PGTABLE_MASK;
-	unsigned long pud = (base >> 18) & PT_PGTABLE_MASK;
-	unsigned long pmd = (base >> 9) & PT_PGTABLE_MASK;
-
-	// pgdp = current_mm->pgd;
-
-	printk(KERN_INFO "check pgd\n");
-	if (current_kproc->mm->pgd != NULL) {
-		printk(KERN_INFO "pgd is active\n");
-	} else {
-		printk(KERN_INFO "pgd is NULL\n");
-	}
-
-  	if(get_pgdp_for_kthread(pgd, &p4dp) == 0) {
-		printk(KERN_INFO "success to get p4dp %lx\n", (unsigned long)p4d_val(*p4dp));
-		if(get_pudp(p4dp, pud, &pudp) == 0) {
-			printk(KERN_INFO "success to get pudp %lx\n", (unsigned long)pud_val(*pudp));
-			if(get_pmdp(pudp, pmd, &pmdp) == 0) {
-				*(pmdpp) = pmdp;
-				printk(KERN_INFO "success to get pmdp %lx\n", (unsigned long)pmd_val(*pmdp));
-				return 0;
-			}
-		}
-	}
-	return -1;
-}
-
-static void print_dup_pte(pte_t *ptep, unsigned long base)
-{
-	unsigned long pgd = (base >> 27) & PT_PGTABLE_MASK;
-	unsigned long pud = (base >> 18) & PT_PGTABLE_MASK;
-	unsigned long pmd = (base >> 9) & PT_PGTABLE_MASK;
-
-	printk(KERN_INFO "print dup pte\n");
-	for(unsigned long pte=0; pte<MAX; pte++, ptep++) {
-		if(!pte_none(*ptep) && pte_present(*ptep)) {
-			printk(KERN_INFO "  %lx  %lx %lx  %lx\n", make_ds_va(pgd, pud, pmd, pte), pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
-		}
-	}
-}
-
-static int update_pmdp_for_kthread(struct m_list *mnode, pmd_t *pmdp)
-{
-	struct broken_pte_list *bnode;
-
-	broken_list_read_lock(mnode);
-	if(list_empty(&mnode->broken_head)) {
-		broken_list_read_unlock(mnode);
-		return -1;
-	}
-	
-	printk(KERN_INFO "recover broken pte %lx\n",mnode->base);
-
-	list_for_each_entry(bnode, &mnode->broken_head, list) {
-		printk(KERN_INFO "        broken pte %d\n", bnode->offset);
-	}
-	broken_list_read_unlock(mnode);
-
-	printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
-
-	member_write_lock(mnode);
-	print_dup_pte(mnode->dup_pte, mnode->base);
-	pmd_reinstall(current_kproc->mm, pmdp, mnode->dup_pte);
-	modify_m_va(mnode, (unsigned long)mnode->dup_pte);
-	mnode->dup_pte = NULL;
-	member_write_unlock(mnode);
-	delete_broken_pte_all(mnode);
-
-	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
-	return 0;
-}
-
-static int recovery_thread(void *data)
-{
-	struct m_list *mnode = (struct m_list *)data;
-	pmd_t *pmdp;
-	spinlock_t *ptl;
-	unsigned long va;
-	
-	member_read_lock(mnode);
-	va = mnode->base & PT_PGTABLE_MASK_NOT;
-	member_read_unlock(mnode);
-
-	printk(KERN_INFO "start recovery thread %lx\n",va);
-	printk(KERN_INFO "current %d %d, current kproc %d %d\n", current->pid, current->tgid, current_kproc->pid, current_kproc->tgid);
-
-	if (get_pmdp_for_kthread(va, &pmdp) < 0) {
-		printk(KERN_INFO "kthread not get pmdp\n");
-		return -1;
-	}
-	
-	printk(KERN_INFO "before: kthread get pmd lock\n");
-	ptl = ptlock_ptr(pmd_to_page(pmdp));
-	spin_lock(ptl);
-	printk(KERN_INFO "after: kthread get pmd lock\n");
-
-	for(int i=0; i < 100; i++) {
-		ref_count_lock(mnode);
-		printk(KERN_INFO "pgtable ref count %d\n", mnode->ref_count);
-		if(mnode->ref_count == 0) {
-			if(update_pmdp_for_kthread(mnode, pmdp) < 0) {
-				ref_count_unlock(mnode);
-				spin_unlock(ptl);
-				printk(KERN_INFO "cannot recovery\n");
-				return -1;
-			}
-			ref_count_unlock(mnode);
-			break;
-		}
-		ref_count_unlock(mnode);
-		// wait some time msec
-		msleep(50);
-	}
-	spin_unlock(ptl);
-
-	printk(KERN_INFO "finish kthread\n");
-
-	return 0;
-}
-
-static int make_recovery_thread(struct m_list *mnode)
-{
-	current_kproc = get_pid_task(find_get_pid(current->tgid), PIDTYPE_PID);
-	if (!current_kproc) {
-		printk(KERN_INFO "error: cannot get kernel proc\n");
-		return -1;
-	}
-	// current_mm = current->mm;
-	// current_pgd = current->mm->pgd;
-	// preempt_enable();
-	printk(KERN_INFO "current %d %d, current kproc %d %d\n", current->pid, current->tgid, current_kproc->pid, current_kproc->tgid);
-	k_thread = kthread_run(recovery_thread, mnode, "kcheckd");
-	if(IS_ERR(k_thread)) {
-		printk(KERN_INFO "kthread_run error\n");
-		return -1;
-	}
-	// preempt_disable();
-	printk(KERN_INFO "recovery thread run\n");
-	return 0;
-}
-
-int wait_to_recover_broken_pgtable(unsigned long pmd_va) 
-{
-	struct m_head_list *mhead;
-	struct m_list *mnode;
-	unsigned long base = 0;
-	int flag = 0;
-
-	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
-			m_list_read_lock(mhead);
-			list_for_each_entry(mnode, &mhead->head, list) {
-				member_read_lock(mnode);
-				if(!flag && mnode->base & PMD_FLAG_MASK && mnode->va <= pmd_va && pmd_va < mnode->va + OFFSET_SIZE) {
-					base = make_ds_va((mnode->base >> 27) & PT_PGTABLE_MASK, (mnode->base >> 18) & PT_PGTABLE_MASK,  ((pmd_va - mnode->va) / 0x8) & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
-					flag = 1;
-				}
-				if(flag && mnode->base == base) {
-					if(mnode->dup_pte == NULL){
-						member_read_unlock(mnode);
-						m_list_read_unlock(mhead);
-						return 0;
-					}
-
-					member_read_unlock(mnode);
-					printk(KERN_INFO "wait to recover broken pgtable %lx\n",base);
-					for(int i=0; i < 100; i++) {
-						member_read_lock(mnode);
-						if(mnode->dup_pte == NULL) {
-							member_read_unlock(mnode);
-							m_list_read_unlock(mhead);
-							printk(KERN_INFO "DONE dup_pte\n");
-							return 0;
-						}
-						member_read_unlock(mnode);
-						// wait some time msec
-						msleep(100);
-					}
-					break;
-				}
-				member_read_unlock(mnode);
-			}
-			m_list_read_unlock(mhead);
-			break;
-		}
-	}
-	return 0;		
-}
-EXPORT_SYMBOL_GPL(wait_to_recover_broken_pgtable);
 
 // static int make_list_usr_from_pgtable(unsigned long addr, pte_t *ptep)
 // {
@@ -1723,6 +1865,8 @@ static int get_pgdp_and_make_m_list(struct mm_struct *mm, pid_t pid, unsigned lo
 
 static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 {
+	struct m_head_list *mhead;
+	struct mm_struct *mm;
 	pid_t pid = p->tgid;
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
@@ -1730,14 +1874,27 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 	pmd_t *pmdp;
 	pte_t *ptep;
 	
+	read_lock(&user_head_lock);
+	list_for_each_entry(mhead, &user_head, list) {
+		if (mhead->pid == pid) {
+			mm = mhead->mm;
+			break;
+		}
+	}
+	read_unlock(&user_head_lock);
+	if (!mm) {
+		printk(KERN_INFO "Please execute register_pid\n");
+		goto err;
+	}
+
 	// if p have already registered, retur -1
-	if(__make_pgd_m_list((unsigned long)p->mm->pgd, pid) < 0) {
+	if(__make_pgd_m_list((unsigned long)mm->pgd, pid) < 0) {
 		printk(KERN_INFO "Have already made m list\n");
 		return 0;
 	}
 
 	for(unsigned long pgd=0; pgd < USER_MAX; pgd++) {
-		if(get_pgdp_and_make_m_list(p->mm, pid, pgd, &p4dp) == 0) {
+		if(get_pgdp_and_make_m_list(mm, pid, pgd, &p4dp) == 0) {
 			for(unsigned long pud=0; pud<MAX; pud++) {
 				if(get_pudp_and_make_m_list(p4dp, pid, pud, &pudp) == 0) {
 					for(unsigned long pmd=0; pmd<MAX; pmd++) {
@@ -1757,9 +1914,9 @@ static long make_ds_list_usr_from_pgtable(struct task_struct *p)
 	    	}
 		}
     }
-	recover_count = 0;
-// end:
 	return 0;
+err:
+	return -1;
 }
 
 SYSCALL_DEFINE0(mycall_make_ds_usr_from_pgtable)
@@ -1911,47 +2068,72 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 	return ret;
 }
 
-static long register_pid(pid_t pid)
+// static void make_count_node(pid_t pid)
+// {
+// 	struct count_struct *list = kmalloc(sizeof(struct count_struct), GFP_KERNEL);
+// 	if(!list)
+// 		return NULL;
+
+// 	list->pid = pid;
+// 	list->m_num = 0;
+// 	list->pte_num = 0;
+// 	list->ds_num = 0;
+// 	return list;
+// }
+
+static long register_pid(struct mm_struct *mm, pid_t pid)
 {
-	struct m_head_list *m_head;
+	struct m_head_list *mhead;
+	int ret = 0;
 
 	// target_task = current;
 	
-	list_for_each_entry(m_head, &user_head, list) {
-		if(m_head->pid == pid) {
+	write_lock(&user_head_lock);
+	list_for_each_entry(mhead, &user_head, list) {
+		if(mhead->pid == pid) {
 			printk(KERN_INFO "Have already registered the pid %d\n", pid);
 			goto end;
 		}
 	}
 
-	m_head = kmalloc(sizeof(struct m_head_list), GFP_KERNEL);
-	if(!m_head)
-		return -1;
-	m_head->pid = pid;
-	rwlock_init(&m_head->m_lock);
-	INIT_LIST_HEAD(&m_head->head);
-	list_add(&m_head->list, &user_head);
+	mhead = kmalloc(sizeof(struct m_head_list), GFP_KERNEL);
+	if(!mhead) {
+		ret = -1;
+		goto end;
+	}
+	mhead->pid = pid;
+	mhead->mm = mm;
+	rwlock_init(&mhead->m_lock);
+	INIT_LIST_HEAD(&mhead->head);
+	list_add(&mhead->list, &user_head);
 
 	printk(KERN_INFO "init pid %d\n",pid);
 end:
-	return 0;
+	write_unlock(&user_head_lock);
+	return ret;
 }
 
 SYSCALL_DEFINE0(mycall_ds_register_pid)
 {
-	return register_pid(current->tgid);
+	long ret = register_pid(current->mm, current->tgid); 
+	recover_count = 0;
+	return ret;
+	// return register_pid(current->mm, current->tgid);
 }
 
 bool check_parent_is_target(pid_t ppid, pid_t pid)
 {
-	struct m_head_list *m_node;
+	struct m_head_list *mhead;
 
-	list_for_each_entry(m_node, &user_head, list) {
-		if(m_node->pid == ppid) {
+	read_lock(&user_head_lock);
+	list_for_each_entry(mhead, &user_head, list) {
+		if(mhead->pid == ppid) {
 			printk(KERN_INFO "parent pid %d, child pid %d\n", ppid, pid);
+			read_unlock(&user_head_lock);
 			return true;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return false;	
 }
 EXPORT_SYMBOL_GPL(check_parent_is_target);
@@ -1960,7 +2142,7 @@ void register_child(struct task_struct *p)
 {
 	// register pid & make ds_list, m_list
 	printk(KERN_INFO "child pid %d, current tid %d, current pid %d\n", p->tgid, current->pid, current->tgid);
-	register_pid(p->tgid);
+	register_pid(p->mm, p->tgid);
 	// print_user_pgtable(p);
 	make_ds_list_usr_from_pgtable(p);
 }

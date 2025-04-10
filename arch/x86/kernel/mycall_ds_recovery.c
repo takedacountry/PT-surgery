@@ -177,6 +177,7 @@ static long recover_all_pgtable(void)
 	unsigned long va_start;
 	unsigned long base;
 	int count = 0;
+	int ret = 0;
 
 	struct file *file;
 	char *filename = "./write_log_txt";
@@ -185,9 +186,10 @@ static long recover_all_pgtable(void)
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)) {
 		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto err;
+		return -1;
 	}
 	
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list) {
 		if(m_head->pid == current->tgid) {
 		// if(m_head->pid == target_task->pid){
@@ -205,7 +207,8 @@ static long recover_all_pgtable(void)
 							if(base == va_start) {
 								if((count = __recover_pgtable(va_start, itr, file, &pos)) < 0) {
 									m_list_read_unlock(m_head);
-									goto err;
+									ret = -1;
+									goto end;
 								}
 							}else if(va_start < base){
 								break;
@@ -227,11 +230,10 @@ static long recover_all_pgtable(void)
 			break;
 		}
 	}
-
+end:
+	read_unlock(&user_head_lock);
 	filp_close(file, NULL);
-	return 0;
-err:
-	return -1;	
+	return ret;
 }
 
 
@@ -250,6 +252,7 @@ static long recover_pgtable(unsigned long va)
 	struct m_head_list *m_head;
 
 	unsigned long base = va >> OFFSET_SHIFT;
+	int ret = 0;
 	
 	struct file *file;
 	char *filename = "./write_log_txt";
@@ -258,9 +261,10 @@ static long recover_pgtable(unsigned long va)
 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
 	if(IS_ERR(file)) {
 		printk("pre_file open err=%ld", PTR_ERR(file));
-		goto err;
+		return -1;
 	}
 	
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list) {
 		if(m_head->pid == current->tgid) {
 		// if(m_head->pid == target_task->pid) {
@@ -272,7 +276,9 @@ static long recover_pgtable(unsigned long va)
 					member_read_unlock(itr);
 					if(__recover_pgtable(base & PT_PGTABLE_MASK_NOT, itr, file, &pos) < 0) {
 						m_list_read_unlock(m_head);
-						goto err;
+						printk(KERN_INFO "recover pte va:%lx error!\n",va);
+						ret = -1;
+						goto end;
 					}
 					break;
 				}
@@ -282,12 +288,10 @@ static long recover_pgtable(unsigned long va)
 			break;
 		}
 	}
-	
+end:
+	read_unlock(&user_head_lock);
 	filp_close(file, NULL);
-	return 0;
-err:
-	printk(KERN_INFO "recover pte va:%lx error!\n",va);
-	return -1;
+	return ret;
 }
 
 SYSCALL_DEFINE1(mycall_recover_pgtable, unsigned long, va)

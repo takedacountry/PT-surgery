@@ -43,6 +43,7 @@
 
 extern struct list_head user_head;
 extern struct list_head kern_head;
+extern rwlock_t user_head_lock;
 
 static inline void m_list_read_lock(struct m_head_list *mhead)
 {

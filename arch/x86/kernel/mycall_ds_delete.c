@@ -48,6 +48,7 @@ void delete_m_free_pte(unsigned long va)
 
 	unsigned long va_start = 0, va_end = 0;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list) {
 		if(m_head->pid == current->tgid) {
 			// printk(KERN_INFO "delete m pte %lx", va);
@@ -59,7 +60,7 @@ void delete_m_free_pte(unsigned long va)
 					va_end = va_start + PT_PGTABLE_SIZE;
 
 					if(m_node->dup_pte) {
-						pte_free(current->mm, virt_to_page(m_node->dup_pte));
+						pte_free(m_head->mm, virt_to_page(m_node->dup_pte));
 						printk(KERN_INFO "delete dup PT\n");
 						m_node->dup_pte = NULL;
 					}
@@ -80,7 +81,7 @@ void delete_m_free_pte(unsigned long va)
 			break;
 		}
 	}
-
+	read_unlock(&user_head_lock);
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_m_free_pte);
@@ -90,6 +91,7 @@ void delete_m_free_pmd(unsigned long va)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list){
 		if(m_head->pid == current->tgid){
 			// printk(KERN_INFO "delete m pmd %lx", va);
@@ -109,6 +111,7 @@ void delete_m_free_pmd(unsigned long va)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_m_free_pmd);
@@ -118,6 +121,7 @@ void delete_m_free_pud(unsigned long va)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list){
 		if(m_head->pid == current->tgid){
 			// printk(KERN_INFO "delete m pud %lx", va);
@@ -137,6 +141,7 @@ void delete_m_free_pud(unsigned long va)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_m_free_pud);
@@ -146,6 +151,7 @@ void delete_m_free_pgd(unsigned long va)
 	struct m_list *m_node;
 	struct m_head_list *m_head;
 
+	read_lock(&user_head_lock);
 	list_for_each_entry(m_head, &user_head, list) {
 		if(m_head->pid == current->tgid) {
 			// printk(KERN_INFO "delete m pgd %lx", va);
@@ -173,6 +179,7 @@ void delete_m_free_pgd(unsigned long va)
 			break;
 		}
 	}
+	read_unlock(&user_head_lock);
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_m_free_pgd);
@@ -182,6 +189,7 @@ static long delete_m_all(void)
 	struct m_list *mnode, *itr;
 	struct m_head_list *mhead, *tmp; 
 
+	read_lock(&user_head_lock);
 	list_for_each_entry_safe(mhead, tmp, &user_head, list) {
 		m_list_write_lock(mhead);
 		list_for_each_entry_safe(mnode, itr, &mhead->head, list) {
@@ -195,7 +203,7 @@ static long delete_m_all(void)
 		kfree(mhead);
 	}
 	printk(KERN_INFO "delete user all\n");
-
+	read_unlock(&user_head_lock);
 	return 0;
 }
 
