@@ -57,7 +57,7 @@ static int __make_pgd_m_list(unsigned long pgd_va, pid_t pid)
 			}
 			m_list_write_unlock(mhead);
 			// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, pid);
-			printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", pgd_va & PAGE_MASK, PGD_FLAG_MASK, current->pid, current->tgid);
 			break;
 		}
 	}
@@ -90,22 +90,22 @@ pud_va:
 	while(itr->base <= base) {
 		if(itr->va != pud_va && itr->base == base) {
 			itr->va = pud_va;
-			printk(KERN_INFO "modify m pud %lx %lx\n", itr->va, itr->base);
+			// printk(KERN_INFO "modify m pud %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
 		if(list_is_last(&itr->list, &mhead->head)) {
 			if(add_m_node(pud_va, base, itr) < 0) {
 				goto err;
 			}
-			goto end;
+			goto ret;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pud_va, base, itr) < 0)
 		goto err;
-end:
+// end:
 	// printk(KERN_INFO "make m pud alloc %lx, %lx, %d\n", pud_va, base, pid);
-	printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", pud_va, base, current->pid, current->tgid);
+	// printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", pud_va, base, current->pid, current->tgid);
 ret:
 	return base;
 err:
@@ -160,22 +160,22 @@ pmd_va:
 	while(itr->base <= base) {
 		if(itr->va != pmd_va && itr->base == base) {
 			itr->va = pmd_va;
-			printk(KERN_INFO "modify m pmd %lx %lx\n", itr->va, itr->base);
+			// printk(KERN_INFO "modify m pmd %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
 		if(list_is_last(&itr->list, &mhead->head)) {
 			if(add_m_node(pmd_va, base, itr) < 0) {
 				goto err;
 			}
-			goto end;
+			goto ret;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pmd_va, base, itr) < 0)
 		goto err;
-end:
+// end:
 	// printk(KERN_INFO "make m pmd alloc %lx, %lx, %d\n", pmd_va, base, pid);
-	printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", pmd_va, base, current->pid, current->tgid);
+	// printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", pmd_va, base, current->pid, current->tgid);
 ret:
 	return base;
 err:
@@ -230,22 +230,22 @@ pte_va:
 	while(itr->base <= base) {
 		if(itr->va != pte_va && itr->base == base) {
 			itr->va = pte_va;
-			printk(KERN_INFO "modify m pte %lx %lx\n", itr->va, itr->base);
+			// printk(KERN_INFO "modify m pte %lx %lx\n", itr->va, itr->base);
 			goto ret;
 		}
 		if(list_is_last(&itr->list, &mhead->head)) {
 			if(add_m_node(pte_va, base, itr) < 0){
 				goto err;
 			}
-			goto end;
+			goto ret;
 		}
 		itr = list_next_entry(itr, list);
 	}
 	if(add_tail_m_node(pte_va, base, itr) < 0)
 		goto err;
-end:		
+// end:		
 	// printk(KERN_INFO "make m pte alloc %lx, %lx, %d\n", pte_va, base, pid);
-	printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", pte_va, base, current->pid, current->tgid);
+	// printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", pte_va, base, current->pid, current->tgid);
 ret:
 	return base;
 err:

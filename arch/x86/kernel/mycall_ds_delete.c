@@ -72,7 +72,7 @@ void delete_m_free_pte(unsigned long va)
 
 					list_del(&m_node->list);
 					kfree(m_node);
-					printk(KERN_INFO "delete m pte %lx %lx-%lx pid %d %d\n", va, va_start, va_end, current->pid, current->tgid);
+					// printk(KERN_INFO "delete m pte %lx %lx-%lx pid %d %d\n", va, va_start, va_end, current->pid, current->tgid);
 					break;
 				}
 				member_write_unlock(m_node);
@@ -99,7 +99,7 @@ void delete_m_free_pmd(unsigned long va)
 			list_for_each_entry(m_node, &m_head->head, list){
 				member_read_lock(m_node);
 				if(m_node->base & PMD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
-					printk(KERN_INFO "delete m pmd %lx %lx pid %d %d\n", va, m_node->base, current->pid, current->tgid);
+					// printk(KERN_INFO "delete m pmd %lx %lx pid %d %d\n", va, m_node->base, current->pid, current->tgid);
 					member_read_unlock(m_node);
 					list_del(&m_node->list);
 					kfree(m_node);
@@ -129,7 +129,7 @@ void delete_m_free_pud(unsigned long va)
 			list_for_each_entry(m_node, &m_head->head, list) {
 				member_read_lock(m_node);
 				if(m_node->base & PUD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE){
-					printk(KERN_INFO "delete m pud %lx %lx pid %d %d\n", va, m_node->base, current->pid, current->tgid);
+					// printk(KERN_INFO "delete m pud %lx %lx pid %d %d\n", va, m_node->base, current->pid, current->tgid);
 					member_read_unlock(m_node);
 					list_del(&m_node->list);
 					kfree(m_node);
@@ -160,7 +160,7 @@ void delete_m_free_pgd(unsigned long va)
 				member_read_lock(m_node);
 				if(m_node->base & PGD_FLAG_MASK && m_node->va <= va && va < m_node->va + OFFSET_SIZE) {
 					if(list_is_last(&m_node->list, &m_head->head)) {
-						printk(KERN_INFO "delete m pgd %lx %lx pid %d %d\n", va, PGD_FLAG_MASK, current->pid, current->tgid);
+						// printk(KERN_INFO "delete m pgd %lx %lx pid %d %d\n", va, PGD_FLAG_MASK, current->pid, current->tgid);
 						member_read_unlock(m_node);
 						list_del(&m_node->list);
 						kfree(m_node);
@@ -174,7 +174,7 @@ void delete_m_free_pgd(unsigned long va)
 			if(list_empty(&m_head->head)) {
 				list_del(&m_head->list);
 				kfree(m_head);
-				printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);
+				// printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);
 			}
 			break;
 		}
