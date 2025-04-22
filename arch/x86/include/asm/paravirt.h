@@ -447,11 +447,11 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 	}
 	else if(ret == 0) {
 		PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
-		make_ds_list_usr((unsigned long)ptep, pte);
+		make_ds_log_usr(ptep, pte);
 	}
 	else {
 		// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
-		make_ds_list_usr((unsigned long)ptep, pte);	
+		make_ds_log_usr(ptep, pte);	
 	}
 
 	// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);

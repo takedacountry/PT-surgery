@@ -45,96 +45,95 @@ extern struct list_head user_head;
 extern struct list_head kern_head;
 extern rwlock_t user_head_lock;
 
-static inline void m_list_read_lock(struct m_head_list *mhead)
-{
-	read_lock(&mhead->m_lock);
-}
+// static inline void m_list_read_lock(struct m_head_list *mhead)
+// {
+// 	read_lock(&mhead->m_lock);
+// }
 
-static inline void m_list_write_lock(struct m_head_list *mhead)
-{
-	write_lock(&mhead->m_lock);
-}
+// static inline void m_list_write_lock(struct m_head_list *mhead)
+// {
+// 	write_lock(&mhead->m_lock);
+// }
 
-static inline void ds_list_read_lock(struct m_list *mnode)
-{
-	read_lock(&mnode->ds_lock);
-}
+// static inline void ds_log_read_lock(struct m_list *mnode)
+// {
+// 	read_lock(&mnode->ds_lock);
+// }
 
-static inline void ds_list_write_lock(struct m_list *mnode)
-{
-	write_lock(&mnode->ds_lock);
-}
+// static inline void ds_log_write_lock(struct m_list *mnode)
+// {
+// 	write_lock(&mnode->ds_lock);
+// }
 
-static inline void member_read_lock(struct m_list *mnode)
-{
-	read_lock(&mnode->member_lock);
-}
+// static inline void member_read_lock(struct m_list *mnode)
+// {
+// 	read_lock(&mnode->member_lock);
+// }
 
-static inline void member_write_lock(struct m_list *mnode)
-{
-	write_lock(&mnode->member_lock);
-}
+// static inline void member_write_lock(struct m_list *mnode)
+// {
+// 	write_lock(&mnode->member_lock);
+// }
 
-static inline void broken_list_read_lock(struct m_list *mnode)
-{
-	read_lock(&mnode->broken_lock);
-}
+// static inline void broken_list_read_lock(struct m_list *mnode)
+// {
+// 	read_lock(&mnode->broken_lock);
+// }
 
-static inline void broken_list_write_lock(struct m_list *mnode)
-{
-	write_lock(&mnode->broken_lock);
-}
+// static inline void broken_list_write_lock(struct m_list *mnode)
+// {
+// 	write_lock(&mnode->broken_lock);
+// }
 
-static inline void ref_count_lock(struct m_list *mnode)
-{
-	spin_lock(&mnode->ref_lock);
-}
+// static inline void ref_count_lock(struct m_list *mnode)
+// {
+// 	spin_lock(&mnode->ref_lock);
+// }
 
-static inline void m_list_read_unlock(struct m_head_list *mhead)
-{
-	read_unlock(&mhead->m_lock);
-}
+// static inline void m_list_read_unlock(struct m_head_list *mhead)
+// {
+// 	read_unlock(&mhead->m_lock);
+// }
 
-static inline void m_list_write_unlock(struct m_head_list *mhead)
-{
-	write_unlock(&mhead->m_lock);
-}
+// static inline void m_list_write_unlock(struct m_head_list *mhead)
+// {
+// 	write_unlock(&mhead->m_lock);
+// }
 
-static inline void ds_list_read_unlock(struct m_list *mnode)
-{
-	read_unlock(&mnode->ds_lock);
-}
+// static inline void ds_log_read_unlock(struct m_list *mnode)
+// {
+// 	read_unlock(&mnode->ds_lock);
+// }
 
-static inline void ds_list_write_unlock(struct m_list *mnode)
-{
-	write_unlock(&mnode->ds_lock);
-}
+// static inline void ds_log_write_unlock(struct m_list *mnode)
+// {
+// 	write_unlock(&mnode->ds_lock);
+// }
 
-static inline void member_read_unlock(struct m_list *mnode)
-{
-	read_unlock(&mnode->member_lock);
-}
+// static inline void member_read_unlock(struct m_list *mnode)
+// {
+// 	read_unlock(&mnode->member_lock);
+// }
 
-static inline void member_write_unlock(struct m_list *mnode)
-{
-	write_unlock(&mnode->member_lock);
-}
+// static inline void member_write_unlock(struct m_list *mnode)
+// {
+// 	write_unlock(&mnode->member_lock);
+// }
 
-static inline void broken_list_read_unlock(struct m_list *mnode)
-{
-	read_unlock(&mnode->broken_lock);
-}
+// static inline void broken_list_read_unlock(struct m_list *mnode)
+// {
+// 	read_unlock(&mnode->broken_lock);
+// }
 
-static inline void broken_list_write_unlock(struct m_list *mnode)
-{
-	write_unlock(&mnode->broken_lock);
-}
+// static inline void broken_list_write_unlock(struct m_list *mnode)
+// {
+// 	write_unlock(&mnode->broken_lock);
+// }
 
-static inline void ref_count_unlock(struct m_list *mnode)
-{
-	spin_unlock(&mnode->ref_lock);
-}
-
+// static inline void ref_count_unlock(struct m_list *mnode)
+// {
+// 	spin_unlock(&mnode->ref_lock);
+// }
 
 static inline pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
 {
@@ -177,9 +176,9 @@ static inline long make_ds_offset(long base, unsigned long pte_value)
 	return offset;
 }
 
-static inline struct ds_list *make_ds_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
+static inline struct ds_log *make_ds_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
 {
-	struct ds_list *list = kmalloc(sizeof(struct ds_list), GFP_KERNEL);
+	struct ds_log *list = kmalloc(sizeof(struct ds_log), GFP_KERNEL);
 	if(!list)
 		return NULL;
 
@@ -190,36 +189,36 @@ static inline struct ds_list *make_ds_node(unsigned long base, unsigned long lim
 	return list;
 }
 
-static inline struct m_list *make_m_node(unsigned long va, unsigned long base)
+// static inline struct m_list *make_m_node(unsigned long va, unsigned long base)
+// {
+// 	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
+// 	if(!list)
+// 		return NULL;
+
+// 	list->va = va & PAGE_MASK;
+// 	list->base = base;
+// 	list->dup_pte = NULL;
+// 	list->ref_count = 0;
+// 	spin_lock_init(&list->ref_lock);
+// 	rwlock_init(&list->member_lock);
+// 	rwlock_init(&list->ds_lock);
+// 	rwlock_init(&list->broken_lock);
+// 	INIT_LIST_HEAD(&list->ds_head);
+// 	INIT_LIST_HEAD(&list->broken_head);
+// 	return list;
+// }
+
+static inline struct broken_pte_log *make_broken_pte_node(unsigned long addr) 
 {
-	struct m_list *list = kmalloc(sizeof(struct m_list), GFP_KERNEL);
+	struct broken_pte_log *list = kmalloc(sizeof(struct broken_pte_log), GFP_KERNEL);
 	if(!list)
 		return NULL;
 
-	list->va = va & PAGE_MASK;
-	list->base = base;
-	list->dup_pte = NULL;
-	list->ref_count = 0;
-	spin_lock_init(&list->ref_lock);
-	rwlock_init(&list->member_lock);
-	rwlock_init(&list->ds_lock);
-	rwlock_init(&list->broken_lock);
-	INIT_LIST_HEAD(&list->ds_head);
-	INIT_LIST_HEAD(&list->broken_head);
+	list->addr = addr;
 	return list;
 }
 
-static inline struct broken_pte_list *make_broken_pte_node(unsigned int offset) 
-{
-	struct broken_pte_list *list = kmalloc(sizeof(struct broken_pte_list), GFP_KERNEL);
-	if(!list)
-		return NULL;
-
-	list->offset = offset;
-	return list;
-}
-
-static inline bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
+static inline bool is_ds_node_merge(struct ds_log *prev, struct ds_log *next)
 {
 	if(prev->limit == next->base && prev->offset == next->offset && prev->flag == next->flag) {
 		return true;
@@ -229,7 +228,7 @@ static inline bool is_ds_node_merge(struct ds_list *prev, struct ds_list *next)
 	}
 }
 
-static inline void ds_node_merge(struct ds_list *prev, struct ds_list *next)
+static inline void ds_node_merge(struct ds_log *prev, struct ds_log *next)
 {
 	if(is_ds_node_merge(prev, next)) {
 		prev->limit = next->limit;
@@ -251,20 +250,20 @@ static inline void ds_node_merge(struct ds_list *prev, struct ds_list *next)
 // 	return true;
 // }
 
-static inline int add_first_m_node(unsigned long va, unsigned long base, struct m_head_list *m_head)
-{
-	struct m_list *mnode;
+// static inline int add_first_m_node(unsigned long va, unsigned long base, struct m_head_list *m_head)
+// {
+// 	struct m_list *mnode;
 
-	if((mnode = make_m_node(va, base)) == NULL)
-		return -ENOMEM;
+// 	if((mnode = make_m_node(va, base)) == NULL)
+// 		return -ENOMEM;
 
-	if(!list_empty(&m_head->head)) 
-		return -1;
+// 	if(!list_empty(&m_head->head)) 
+// 		return -1;
 	
-	list_add(&mnode->list, &m_head->head);
+// 	list_add(&mnode->list, &m_head->head);
 
-	return 0;
-}
+// 	return 0;
+// }
 	
 // static inline int add_m_node_usr(unsigned long va, unsigned long base, struct m_head_list *m_head)
 // {
@@ -287,36 +286,36 @@ static inline int add_first_m_node(unsigned long va, unsigned long base, struct 
 // 	return 0;
 // }
 
-static inline int add_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
-{
-	struct m_list *itr;
+// static inline int add_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
+// {
+// 	struct m_list *itr;
 
-	if((itr = make_m_node(va, base)) == NULL)
+// 	if((itr = make_m_node(va, base)) == NULL)
+// 		return -ENOMEM;
+
+// 	list_add(&itr->list, &m_node->list);
+// 	return 0;
+// }
+
+// static inline int add_tail_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
+// {
+// 	struct m_list *itr;
+
+// 	if((itr = make_m_node(va, base)) == NULL)
+// 		return -ENOMEM;
+
+// 	list_add_tail(&itr->list, &m_node->list);
+// 	return 0;
+// }
+
+static inline int add_broken_pte_node(unsigned long addr, struct m_head_struct *mnode)
+{
+	struct broken_pte_log *itr;
+
+	if((itr = make_broken_pte_node(addr)) == NULL)
 		return -ENOMEM;
 
-	list_add(&itr->list, &m_node->list);
-	return 0;
-}
-
-static inline int add_tail_m_node(unsigned long va, unsigned long base, struct m_list *m_node)
-{
-	struct m_list *itr;
-
-	if((itr = make_m_node(va, base)) == NULL)
-		return -ENOMEM;
-
-	list_add_tail(&itr->list, &m_node->list);
-	return 0;
-}
-
-static inline int add_broken_pte_node(unsigned int offset, struct m_list *mnode)
-{
-	struct broken_pte_list *itr;
-
-	if((itr = make_broken_pte_node(offset)) == NULL)
-		return -ENOMEM;
-
-	list_add_tail(&itr->list, &mnode->broken_head);
+	list_add_tail(&itr->list, &mnode->head);
 	return 0;
 }
 
@@ -353,10 +352,10 @@ static inline int add_broken_pte_node(unsigned int offset, struct m_list *mnode)
 //  	return 0;
 // }
 
-static inline void modify_m_va(struct m_list *itr, unsigned long va)
-{
-	itr->va = va & PAGE_MASK;
-}
+// static inline void modify_m_va(struct m_list *itr, unsigned long va)
+// {
+// 	itr->va = va & PAGE_MASK;
+// }
 
 static inline void pmd_repopulate(struct mm_struct *mm, pmd_t *pmd, pte_t *pte)
 {
@@ -427,7 +426,7 @@ static inline pte_t *pte_realloc(struct mm_struct *mm)
 // 	return new;
 // }
 
-static inline void update_dup_pte(pte_t **ptep, struct ds_list *itr, unsigned long start, unsigned long end)
+static inline void update_dup_pte(pte_t **ptep, struct ds_log *itr, unsigned long start, unsigned long end)
 {
 	unsigned long count;
 	pte_t *pte = *(ptep);
@@ -441,26 +440,24 @@ static inline void update_dup_pte(pte_t **ptep, struct ds_list *itr, unsigned lo
 	*(ptep) = pte;
 }
 
-static inline void update_dup_pgtable(unsigned long va_start, pte_t *pte, struct m_list *mnode)
+static inline void update_dup_pgtable(unsigned long va_start, pte_t *pte, struct page *page)
 {
-	struct ds_list *itr;
+	struct ds_log *itr;
 	unsigned long va_end;
 	
 	va_end = va_start | PT_PGTABLE_MASK;
 
-	ds_list_read_lock(mnode);
-	list_for_each_entry(itr, &mnode->ds_head, list) {
+	list_for_each_entry(itr, &page->ds_head, list) {
 		printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
 		update_dup_pte(&pte, itr, va_start, va_end);
 		va_start = itr->limit;
 	}
-	ds_list_read_unlock(mnode);
 	return;
 }
 
 // static inline int update_dup_pgtable_ker(unsigned long va_start, pte_t *pte, struct file *file, loff_t *pos)
 // {
-// 	struct ds_list *itr;
+// 	struct ds_log *itr;
 // 	unsigned long va_end;
 // 	int flag = 0;
 	
@@ -496,26 +493,22 @@ static inline void update_dup_pgtable(unsigned long va_start, pte_t *pte, struct
 // 	return flag;
 // }
 
-static inline void delete_ds_all(struct m_list *m_node)
+static inline void delete_ds_all(struct page *page)
 {
-	struct ds_list *itr, *tmp;
+	struct ds_log *itr, *tmp;
 
-	ds_list_write_lock(m_node);
-	list_for_each_entry_safe(itr, tmp, &m_node->ds_head, list) {
+	list_for_each_entry_safe(itr, tmp, &page->ds_head, list) {
 		list_del(&itr->list);
 		kfree(itr);
 	}
-	ds_list_write_unlock(m_node);
 }
 
-static inline void delete_broken_pte_all(struct m_list *mnode)
+static inline void delete_broken_pte_all(struct m_head_struct *mnode)
 {
-	struct broken_pte_list *itr, *tmp;
+	struct broken_pte_log *itr, *tmp;
 
-	broken_list_write_lock(mnode);
-	list_for_each_entry_safe(itr, tmp, &mnode->broken_head, list) {
+	list_for_each_entry_safe(itr, tmp, &mnode->head, list) {
 		list_del(&itr->list);
 		kfree(itr);
 	}
-	broken_list_write_unlock(mnode);
 }

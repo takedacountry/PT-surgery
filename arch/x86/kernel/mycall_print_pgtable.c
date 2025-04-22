@@ -232,173 +232,350 @@ end:
 }
 EXPORT_SYMBOL_GPL(print_user_pgtable2);
 
-// static long make_kernel_pgtable(void)
-// {
-// 	pte_t *ptep;
-	
-// 	int num;
-// 	int count;
-// 	int entry_count = 0;
+static int print_usr_ds(struct task_struct *p)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	// pte_t *ptep;
 
-// 	unsigned long pte_value;
-// 	unsigned long pte_flag;
-// 	unsigned long pte_num;
-// 	unsigned long pte_num_pre = 0;
+	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
+	struct ds_log *dnode;
 
-// 	struct file *file;
-// 	char *filename = "./kernel_pgtable";
-// 	int size;
-// 	char *buf;
-//         loff_t pos = 0;
+	int ds_count = 0;
+	
+	struct file *file;
+	char *filename = "./usr_ds_txt";
+	int size;
+	char *buf;
+    loff_t pos = 0;
 
-// 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-// 	if(IS_ERR(file)){
-// 		printk("pre_file open err=%ld", PTR_ERR(file));
-// 		goto end;
-// 	}
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
 	
-//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
-//         if(!buf)
-// 		goto end;
-// 	memset(buf, '\0', 100);
-	
-	
-// 	for(unsigned long a=USER_MAX; a<MAX; a++){
-//         	for(unsigned long b=0; b<MAX; b++){
-//             		for(unsigned long c=0; c<MAX; c++){
-//                 		for(unsigned long d=0; d<MAX; d++){
-//                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-// 						pte_num = make_ds_va(a, b, c, 0); // first entry num
-// 						if(pte_num_pre != pte_num){
-// 							entry_count++;
-// 							pte_num_pre = pte_num;
-// 						}
-// 						pte_value = pte_pfn(*ptep);
-// 						pte_flag = pte_flags(*ptep);
+    buf = kmalloc(PATH_MAX, GFP_KERNEL);
+    if(!buf)
+		goto end;
+	memset(buf, '\0', 256);
 
-// 						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
-// 						kernel_write(file, buf, size, &pos);
-// 						vfs_fsync_range(file, 0, size, 1);
-						
-//                         			count = num;
-//                     			}else if(num == 0){ // error
-// 						goto end;
-// 					}else{ // pte miss
-//                         			count = num - 3;
-//                     			}
-//                     			num = 0;
-//                     			if(--count > 0)
-//                         			break;
-//                     			count = 0;
-//                 		}
-//                 		if(--count > 0)
-//                   			break;
-//                 		count = 0;
-//             		}
-//             		if(--count > 0)
-//               			break;
-//             		count = 0;
-//         	}
-//         	if(--count > 0)
-//           		break;
-//         	count = 0;
-//     	}
-// end:
-// 	printk(KERN_INFO "kernel PT count: %d\n", entry_count);
-	
-// 	size = sprintf(buf, "kernel PT count: %d\n",entry_count);
-// 	kernel_write(file, buf, size, &pos);
-// 	vfs_fsync_range(file, 0, size, 1);
-	
-// 	kfree(buf);
-// 	filp_close(file, NULL);
-	
-// 	return 0;
-// }
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
 
-// static long make_kernel_pgtable2(void)
-// {
-// 	pte_t *ptep;
-	
-// 	int num;
-// 	int count;
-// 	int entry_count = 0;
+	pgd_page = virt_to_page(pgd_offset_index(p->mm, 0));
+	size = sprintf(buf, "pgd: %lx\n", pgd_page->base);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
 
-// 	unsigned long pte_value;
-// 	unsigned long pte_flag;
-// 	unsigned long pte_num;
-// 	unsigned long pte_num_pre = 0;
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
+			pud_page = virt_to_page(pud_offset_index(p4dp, 0));
+			size = sprintf(buf, "pud: %lx\n", pud_page->base);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					pmd_page = virt_to_page(pmd_offset_index(pudp, 0));
+					size = sprintf(buf, "pmd: %lx\n",pmd_page->base);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+							size = sprintf(buf, "pte: %lx\n", pte_page->base);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
 
-// 	struct file *file;
-// 	char *filename = "./kernel_pgtable2";
-// 	int size;
-// 	char *buf;
-//         loff_t pos = 0;
+							list_for_each_entry(dnode, &pte_page->ds_head, list) {
+								size = sprintf(buf, "     %lx %lx %lx %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag);
+								kernel_write(file, buf, size, &pos);
+								vfs_fsync_range(file, 0, size, 1);
+								ds_count++;
+							}
+						}
+		        	}
+				}
+	        }
+		}
+    }
+	size = sprintf(buf, "ds count: %d", ds_count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+end:	
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
 
-// 	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
-// 	if(IS_ERR(file)){
-// 		printk("pre_file open err=%ld", PTR_ERR(file));
-// 		goto end;
-// 	}
-	
-//         buf = kmalloc(PATH_MAX, GFP_KERNEL);
-//         if(!buf)
-// 		goto end;
-// 	memset(buf, '\0', 100);
-	
-	
-// 	for(unsigned long a=USER_MAX; a<MAX; a++){
-//         	for(unsigned long b=0; b<MAX; b++){
-//             		for(unsigned long c=0; c<MAX; c++){
-//                 		for(unsigned long d=0; d<MAX; d++){
-//                     			if((num = search_pgtable_get_pfn(a, b, c, d, &ptep)) > 0 && num < 4){ //pte hit
-// 						pte_num = make_ds_va(a, b, c, 0); // first entry num
-// 						if(pte_num_pre != pte_num){
-// 							entry_count++;
-// 							pte_num_pre = pte_num;
-// 						}
-// 						pte_value = pte_pfn(*ptep);
-// 						pte_flag = pte_flags(*ptep);
+static int print_usr_ds2(struct task_struct *p)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	// pte_t *ptep;
 
-// 						size = sprintf(buf, "%ld-%ld-%ld-%ld  %lx %lx  %lx\n", a, b, c, d, pte_value, pte_flag, (unsigned long)ptep);
-// 						kernel_write(file, buf, size, &pos);
-// 						vfs_fsync_range(file, 0, size, 1);
-						
-//                         			count = num;
-//                     			}else if(num == 0){ // error
-// 						goto end;
-// 					}else{ // pte miss
-//                         			count = num - 3;
-//                     			}
-//                     			num = 0;
-//                     			if(--count > 0)
-//                         			break;
-//                     			count = 0;
-//                 		}
-//                 		if(--count > 0)
-//                   			break;
-//                 		count = 0;
-//             		}
-//             		if(--count > 0)
-//               			break;
-//             		count = 0;
-//         	}
-//         	if(--count > 0)
-//           		break;
-//         	count = 0;
-//     	}
-// end:
-// 	printk(KERN_INFO "kernel PT count: %d\n", entry_count);
+	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
+	struct ds_log *dnode;
+
+	int ds_count = 0;
 	
-// 	size = sprintf(buf, "kernel PT count: %d\n",entry_count);
-// 	kernel_write(file, buf, size, &pos);
-// 	vfs_fsync_range(file, 0, size, 1);
+	struct file *file;
+	char *filename = "./usr_ds_txt";
+	int size;
+	char *buf;
+    loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
 	
-// 	kfree(buf);
-// 	filp_close(file, NULL);
+    buf = kmalloc(PATH_MAX, GFP_KERNEL);
+    if(!buf)
+		goto end;
+	memset(buf, '\0', 256);
+
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	pgd_page = virt_to_page(pgd_offset_index(p->mm, 0));
+	size = sprintf(buf, "pgd: %lx\n", pgd_page->base);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
+			pud_page = virt_to_page(pud_offset_index(p4dp, 0));
+			size = sprintf(buf, "pud: %lx\n", pud_page->base);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					pmd_page = virt_to_page(pmd_offset_index(pudp, 0));
+					size = sprintf(buf, "pmd: %lx\n",pmd_page->base);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+							size = sprintf(buf, "pte: %lx\n", pte_page->base);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+
+							list_for_each_entry(dnode, &pte_page->ds_head, list) {
+								size = sprintf(buf, "     %lx %lx %lx %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag);
+								kernel_write(file, buf, size, &pos);
+								vfs_fsync_range(file, 0, size, 1);
+								ds_count++;
+							}
+						}
+		        	}
+				}
+	        }
+		}
+    }
+	size = sprintf(buf, "ds count: %d", ds_count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+end:	
+	kfree(buf);
+	filp_close(file, NULL);
 	
-// 	return 0;
-// }
+	return 0;
+}
+
+static int print_usr_m(struct task_struct *p)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	// pte_t *ptep;
+
+	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
+	
+	struct file *file;
+	char *filename = "./usr_ds_txt";
+	int size;
+	char *buf;
+    loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
+	
+    buf = kmalloc(PATH_MAX, GFP_KERNEL);
+    if(!buf)
+		goto end;
+	memset(buf, '\0', 256);
+
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	pgd_page = virt_to_page(pgd_offset_index(p->mm, 0));
+	size = sprintf(buf, "pgd: %lx\n", pgd_page->base);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
+			pud_page = virt_to_page(pud_offset_index(p4dp, 0));
+			size = sprintf(buf, "pud: %lx\n", pud_page->base);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					pmd_page = virt_to_page(pmd_offset_index(pudp, 0));
+					size = sprintf(buf, "pmd: %lx\n",pmd_page->base);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+							size = sprintf(buf, "pte: %lx\n", pte_page->base);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+						}
+		        	}
+				}
+	        }
+		}
+    }
+
+end:	
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
+
+static int print_usr_m2(struct task_struct *p)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	// pte_t *ptep;
+
+	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
+	
+	struct file *file;
+	char *filename = "./usr_ds_txt";
+	int size;
+	char *buf;
+    loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
+	
+    buf = kmalloc(PATH_MAX, GFP_KERNEL);
+    if(!buf)
+		goto end;
+	memset(buf, '\0', 256);
+
+	size = sprintf(buf, "pid: %d\n", p->pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	pgd_page = virt_to_page(pgd_offset_index(p->mm, 0));
+	size = sprintf(buf, "pgd: %lx\n", pgd_page->base);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
+			pud_page = virt_to_page(pud_offset_index(p4dp, 0));
+			size = sprintf(buf, "pud: %lx\n", pud_page->base);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					pmd_page = virt_to_page(pmd_offset_index(pudp, 0));
+					size = sprintf(buf, "pmd: %lx\n",pmd_page->base);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+							size = sprintf(buf, "pte: %lx\n", pte_page->base);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+						}
+		        	}
+				}
+	        }
+		}
+    }
+
+end:	
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
+
+static void count_up_m_ds(struct task_struct *p)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	// pte_t *ptep;
+
+	struct page *pte_page;
+	struct ds_log *dnode;
+	
+	int ds_num = 0;
+	int m_num = 0;
+	int pte_num = 0;
+
+	m_num++;
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
+			m_num++;
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					m_num++;
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+							m_num++;
+							pte_num++;
+							list_for_each_entry(dnode, &pte_page->ds_head, list) {
+								ds_num++;
+							}
+						}
+		        	}
+				}
+	        }
+		}
+    }
+	printk(KERN_INFO "pid %d m count %d, pte count %d, ds count %d\n",p->pid, m_num, pte_num, ds_num);
+
+	return;
+}
 
 SYSCALL_DEFINE0(mycall_print_user_pgtable){
 	// return print_user_pgtable(target_task);
@@ -420,4 +597,36 @@ SYSCALL_DEFINE0(mycall_print_kernel_pgtable2){
 	long ret = 0;
 	// ret = make_kernel_pgtable2();
 	return ret;
+}
+
+SYSCALL_DEFINE0(mycall_ds_search)
+{
+	print_usr_ds(current);
+	// print_ker_ds();
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_ds_search2)
+{
+	print_usr_ds2(current);
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_m_search)
+{
+	print_usr_m(current);
+	// print_ker_m();
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_m_search2)
+{
+	print_usr_m2(current);
+	return 0;
+}
+
+SYSCALL_DEFINE0(mycall_m_ds_count)
+{
+	count_up_m_ds(current);
+	return 0;
 }

@@ -58,10 +58,10 @@ void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 		}
 		else if(ret == 0) {
 			*pte = entry;
-			make_ds_list_usr((unsigned long)pte, *pte);	
+			make_ds_log_usr(pte, *pte);	
 		}
 		else {
-			make_ds_list_usr((unsigned long)pte, entry);
+			make_ds_log_usr(pte, entry);
 		}
 		// fin
 	}

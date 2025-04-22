@@ -80,11 +80,11 @@ static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 	}
 	else if(ret == 0) {
 		native_set_pte(ptep, native_make_pte(0));
-		make_ds_list_usr((unsigned long)ptep, *ptep);	
+		make_ds_log_usr(ptep, *ptep);	
 	}
 	else {
 		// native_set_pte(ptep, native_make_pte(0));
-		make_ds_list_usr((unsigned long)ptep, native_make_pte(0));
+		make_ds_log_usr(ptep, native_make_pte(0));
 	}
 
 	// native_set_pte(ptep, native_make_pte(0));
@@ -115,13 +115,13 @@ static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 	}
 	else if(ret == 0) {
 		pte_t pte = native_make_pte(xchg(&xp->pte, 0));
-		make_ds_list_usr((unsigned long)xp, *xp);
+		make_ds_log_usr(xp, *xp);
 		return pte;
 	}
 	else {
 		// pte_t pte = native_make_pte(xchg(&xp->pte, 0));
 		pte_t pte = native_make_pte(0);
-		make_ds_list_usr((unsigned long)xp, pte);
+		make_ds_log_usr(xp, pte);
 		return pte;
 	}
 	

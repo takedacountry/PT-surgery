@@ -1090,11 +1090,11 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
 	}
 	else if(ret == 0) {
 		clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-		make_ds_list_usr((unsigned long)ptep, *ptep);
+		make_ds_log_usr(ptep, *ptep);
 	}
 	else {
 		// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-		clear_wrbit_ds_list((unsigned long)ptep);
+		clear_wrbit_ds_log(ptep);
 	}
 
 	// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);

@@ -86,7 +86,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 	paravirt_alloc_pte(mm, pfn);
 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | _PAGE_TABLE));
 	// my code
-	make_pte_m_list((unsigned long)pmd, (unsigned long)page_address(pte));
+	make_pte_m_list(pmd, (pte_t *)page_address(pte));
 }
 
 #if CONFIG_PGTABLE_LEVELS > 2
@@ -96,7 +96,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 {
 	___pmd_free_tlb(tlb, pmd);
 	// my code
-	delete_m_free_pmd((unsigned long)pmd);
+	delete_pmd_ds_log(virt_to_page(pmd));
 }
 
 #ifdef CONFIG_X86_PAE
@@ -107,7 +107,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 	paravirt_alloc_pmd(mm, __pa(pmd) >> PAGE_SHIFT);
 	set_pud(pud, __pud(_PAGE_TABLE | __pa(pmd)));
 	// my code
-	make_pmd_m_list((unsigned long)pud, (unsigned long)pmd);
+	make_pmd_m_list(pud, pmd);
 }
 
 static inline void pud_populate_safe(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
@@ -123,7 +123,7 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
 	paravirt_alloc_pud(mm, __pa(pud) >> PAGE_SHIFT);
 	set_p4d(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
 	// my code
-	make_pud_m_list((unsigned long)p4d, (unsigned long)pud);
+	make_pud_m_list(p4d, pud);
 }
 
 static inline void p4d_populate_safe(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
@@ -138,7 +138,7 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 {
 	___pud_free_tlb(tlb, pud);
 	// my code
-	delete_m_free_pud((unsigned long)pud);
+	delete_pud_ds_log(virt_to_page(pud));
 }
 
 #if CONFIG_PGTABLE_LEVELS > 4

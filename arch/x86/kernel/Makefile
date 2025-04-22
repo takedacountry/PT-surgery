@@ -71,7 +71,6 @@ obj-y                   += mycall_print_pgtable.o
 obj-y                   += mycall_ds.o
 obj-y                   += mycall_ds_delete.o
 obj-y                   += mycall_ds_recovery.o
-obj-y                   += mycall_ds_search.o
 
 obj-y				+= process.o
 obj-y				+= fpu/

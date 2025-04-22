@@ -227,13 +227,13 @@ static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 	// my code
 	// pgtable_t token = pmd_pgtable(*pmd);
 	pgtable_t token;
-	wait_to_recover_broken_pgtable((unsigned long)pmd);
+	wait_to_recover_broken_pgtable(pmd);
 
 	token = pmd_pgtable(*pmd);
 	pmd_clear(pmd);
 	pte_free_tlb(tlb, token, addr);
 	// my code
-	delete_m_free_pte((unsigned long)page_address((struct page *)token));
+	delete_pte_ds_log((struct page *)token);
 	mm_dec_nr_ptes(tlb->mm);
 }
 
@@ -402,7 +402,7 @@ void free_pgd_range(struct mmu_gather *tlb,
 		free_p4d_range(tlb, pgd, addr, next, floor, ceiling);
 	} while (pgd++, addr = next, addr != end);
 	// my code
-	delete_m_free_pgd((unsigned long)pgd);
+	delete_pgd_ds_log(virt_to_page(pgd));
 }
 
 void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,

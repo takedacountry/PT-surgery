@@ -100,14 +100,14 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 // my code
 static inline pte_t *pte_offset_map_alternative(pmd_t *pmd, unsigned long address)
 {
-	increment_m_list_ref_count(pmd_page_vaddr(*pmd));
+	increment_m_list_ref_count((pte_t *)pmd_page_vaddr(*pmd));
 	return pte_offset_kernel(pmd, address);
 }
 
 // my code
 static inline void pte_unmap_alternative(pte_t *pte)
 {
-	decrement_m_list_ref_count((unsigned long)pte);
+	decrement_m_list_ref_count(pte);
 }
 
 #if defined(CONFIG_HIGHPTE)
