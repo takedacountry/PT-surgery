@@ -84,6 +84,10 @@
 #include "page_reporting.h"
 #include "swap.h"
 
+// my code
+#include <asm/ds.h>
+#include <asm-generic/pgalloc.h>
+
 /* Free Page Internal flags: for internal, non-pcp variants of free_pages(). */
 typedef int __bitwise fpi_t;
 

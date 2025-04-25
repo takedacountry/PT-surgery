@@ -1,12 +1,17 @@
 #include <linux/types.h>
 
-#define PTE_READ_SHIFT		(0)
-#define PTE_READ_MASK		(_AT(int, 1) << PTE_READ_SHIFT)
-#define PTE_UPDATE_SHIFT	(1)
-#define PTE_UPDATE_MASK		(_AT(int, 1) << PTE_UPDATE_SHIFT)
-#define PTE__SHIFT		(2)
-#define PTE__MASK		(_AT(int, 1) << PTE__SHIFT)
+#define PGD_FLAG_SHIFT		(0)
+#define PGD_FLAG_MASK		(_AT(long, 1) << PGD_FLAG_SHIFT)
+#define P4D_FLAG_SHIFT		(1)
+#define P4D_FLAG_MASK		(_AT(long, 1) << P4D_FLAG_SHIFT)
+#define PUD_FLAG_SHIFT		(2)
+#define PUD_FLAG_MASK		(_AT(long, 1) << PUD_FLAG_SHIFT)
+#define PMD_FLAG_SHIFT		(3)
+#define PMD_FLAG_MASK		(_AT(long, 1) << PMD_FLAG_SHIFT)
+#define PTE_FLAG_SHIFT		(4)
+#define PTE_FLAG_MASK		(_AT(long, 1) << PTE_FLAG_SHIFT)
 
+extern struct list_head user_head;
 extern int make_pgd_m_list(pgd_t *pgd);
 extern int make_pud_m_list(p4d_t *p4d, pud_t *pud);
 extern int make_pmd_m_list(pud_t *pud, pmd_t *pmd);

@@ -79,6 +79,17 @@ static int get_pgdp(struct mm_struct *mm, unsigned long pgd, p4d_t **p4dpp)
 	return 0;
 }
 
+bool is_available_pgd(struct mm_struct *mm)
+{
+	p4d_t *p4dp;
+	
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(mm, pgd, &p4dp) == 0) {
+			return true;
+		}
+    }
+	return false;
+}
 
 long print_user_pgtable(struct task_struct *p)
 {
@@ -328,7 +339,7 @@ static int print_usr_ds2(struct task_struct *p)
 	int ds_count = 0;
 	
 	struct file *file;
-	char *filename = "./usr_ds_txt";
+	char *filename = "./usr_ds_txt2";
 	int size;
 	char *buf;
     loff_t pos = 0;
@@ -407,7 +418,7 @@ static int print_usr_m(struct task_struct *p)
 	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
 	
 	struct file *file;
-	char *filename = "./usr_ds_txt";
+	char *filename = "./usr_m_txt";
 	int size;
 	char *buf;
     loff_t pos = 0;
@@ -477,7 +488,7 @@ static int print_usr_m2(struct task_struct *p)
 	struct page *pgd_page, *pud_page, *pmd_page, *pte_page;
 	
 	struct file *file;
-	char *filename = "./usr_ds_txt";
+	char *filename = "./usr_m_txt2";
 	int size;
 	char *buf;
     loff_t pos = 0;

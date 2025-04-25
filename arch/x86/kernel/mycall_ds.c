@@ -77,14 +77,16 @@ static int __make_pud_m_list(p4d_t *p4d, pud_t *pud, pid_t pid)
 	struct page *p4d_page;
 	struct page *pud_page;
 	struct m_head_struct *mhead;
+	unsigned long base;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == pid) {
 			p4d_page = virt_to_page((p4d_t *)(((unsigned long)p4d) & PAGE_MASK)); /* get p4d page */
 			pud_page = virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)); /* get pud page */
-			pud_page->base = get_p4d_base(p4d, p4d_page);	/* calculate base, update pud page */
-			printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (unsigned long)page_address(pud_page), pud_page->base, current->pid, current->tgid);
-			printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (((unsigned long)pud) & PAGE_MASK), pud_page->base, current->pid, current->tgid);
+			if ((base = get_p4d_base(p4d, p4d_page)) != 0) {	/* calculate base, update pud page */
+				pud_page->base = base;
+				printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (((unsigned long)pud) & PAGE_MASK), pud_page->base, current->pid, current->tgid);
+			}
 		}
 	}
 	return 0;
@@ -111,14 +113,16 @@ static int __make_pmd_m_list(pud_t *pud, pmd_t *pmd, pid_t pid)
 	struct page *pud_page;
 	struct page *pmd_page;
 	struct m_head_struct *mhead;
+	unsigned long base;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == pid) {
 			pud_page = virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)); /* get pud page */
 			pmd_page = virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)); /* get pmd page */
-			pmd_page->base = get_pud_base(pud, pud_page);	/* calculate base, update pmd page */
-			printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (unsigned long)page_address(pmd_page), pmd_page->base, current->pid, current->tgid);
-			printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (((unsigned long)pmd) & PAGE_MASK), pmd_page->base, current->pid, current->tgid);
+			if ((base = get_pud_base(pud, pud_page)) != 0) {	/* calculate base, update pmd page */
+				pmd_page->base = base;
+				printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (((unsigned long)pmd) & PAGE_MASK), pmd_page->base, current->pid, current->tgid);
+			}
 		}
 	}
 	return 0;
@@ -145,14 +149,16 @@ static int __make_pte_m_list(pmd_t *pmd, pte_t *pte, pid_t pid)
 	struct page *pmd_page;
 	struct page *pte_page;
 	struct m_head_struct *mhead;
+	unsigned long base;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == pid) {
 			pmd_page = virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)); /* get pmd page */
 			pte_page = virt_to_page((pte_t *)(((unsigned long)pte) & PAGE_MASK)); /* get pte page */
-			pte_page->base = get_pmd_base(pmd, pmd_page);	/* calculate base, update pte page */
-			printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (unsigned long)page_address(pte_page), pte_page->base, current->pid, current->tgid);
-			printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->base, current->pid, current->tgid);
+			if ((base = get_pmd_base(pmd, pmd_page)) != 0) {	/* calculate base, update pte page */
+				pte_page->base = base;
+				printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->base, current->pid, current->tgid);
+			}
 		}
 	}
 	return 0;
@@ -333,10 +339,10 @@ static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 			else {
 				list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
 					if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
-						printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						if (pte_value == 0 && pte_flag == 0) { /* delete ds due to clear pte */
 							delete_ds(prev, dnode);
-							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
 						}
 						else if (dnode->offset != prev->offset) { // modify pte value
 							modify_ds_offset(prev, dnode, pte_page);
@@ -361,7 +367,7 @@ static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 					}
 					else if(dnode->base >= prev->limit) { /* create new pte */
 						list_add(&dnode->list, &prev->list);
-						printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+						// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						if(list_is_last(&dnode->list, &pte_page->ds_head)) {
 							ds_node_merge(prev, dnode);
 							goto end;
@@ -373,7 +379,7 @@ static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 					}
 				}
 				list_add(&dnode->list, &pte_page->ds_head); /* create new pte that is top of pt */
-				printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+				// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 				next = list_next_entry(dnode, list);
 				ds_node_merge(dnode, next);
 				goto end;

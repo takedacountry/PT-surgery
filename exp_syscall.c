@@ -45,12 +45,12 @@ int main(void)
 
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
-    printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
 
     
     start_mmap = clock();
-    p = mmap(NULL, four_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
-    // p = mmap(NULL, eight_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
+    // p = mmap(NULL, four_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
+    p = mmap(NULL, eight_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, four_kb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     end_mmap = clock();
     if (p == MAP_FAILED)
@@ -60,22 +60,25 @@ int main(void)
     printf("mmap clock: %f\n",(double)(end_mmap - start_mmap)/CLOCKS_PER_SEC);
 
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    printf("%ld\n", syscall(SYS_mycall_ds_search));
 
     start_mprotect = clock();
-    if (mprotect(p, four_gb, PROT_READ) == -1)
-    // if (mprotect(p, eight_mb, PROT_READ) == -1)
+    // if (mprotect(p, four_gb, PROT_READ) == -1)
+    if (mprotect(p, eight_mb, PROT_READ) == -1)
     // if (mprotect(p, four_kb, PROT_READ) == -1)
         handle_error("mprotect error");
     end_mprotect = clock();
     printf("mprotect clock: %f\n",(double)(end_mprotect - start_mprotect)/CLOCKS_PER_SEC);
 
     start_munmap = clock();
-    munmap(p, four_gb);
-    // munmap(p, eight_mb);
+    // munmap(p, four_gb);
+    munmap(p, eight_mb);
     // munmap(p, four_kb);
     end_munmap = clock();
     printf("munmap clock: %f\n",(double)(end_munmap - start_munmap)/CLOCKS_PER_SEC);
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    printf("%ld\n", syscall(SYS_mycall_ds_search2));
 
     return 0;
 }

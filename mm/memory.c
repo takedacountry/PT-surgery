@@ -402,7 +402,7 @@ void free_pgd_range(struct mmu_gather *tlb,
 		free_p4d_range(tlb, pgd, addr, next, floor, ceiling);
 	} while (pgd++, addr = next, addr != end);
 	// my code
-	delete_pgd_ds_log(virt_to_page(pgd));
+	delete_pgd_ds_log(virt_to_page((pgd_t *)(((unsigned long)pgd) & PAGE_MASK)));
 }
 
 void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,

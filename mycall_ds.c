@@ -32,7 +32,7 @@
 #define SYS_mycall_m_search2 475
 
 #define INDEX 1024*1024*1024 //1GB
-#define PAGESIZE 4*1024*1024 // 4MB
+#define PAGESIZE 2*1024*1024 // 4MB
 #define PGD 512
 #define PUD 512
 #define PMD 512
@@ -82,18 +82,18 @@ void* thread_func(void* arg)
 int main(void)
 {
     pid_t pid;
-    // pthread_t thread1;
+    pthread_t thread1;
     // pthread_t thread2;
 
-    // printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
-    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+    printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
+    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_search));
     // printf("%ld\n", syscall(SYS_mycall_m_search));
 
-    char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(PAGESIZE);
+    // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -125,8 +125,8 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
-    memset(mb, 0, INDEX);
+    memset(ma, 0, PAGESIZE);
+    // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -160,7 +160,7 @@ int main(void)
     
 
     printf("va: %p\n", ma); // print user va 
-    printf("va: %p\n", mb); // print user va 
+    // printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -192,26 +192,23 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-
-    printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
-    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
-
     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    printf("%ld\n", syscall(SYS_mycall_ds_search));
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
-    printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
+    // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
 
     // pthread_mutex_init(&mutex, NULL);
-    // if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
-    //     perror("failure thread1 create");
-    //     return 0;
-    // }
+    if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
+        perror("failure thread1 create");
+        return 0;
+    }
     // if(pthread_create(&thread2, NULL, thread_func, NULL) != 0) {
     //     perror("failure thread2 create");
     //     return 0;
     // }
 
-    // pthread_join(thread1, NULL);
+    pthread_join(thread1, NULL);
     // pthread_join(thread2, NULL);
 
     // pthread_mutex_destroy(&mutex);
@@ -222,6 +219,8 @@ int main(void)
     // }else if(pid == 0){
     //     // child
     //     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    //     printf("%ld\n", syscall(SYS_mycall_ds_search2));
+    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     //     exit(0);
     // }else{
     //     // parent
@@ -231,11 +230,10 @@ int main(void)
     //     if (WIFEXITED(status)) {
     //         printf("exit: %d\n", WEXITSTATUS(status));
     //     }
-    //     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     // }
 
     free(ma);
-    free(mb);
+    // free(mb);
     // free(mc);
     // free(md);
     // free(me);

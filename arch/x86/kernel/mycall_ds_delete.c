@@ -12,14 +12,10 @@
 void delete_pte_ds_log(struct page *pte_page)
 {
 	struct m_head_struct *mhead;
-	unsigned long va_start = 0, va_end = 0;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			if (pte_page->base & PTE_FLAG_MASK) {
-				va_start = pte_page->base & PT_PGTABLE_MASK_NOT;
-				va_end = va_start + PT_PGTABLE_SIZE;
-
 				if (pte_page->dup_pt) {
 					pte_free(mhead->mm, virt_to_page(pte_page->dup_pt));
 					printk(KERN_INFO "delete dup PT\n");
@@ -28,9 +24,8 @@ void delete_pte_ds_log(struct page *pte_page)
 
 				delete_ds_all(pte_page);
 
+				printk(KERN_INFO "delete m pte %lx pid %d %d\n", pte_page->base, current->pid, current->tgid);
 				pte_page->base = 0;
-
-				printk(KERN_INFO "delete m pte %lx-%lx pid %d %d\n", va_start, va_end, current->pid, current->tgid);
 			}
 			break;
 		}
@@ -73,6 +68,8 @@ void delete_pud_ds_log(struct page *pud_page)
 }
 EXPORT_SYMBOL_GPL(delete_pud_ds_log);
 
+extern bool is_available_pgd(struct mm_struct *mm);
+
 void delete_pgd_ds_log(struct page *pgd_page)
 {
 	struct m_head_struct *mhead, *tmp;
@@ -80,13 +77,17 @@ void delete_pgd_ds_log(struct page *pgd_page)
 	list_for_each_entry_safe(mhead, tmp, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			if (pgd_page->base & PGD_FLAG_MASK) {
-				printk(KERN_INFO "delete m pgd %lx pid %d %d\n", PGD_FLAG_MASK, current->pid, current->tgid);
-				pgd_page->base = 0;
+				if (!is_available_pgd(mhead->mm)) {
+					printk(KERN_INFO "delete m pgd %lx pid %d %d\n", PGD_FLAG_MASK, current->pid, current->tgid);
+					pgd_page->base = 0;
 
-				delete_broken_pte_all(mhead);
-				list_del(&mhead->list);
-				kfree(mhead);
-				printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);
+					delete_broken_pte_all(mhead);
+					mhead->pid = 0;
+            		mhead->mm = NULL;
+					list_del(&mhead->list);
+					kfree(mhead);
+					printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);
+				}
 			}
 			break;
 		}

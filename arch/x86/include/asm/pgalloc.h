@@ -96,7 +96,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 {
 	___pmd_free_tlb(tlb, pmd);
 	// my code
-	delete_pmd_ds_log(virt_to_page(pmd));
+	delete_pmd_ds_log(virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)));
 }
 
 #ifdef CONFIG_X86_PAE
@@ -138,7 +138,7 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 {
 	___pud_free_tlb(tlb, pud);
 	// my code
-	delete_pud_ds_log(virt_to_page(pud));
+	delete_pud_ds_log(virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)));
 }
 
 #if CONFIG_PGTABLE_LEVELS > 4

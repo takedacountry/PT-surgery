@@ -1,6 +1,4 @@
 #include <linux/types.h>
-#include <linux/rwlock_types.h>
-#include <linux/spinlock_types.h>
 
 struct ds_log{
 	unsigned long base;
