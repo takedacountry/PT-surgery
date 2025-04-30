@@ -36,7 +36,7 @@ struct ds_log{
 // };
 
 struct broken_pte_log{
-	unsigned long addr;
+	unsigned long base;
 	struct list_head list;
 };
 

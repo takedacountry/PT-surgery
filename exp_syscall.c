@@ -22,7 +22,6 @@
 #define SYS_mycall_m_search 467
 #define SYS_mycall_register_broken_pte 468
 #define SYS_mycall_recover_pgtable 469
-#define SYS_mycall_recover_broken_pte 470
 #define SYS_mycall_m_ds_count 471
 #define SYS_mycall_ds_register_pid 472
 #define SYS_mycall_make_ds_usr_from_pgtable 473

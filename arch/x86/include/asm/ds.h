@@ -18,17 +18,16 @@ extern int make_pmd_m_list(pud_t *pud, pmd_t *pmd);
 extern int make_pte_m_list(pmd_t *pmd, pte_t *pte);
 
 extern int make_ds_log_usr(pte_t *ptep, pte_t pte);
-
 extern int clear_wrbit_ds_log(pte_t *ptep);
-// extern int register_broken_pte_and_recover_broken_pgtable(unsigned long va);
-// extern int register_broken_pte_and_make_recovery_thread(unsigned long va);
+
+extern int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va);
+extern int register_broken_pte_and_make_recovery_thread(unsigned long pte_va);
 extern int check_pte_is_broken_for_pte_write(pte_t *ptep);
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 extern int wait_to_recover_broken_pgtable(pmd_t *pmdp);
-// extern int recover_broken_pte_from_pgtable_va(unsigned long va);
 
-extern int increment_m_list_ref_count(pte_t *ptep);
-extern int decrement_m_list_ref_count(pte_t *ptep);
+extern int inc_page_ref_count(pte_t *ptep);
+extern int dec_page_ref_count(pte_t *ptep);
 
 extern void delete_pte_ds_log(struct page *pte_page);
 extern void delete_pmd_ds_log(struct page *pmd_page);
