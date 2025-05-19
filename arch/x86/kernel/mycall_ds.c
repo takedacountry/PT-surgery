@@ -340,10 +340,10 @@ static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 			else {
 				list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
 					if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
-						printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_pfn(*ptep), pte_flags(*ptep), pid);
 						if (pte_value == 0 && pte_flag == 0) { /* delete ds due to clear pte */
 							delete_ds(prev, dnode);
-							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
 						}
 						else if (dnode->offset != prev->offset) { // modify pte value
 							modify_ds_offset(prev, dnode, pte_page);
@@ -1026,26 +1026,39 @@ static int recovery_thread(void *data)
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
 
+	// preempt_enable();
+	// for(int i=0; i < 100000; i++) {
+	// 	// ref_count_lock(pte_page);
+	// 	printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
+	// 	if (page_count(pte_page) == 1) {
+	// 		// printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
+	// 		if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
+	// 			// ref_count_unlock(pte_page);
+	// 			preempt_disable();
+	// 			spin_unlock(ptl);
+	// 			goto err;			
+	// 		}
+	// 		delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
+	// 		// ref_count_unlock(pte_page);
+	// 		break;
+	// 	}
+	// 	// ref_count_unlock(pte_page);
+	// 	// wait some time msec
+	// 	fsleep(10);
+	// }
+	// preempt_disable();
+
 	preempt_enable();
-	for(int i=0; i < 100000; i++) {
-		// ref_count_lock(pte_page);
-		printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
-		if (page_count(pte_page) == 1) {
-			// printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
-			if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-				// ref_count_unlock(pte_page);
-				preempt_disable();
-				spin_unlock(ptl);
-				goto err;			
-			}
-			delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
-			// ref_count_unlock(pte_page);
-			break;
-		}
-		// ref_count_unlock(pte_page);
-		// wait some time msec
-		fsleep(10);
+	while (!kthread_should_stop())
+		schedule();
+
+	printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
+	if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
+		preempt_disable();
+		spin_unlock(ptl);
+		goto err;			
 	}
+	delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
 	preempt_disable();
 	spin_unlock(ptl);
 
@@ -1117,6 +1130,9 @@ int inc_page_ref_count(pte_t *ptep)
 		if(mhead->pid == current->tgid) {
 			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
 			if (pte_page->base & PTE_FLAG_MASK) {
+				while (pte_page->dup_pt)
+					schedule();
+
 				// ref_count_lock(pte_page);
 				ref_count = page_ref_inc_return(pte_page);
 				// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
@@ -1143,6 +1159,10 @@ int dec_page_ref_count(pte_t *ptep)
 				ref_count = page_ref_dec_return(pte_page);
 				// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
 				// ref_count_unlock(pte_page);
+				if (pte_page->dup_pt && k_thread) {
+					kthread_stop(k_thread);
+					k_thread = NULL;
+				}
 			}
 			break;
 		}
