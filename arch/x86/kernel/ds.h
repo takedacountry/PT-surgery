@@ -256,10 +256,51 @@ static inline void delete_broken_pte_all(struct m_head_struct *mnode)
 	}
 }
 
-static inline void modify_page_base(struct page *before, struct page *after)
+static inline void print_ds_log(struct page *pte_page)
 {
-	if (before && after) {
+	struct ds_log *dnode;
+
+	printk(KERN_INFO "page base %lx, page addr %lx\n", pte_page->base, (unsigned long)page_address(pte_page));
+	if (list_empty(&pte_page->ds_head)) {
+		printk(KERN_INFO "     nothing ds log\n");
+	} else {
+		list_for_each_entry(dnode, &pte_page->ds_head, list) {
+			printk("     %lx %lx %lx %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag);
+		}
+	}
+}
+
+static inline void copy_ds_log(struct page *before, struct page *after)
+{
+	struct ds_log *itr, *tmp;
+
+	list_for_each_entry_safe(itr, tmp, &before->ds_head, list) {
+		list_del(&itr->list);
+		list_add_tail(&itr->list, &after->ds_head);
+	}
+	print_ds_log(before);
+	print_ds_log(after);
+}
+
+static inline void restore_page(struct page *before, struct page *after)
+{
+	if (before != NULL && after != NULL) {
 		after->base = before->base;
 		before->base = 0;
+		before->dup_pt = NULL;
+
+		copy_ds_log(before, after);
+	}
+}
+
+static inline void delete_broken_pte_log(struct m_head_struct *mhead, unsigned long start, unsigned long end)
+{
+	struct broken_pte_log *itr, *tmp;
+
+	list_for_each_entry_safe(itr, tmp, &mhead->head, list) {
+		if (start <= itr->base && itr->base <= end) {
+			list_del(&itr->list);
+			kfree(itr);
+		}
 	}
 }

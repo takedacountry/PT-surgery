@@ -5,7 +5,7 @@
 // #include <linux/rwlock.h> // 
 // #include <linux/spinlock.h> //
 #include <linux/export.h>
-#include <linux/delay.h> // for msleep
+#include <linux/delay.h> //
 #include <linux/kthread.h> //
 #include <linux/preempt.h> //
 #include <linux/pid.h>
@@ -340,10 +340,10 @@ static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 			else {
 				list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
 					if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
-						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+						printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						if (pte_value == 0 && pte_flag == 0) { /* delete ds due to clear pte */
 							delete_ds(prev, dnode);
-							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
 						}
 						else if (dnode->offset != prev->offset) { // modify pte value
 							modify_ds_offset(prev, dnode, pte_page);
@@ -496,6 +496,7 @@ int clear_wrbit_ds_log(pte_t *ptep)
 					break;
 				}
 			}
+			printk(KERN_INFO "  pte pfn %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
 			break;
 		}
 	}
@@ -756,34 +757,36 @@ SYSCALL_DEFINE1(mycall_register_broken_pte, unsigned long, va)
 
 int check_pte_is_broken_for_pte_write(pte_t *ptep)
 {
-	struct page *pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+	struct page *pte_page;
 	struct broken_pte_log *bnode;
 	struct m_head_struct *mhead;
 	unsigned long target_base;
 	pte_t entry;
 	
-	if(!ptep) { // NULL pointer
+	if (!ptep) { // NULL pointer
 		return -1;
 	}
-
-	target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
 
 	entry = *ptep; // check EMEs and register broken pte
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
 			// register broken pte
-			// if(recover_count == 200) {
-			// 	register_broken_pte_and_make_recovery_thread(ptep);
+			// if(recover_count == 100) {
+			// 	register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 			// 	recover_count++;
 			// } else {
 			// 	recover_count++;
 			// }
-
-			list_for_each_entry(bnode, &mhead->head, list) {
-				if (target_base == bnode->base) {
-					printk(KERN_INFO "Hit broken pte %lx\n", target_base);
-					return 1; // pte is broken
+			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+			target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+		
+			if (pte_page->dup_pt) {
+				list_for_each_entry(bnode, &mhead->head, list) {
+					if (target_base == bnode->base) {
+						printk(KERN_INFO "Hit broken pte write %lx %d\n", target_base, current->tgid);
+						return 1; // pte is broken
+					}
 				}
 			}
 			return 0; // pte is safety
@@ -795,7 +798,7 @@ EXPORT_SYMBOL_GPL(check_pte_is_broken_for_pte_write);
 
 pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 {
-	struct page *pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+	struct page *pte_page;
 	struct broken_pte_log *bnode;
 	struct m_head_struct *mhead;
 	unsigned long target_base;
@@ -807,31 +810,35 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 		return native_make_pte(0);
 	}
 
-	target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
-
 	entry = *ptep; // check EMEs and register broken pte
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			// register broken pte
-			// if(recover_count == 800) {
-			// 	register_broken_pte_and_make_recovery_thread(ptep);
-			// 	recover_count++;
-			// } else {
-			// 	recover_count++;
-			// }
+			if(recover_count == 200) {
+				register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
+				recover_count++;
+			} else {
+				recover_count++;
+			}
 
-			list_for_each_entry(bnode, &mhead->head, list) {
-				if (target_base == bnode->base) {
-					printk(KERN_INFO "Hit broken pte %lx\n", target_base);
-					offset = target_base & PT_PGTABLE_MASK;
-					pte = pte_page->dup_pt + offset;
-					entry = *pte;
-					printk(KERN_INFO "get broken    pte %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
-					printk(KERN_INFO "get recovered pte %lx %lx\n", pte_pfn(*pte), pte_flags(*pte));
-					goto end; // pte is broken
+			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+			target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+
+			if (pte_page->dup_pt) {
+				list_for_each_entry(bnode, &mhead->head, list) {
+					if (target_base == bnode->base) {
+						printk(KERN_INFO "Hit broken pte read %lx %d\n", target_base, current->tgid);
+						offset = target_base & PT_PGTABLE_MASK;
+						pte = (pte_t *)pte_page->dup_pt + offset;
+						entry = *pte;
+						printk(KERN_INFO "get broken    pte %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
+						printk(KERN_INFO "get recovered pte %lx %lx\n", pte_pfn(*pte), pte_flags(*pte));
+						goto end; // pte is broken
+					}
 				}
 			}
+			break;
 		}
 	}
 end:
@@ -873,8 +880,7 @@ static int update_pmdp(struct mm_struct *mm, struct m_head_struct *mhead, struct
 
 	print_dup_pt(pte_page->dup_pt, pte_page->base);
 	pmd_reinstall(mm, pmdp, pte_page->dup_pt);
-	modify_page_base(pte_page, virt_to_page(pte_page->dup_pt));
-	pte_page->dup_pt = NULL;
+	restore_page(pte_page, virt_to_page(pte_page->dup_pt));
 
 	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
 	return 0;
@@ -898,22 +904,24 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 	spin_lock(ptl);
 
 	preempt_enable();
-	for(int i=0; i < 100; i++) {
+	for(int i=0; i < 100000; i++) {
 		// ref_count_lock(pte_page);
 		printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
-		if (page_count(pte_page) == 0) {
-			if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
+		if (page_count(pte_page) == 1) {
+			// printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
+			if (update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
 				// ref_count_unlock(pte_page);
 				preempt_disable();
 				spin_unlock(ptl);
 				goto err;
 			}
+			delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
 			// ref_count_unlock(pte_page);
 			break;
 		}
 		// ref_count_unlock(pte_page);
 		// wait some time msec
-		msleep(30);
+		fsleep(10);
 	}
 	preempt_disable();
 	spin_unlock(ptl);
@@ -1008,7 +1016,7 @@ static int recovery_thread(void *data)
 	}
 
 	if (!mm) {
-		printk(KERN_INFO "m_head_struct_list->mm is NULL\n");
+		printk(KERN_INFO "m_head_struct->mm is NULL\n");
 		return -1;
 	}
 
@@ -1019,22 +1027,24 @@ static int recovery_thread(void *data)
 	spin_lock(ptl);
 
 	preempt_enable();
-	for(int i=0; i < 100; i++) {
+	for(int i=0; i < 100000; i++) {
 		// ref_count_lock(pte_page);
 		printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
-		if (page_count(pte_page) == 0) {
+		if (page_count(pte_page) == 1) {
+			// printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
 			if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
 				// ref_count_unlock(pte_page);
 				preempt_disable();
 				spin_unlock(ptl);
 				goto err;			
 			}
+			delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
 			// ref_count_unlock(pte_page);
 			break;
 		}
 		// ref_count_unlock(pte_page);
 		// wait some time msec
-		msleep(30);
+		fsleep(10);
 	}
 	preempt_disable();
 	spin_unlock(ptl);
@@ -1079,14 +1089,14 @@ int wait_to_recover_broken_pgtable(pmd_t *pmdp)
 
 			printk(KERN_INFO "wait to recover broken pgtable %lx\n", pte_page->base);
 			preempt_enable();
-			for (int i=0; i < 100; i++) {
+			for (int i=0; i < 100000; i++) {
 				if (pte_page->dup_pt == NULL) {
-					printk(KERN_INFO "DONE dup_pt\n");
+					printk(KERN_INFO "DONE replace dup_pt\n");
 					preempt_disable();
 					goto end;
 				}
 				// wait some time msec
-				msleep(100);
+				fsleep(100);
 			}
 			preempt_disable();
 			break;
@@ -1109,9 +1119,8 @@ int inc_page_ref_count(pte_t *ptep)
 			if (pte_page->base & PTE_FLAG_MASK) {
 				// ref_count_lock(pte_page);
 				ref_count = page_ref_inc_return(pte_page);
-				printk(KERN_INFO "m %lx ref count %d\n", pte_page->base, ref_count);
+				// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
 				// ref_count_unlock(pte_page);
-				break;
 			}
 			break;
 		}
@@ -1132,7 +1141,7 @@ int dec_page_ref_count(pte_t *ptep)
 			if (pte_page->base & PTE_FLAG_MASK) {
 				// ref_count_lock(pte_page);
 				ref_count = page_ref_dec_return(pte_page);
-				printk(KERN_INFO "m %lx ref count %d\n", pte_page->base, ref_count);
+				// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
 				// ref_count_unlock(pte_page);
 			}
 			break;
@@ -1465,7 +1474,7 @@ end:
 SYSCALL_DEFINE0(mycall_ds_register_pid)
 {
 	long ret = register_pid(current->mm, current->tgid); 
-	// recover_count = 0;
+	recover_count = 0;
 	return ret;
 	// return register_pid(current->mm, current->tgid);
 }

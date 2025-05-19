@@ -10,6 +10,8 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
+#include <stdint.h>
 
 #define SYS_mycall_print_user_pgtable 457
 #define SYS_mycall_print_kernel_pgtable 458
@@ -87,10 +89,6 @@ int main(void)
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
-    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    // printf("%ld\n", syscall(SYS_mycall_ds_search));
-    // printf("%ld\n", syscall(SYS_mycall_m_search));
-
     char *ma = (char*)malloc(PAGESIZE);
     // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
@@ -192,46 +190,74 @@ int main(void)
     // printf("va: %p\n", mp1); // print user va
 
     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
-    printf("%ld\n", syscall(SYS_mycall_ds_search));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search));
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
     // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
 
     // pthread_mutex_init(&mutex, NULL);
-    if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
-        perror("failure thread1 create");
-        return 0;
-    }
+    // if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
+    //     perror("failure thread1 create");
+    //     return 0;
+    // }
     // if(pthread_create(&thread2, NULL, thread_func, NULL) != 0) {
     //     perror("failure thread2 create");
     //     return 0;
     // }
 
-    pthread_join(thread1, NULL);
+    // pthread_join(thread1, NULL);
     // pthread_join(thread2, NULL);
 
     // pthread_mutex_destroy(&mutex);
 
-    // if((pid = fork()) == -1){
-    //     printf("fork() failed");
-    //     return -1;
-    // }else if(pid == 0){
+    if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
+        perror("signal");
+        exit(EXIT_FAILURE);
+    }
+    pid = fork();
+    switch (pid) {
+    case -1:
+        perror("fork");
+        exit(EXIT_FAILURE);
+    case 0:
+        puts("Child exiting.");
+        exit(EXIT_SUCCESS);
+    default:
+        printf("Child is PID %jd\n", (intmax_t) pid);
+        puts("Parent exiting.");
+        
+        memset(ma, 1, PAGESIZE);
+        printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        free(ma);
+        
+        exit(EXIT_SUCCESS);
+    }
+
+    // pid = fork();
+    // if(pid == 0){
     //     // child
-    //     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
-    //     printf("%ld\n", syscall(SYS_mycall_ds_search2));
-    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     printf("child process %d!\n", pid);
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     //     exit(0);
     // }else{
     //     // parent
-        
     //     int status;
     //     wait(&status);
     //     if (WIFEXITED(status)) {
     //         printf("exit: %d\n", WEXITSTATUS(status));
     //     }
+    //     printf("Adult process %d!\n", pid);
     // }
 
-    free(ma);
+    // memset(ma, 1, PAGESIZE);
+    
+    // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    
+    
+
+    // free(ma);
     // free(mb);
     // free(mc);
     // free(md);
@@ -265,6 +291,7 @@ int main(void)
     // free(mp1);
 
     // printf("%ld\n", syscall(SYS_mycall_ds_m_delete));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
 
     return 0;
 }

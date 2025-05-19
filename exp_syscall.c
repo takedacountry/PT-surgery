@@ -6,7 +6,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <errno.h>
-#include <sys/mman.h>
+#include <sys/wait.h>
 #include <time.h>
 
 #define SYS_mycall_print_user_pgtable 457
@@ -34,10 +34,10 @@
 #define handle_error(msg) \
     do { perror(msg); exit(EXIT_FAILURE); } while(0) 
 
-
 int main(void)
 {
     char *p;
+    pid_t pid;
     clock_t start_mmap, end_mmap;
     clock_t start_munmap, end_munmap;
     clock_t start_mprotect, end_mprotect;
@@ -59,7 +59,24 @@ int main(void)
     printf("mmap clock: %f\n",(double)(end_mmap - start_mmap)/CLOCKS_PER_SEC);
 
     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-    printf("%ld\n", syscall(SYS_mycall_ds_search));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search));
+
+    
+    pid = fork();
+    if (pid == 0) {
+        printf("child process!\n");
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        exit(0);
+    } else {
+        int status;
+        printf("Adult process!\n");
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("exit: %d\n", WEXITSTATUS(status));
+        }
+    }
+
+    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
 
     start_mprotect = clock();
     // if (mprotect(p, four_gb, PROT_READ) == -1)
@@ -76,8 +93,8 @@ int main(void)
     end_munmap = clock();
     printf("munmap clock: %f\n",(double)(end_munmap - start_munmap)/CLOCKS_PER_SEC);
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    printf("%ld\n", syscall(SYS_mycall_ds_search2));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    // printf("%ld\n", syscall(SYS_mycall_ds_search2));
 
     return 0;
 }
