@@ -286,6 +286,7 @@ static inline void restore_page(struct page *before, struct page *after)
 {
 	if (before != NULL && after != NULL) {
 		after->base = before->base;
+		after->dup_pt = NULL;
 		before->base = 0;
 		before->dup_pt = NULL;
 

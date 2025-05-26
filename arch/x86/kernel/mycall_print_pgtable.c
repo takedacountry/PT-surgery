@@ -243,6 +243,83 @@ end:
 }
 EXPORT_SYMBOL_GPL(print_user_pgtable2);
 
+
+long print_pgtable(struct mm_struct *mm, pid_t pid)
+{
+	// pgd_t *pgdp;
+	p4d_t *p4dp;
+	pud_t *pudp;
+	pmd_t *pmdp;
+	pte_t *ptep;
+	
+	int entry_count = 0;
+
+	struct file *file;
+	char *filename = "/usr/src/linux-6.1.35/result_kthread";
+	int size;
+	char *buf;
+    loff_t pos = 0;
+
+	file = filp_open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU | S_IRWXG | S_IRWXO);
+	if(IS_ERR(file)){
+		printk("pre_file open err=%ld", PTR_ERR(file));
+		goto end;
+	}
+	
+    buf = kmalloc(PATH_MAX, GFP_KERNEL);
+    if(!buf)
+		goto end;
+	memset(buf, '\0', 1024);
+
+	size = sprintf(buf, "pid: %d\n", pid);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+
+	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+		if(get_pgdp(mm, pgd, &p4dp) == 0) {
+			size = sprintf(buf, "%ld-0-0-0 %lx  %lx %lx  %lx\n", pgd, make_ds_va(pgd,0,0,0), p4d_pfn(*p4dp), p4d_flags(*p4dp), (unsigned long)p4dp);
+			kernel_write(file, buf, size, &pos);
+			vfs_fsync_range(file, 0, size, 1);
+			
+			for(unsigned long pud=0; pud<MAX; pud++) {
+				if(get_pudp(p4dp, pud, &pudp) == 0) {
+					size = sprintf(buf, "    %ld-%ld-0-0 %lx  %lx %lx  %lx\n", pgd, pud, make_ds_va(pgd,pud,0,0), pud_pfn(*pudp), pud_flags(*pudp), (unsigned long)pudp);
+					kernel_write(file, buf, size, &pos);
+					vfs_fsync_range(file, 0, size, 1);
+			
+            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
+						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+							entry_count++;
+							size = sprintf(buf, "        %ld-%ld-%ld-0 %lx  %lx %lx  %lx\n", pgd, pud, pmd, make_ds_va(pgd,pud,pmd,0), pmd_pfn(*pmdp), pmd_flags(*pmdp), (unsigned long)pmdp);
+							kernel_write(file, buf, size, &pos);
+							vfs_fsync_range(file, 0, size, 1);
+
+							for(unsigned long pte=0; pte<MAX; pte++) {
+	                   			if(get_ptep(pmdp, pte, &ptep) == 0) {
+									size = sprintf(buf, "            %ld-%ld-%ld-%ld %lx  %lx %lx  %lx\n", pgd, pud, pmd, pte, make_ds_va(pgd,pud,pmd,pte), pte_pfn(*ptep), pte_flags(*ptep), (unsigned long)ptep);
+									kernel_write(file, buf, size, &pos);
+									vfs_fsync_range(file, 0, size, 1);
+			                    }
+			            	}
+						}
+		        	}
+				}
+	        }
+		}
+    }
+	printk(KERN_INFO "user PT count: %d", entry_count);
+	
+	size = sprintf(buf, "user PT count: %d", entry_count);
+	kernel_write(file, buf, size, &pos);
+	vfs_fsync_range(file, 0, size, 1);
+end:	
+	kfree(buf);
+	filp_close(file, NULL);
+	
+	return 0;
+}
+EXPORT_SYMBOL_GPL(print_pgtable);
+
 static int print_usr_ds(struct task_struct *p)
 {
 	// pgd_t *pgdp;

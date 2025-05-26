@@ -83,7 +83,7 @@ void* thread_func(void* arg)
 int main(void)
 {
     pid_t pid;
-    pthread_t thread1;
+    // pthread_t thread1;
     // pthread_t thread2;
 
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
@@ -210,54 +210,55 @@ int main(void)
 
     // pthread_mutex_destroy(&mutex);
 
-    if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
-        perror("signal");
-        exit(EXIT_FAILURE);
-    }
-    pid = fork();
-    switch (pid) {
-    case -1:
-        perror("fork");
-        exit(EXIT_FAILURE);
-    case 0:
-        puts("Child exiting.");
-        exit(EXIT_SUCCESS);
-    default:
-        printf("Child is PID %jd\n", (intmax_t) pid);
-        puts("Parent exiting.");
-        
-        memset(ma, 1, PAGESIZE);
-        printf("%ld\n", syscall(SYS_mycall_m_ds_count));
-        printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        free(ma);
-        
-        exit(EXIT_SUCCESS);
-    }
-
+    // if (signal(SIGCHLD, SIG_IGN) == SIG_ERR) {
+    //     perror("signal");
+    //     exit(EXIT_FAILURE);
+    // }
     // pid = fork();
-    // if(pid == 0){
-    //     // child
-    //     printf("child process %d!\n", pid);
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    //     exit(0);
-    // }else{
-    //     // parent
-    //     int status;
-    //     wait(&status);
-    //     if (WIFEXITED(status)) {
-    //         printf("exit: %d\n", WEXITSTATUS(status));
-    //     }
-    //     printf("Adult process %d!\n", pid);
+    // switch (pid) {
+    // case -1:
+    //     perror("fork");
+    //     exit(EXIT_FAILURE);
+    // case 0:
+    //     puts("Child exiting.");
+    //     exit(EXIT_SUCCESS);
+    // default:
+    //     printf("Child is PID %jd\n", (intmax_t) pid);
+    //     puts("Parent exiting.");
+        
+    //     memset(ma, 1, PAGESIZE);
+    //     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     free(ma);
+        
+    //     exit(EXIT_SUCCESS);
     // }
 
-    // memset(ma, 1, PAGESIZE);
+    pid = fork();
+    if (pid == 0) {
+        printf("child process!\n");
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        exit(0);
+    }else if (pid == -1){
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }else {
+        int status;
+        printf("Adult process!\n");
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("exit: %d\n", WEXITSTATUS(status));
+        }
+    }
+
+    memset(ma, 1, PAGESIZE);
     
     // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     
     
 
-    // free(ma);
+    free(ma);
     // free(mb);
     // free(mc);
     // free(md);

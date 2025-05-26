@@ -35,7 +35,7 @@ LIST_HEAD(user_head);
 static int make_recovery_thread(struct page *pte_page);
 static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page);
 
-static struct task_struct *k_thread;
+static struct task_struct *k_thread = NULL;
 static pid_t current_tgid = 0;
 static int recover_count = 0;
 
@@ -815,7 +815,7 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			// register broken pte
-			if(recover_count == 200) {
+			if(recover_count == 800) {
 				register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 				recover_count++;
 			} else {
@@ -903,7 +903,7 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
 
-	preempt_enable();
+	// preempt_enable();
 	for(int i=0; i < 100000; i++) {
 		// ref_count_lock(pte_page);
 		printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
@@ -911,7 +911,7 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 			// printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
 			if (update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
 				// ref_count_unlock(pte_page);
-				preempt_disable();
+				// preempt_disable();
 				spin_unlock(ptl);
 				goto err;
 			}
@@ -923,7 +923,7 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 		// wait some time msec
 		fsleep(10);
 	}
-	preempt_disable();
+	// preempt_disable();
 	spin_unlock(ptl);
 
 	// want to add TLB flush operation
@@ -1023,8 +1023,8 @@ static int recovery_thread(void *data)
 	if (get_pmdp_for_recover_pgtable(mm, base, &pmdp) < 0)
 		return -1;
 	
-	ptl = ptlock_ptr(pmd_to_page(pmdp));
-	spin_lock(ptl);
+	// ptl = ptlock_ptr(pmd_to_page(pmdp));
+	// spin_lock(ptl);
 
 	// preempt_enable();
 	// for(int i=0; i < 100000; i++) {
@@ -1048,24 +1048,25 @@ static int recovery_thread(void *data)
 	// }
 	// preempt_disable();
 
-	preempt_enable();
+	// preempt_enable();
 	while (!kthread_should_stop())
 		schedule();
 
 	printk(KERN_INFO "pgtable ref count %d\n", page_count(pte_page));
 	if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-		preempt_disable();
-		spin_unlock(ptl);
+		// preempt_disable();
+		// spin_unlock(ptl);
 		goto err;			
 	}
 	delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
-	preempt_disable();
-	spin_unlock(ptl);
+	// preempt_disable();
+	// spin_unlock(ptl);
 
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
 	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
 
+	print_pgtable(mm, current_tgid);
 	printk(KERN_INFO "finish kthread\n");
 
 	return 0;
@@ -1078,9 +1079,9 @@ static int make_recovery_thread(struct page *pte_page)
 {
 	current_tgid = current->tgid;
 	printk(KERN_INFO "current pid %d, tgid %d\n", current->pid, current->tgid);
-	preempt_enable();
+	// preempt_enable();
 	k_thread = kthread_run(recovery_thread, pte_page, "kcheckd");
-	preempt_disable();
+	// preempt_disable();
 	if(IS_ERR(k_thread)) {
 		printk(KERN_INFO "kthread_run error\n");
 		return -1;
@@ -1101,17 +1102,17 @@ int wait_to_recover_broken_pgtable(pmd_t *pmdp)
 				goto end;
 
 			printk(KERN_INFO "wait to recover broken pgtable %lx\n", pte_page->base);
-			preempt_enable();
+			// preempt_enable();
 			for (int i=0; i < 100000; i++) {
 				if (pte_page->dup_pt == NULL) {
 					printk(KERN_INFO "DONE replace dup_pt\n");
-					preempt_disable();
+					// preempt_disable();
 					goto end;
 				}
 				// wait some time msec
 				fsleep(100);
 			}
-			preempt_disable();
+			// preempt_disable();
 			break;
 		}
 	}

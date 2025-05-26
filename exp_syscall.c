@@ -67,7 +67,10 @@ int main(void)
         printf("child process!\n");
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
         exit(0);
-    } else {
+    }else if (pid == -1){
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }else {
         int status;
         printf("Adult process!\n");
         wait(&status);
@@ -76,7 +79,7 @@ int main(void)
         }
     }
 
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
 
     start_mprotect = clock();
     // if (mprotect(p, four_gb, PROT_READ) == -1)
