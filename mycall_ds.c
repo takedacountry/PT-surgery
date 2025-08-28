@@ -64,7 +64,7 @@ void* thread_func(void* arg)
     }else if(pid == 0){
         // child
         // memset(ma, 1, PAGESIZE);
-        printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+        // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     }else{
         //parent
         int status;
@@ -73,7 +73,7 @@ void* thread_func(void* arg)
             printf("exit: %d\n", WEXITSTATUS(status));
         }
         // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
-        printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+        // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     }
     
     // pthread_mutex_unlock(&mutex);
@@ -89,8 +89,8 @@ int main(void)
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
-    char *ma = (char*)malloc(PAGESIZE);
-    // char *mb = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(INDEX);
+    char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -122,8 +122,8 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, PAGESIZE);
-    // memset(mb, 0, INDEX);
+    memset(ma, 0, INDEX);
+    memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -155,9 +155,8 @@ int main(void)
     // memset(mo1, 0, INDEX);
     // memset(mp1, 0, INDEX);
     
-
     printf("va: %p\n", ma); // print user va 
-    // printf("va: %p\n", mb); // print user va 
+    printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -189,15 +188,17 @@ int main(void)
     // printf("va: %p\n", mo1); // print user va
     // printf("va: %p\n", mp1); // print user va
 
-    printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     // printf("%ld\n", syscall(SYS_mycall_ds_search));
-    printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
+    // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
 
     // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)ma));
+    // printf("%ld\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)mb));
+
 
     // pthread_mutex_init(&mutex, NULL);
     // if(pthread_create(&thread1, NULL, thread_func, NULL) != 0) {
-    //     perror("failure thread1 create");
+    // 	perror("failure thread1 create");
     //     return 0;
     // }
     // if(pthread_create(&thread2, NULL, thread_func, NULL) != 0) {
@@ -228,38 +229,45 @@ int main(void)
         
     //     memset(ma, 1, PAGESIZE);
     //     printf("%ld\n", syscall(SYS_mycall_m_ds_count));
-    //     printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     //     free(ma);
         
     //     exit(EXIT_SUCCESS);
     // }
 
-    pid = fork();
-    if (pid == 0) {
-        printf("child process!\n");
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        exit(0);
-    }else if (pid == -1){
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }else {
-        int status;
-        printf("Adult process!\n");
-        wait(&status);
-        if (WIFEXITED(status)) {
-            printf("exit: %d\n", WEXITSTATUS(status));
-        }
-    }
+    // pid = fork();
+    // printf("pid: %d\n",pid);
+    // if (pid == 0) {
+    //     printf("child process!\n");
+    //     // printf("%ld\n", syscall(SYS_mycall_ds_search2));
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     exit(0);
+    // }else if (pid < 0){
+    //     perror("fork");
+    //     exit(EXIT_FAILURE);
+    // }else {
+    //     int status;
+    //     printf("Adult process!\n");
+    //     wait(&status);
+    //     if (WIFEXITED(status)) {
+    //         printf("exit: %d\n", WEXITSTATUS(status));
+    //     }
+    // }
 
-    memset(ma, 1, PAGESIZE);
+    // memset(ma, 1, PAGESIZE);
     
     // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     
-    
+    for (int i=0; i < 50000; i++) {
+        int r = rand() % 10000;
+        if (r == 0) {
+            printf("%ld %p\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)thread_func), thread_func);
+        }
+    }
 
     free(ma);
-    // free(mb);
+    free(mb);
     // free(mc);
     // free(md);
     // free(me);

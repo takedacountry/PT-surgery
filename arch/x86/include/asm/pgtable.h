@@ -1094,6 +1094,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
 	}
 	else {
 		// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+		// printk(KERN_INFO "  wrprotect %lx\n",(unsigned long)pte_val(*ptep));
 		clear_wrbit_ds_log(ptep);
 	}
 

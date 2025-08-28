@@ -24,7 +24,7 @@ void delete_pte_ds_log(struct page *pte_page)
 
 				delete_ds_all(pte_page);
 
-				printk(KERN_INFO "delete m pte %lx pid %d %d\n", pte_page->base, current->pid, current->tgid);
+				// printk(KERN_INFO "delete m pte %lx pid %d %d\n", pte_page->base, current->pid, current->tgid);
 				pte_page->base = 0;
 			}
 			break;
@@ -41,7 +41,7 @@ void delete_pmd_ds_log(struct page *pmd_page)
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			if (pmd_page->base & PMD_FLAG_MASK) {
-				printk(KERN_INFO "delete m pmd %lx pid %d %d\n", pmd_page->base, current->pid, current->tgid);
+				// printk(KERN_INFO "delete m pmd %lx pid %d %d\n", pmd_page->base, current->pid, current->tgid);
 				pmd_page->base = 0;
 			}
 			break;
@@ -58,7 +58,7 @@ void delete_pud_ds_log(struct page *pud_page)
 	list_for_each_entry(mhead, &user_head, list){
 		if(mhead->pid == current->tgid){
 			if (pud_page->base & PUD_FLAG_MASK) {
-				printk(KERN_INFO "delete m pud %lx pid %d %d\n", pud_page->base, current->pid, current->tgid);
+				// printk(KERN_INFO "delete m pud %lx pid %d %d\n", pud_page->base, current->pid, current->tgid);
 				pud_page->base = 0;
 			}
 			break;
@@ -72,13 +72,16 @@ extern bool is_available_pgd(struct mm_struct *mm);
 
 void delete_pgd_ds_log(struct page *pgd_page)
 {
-	struct m_head_struct *mhead, *tmp;
+	struct m_head_struct *mhead;
+#ifdef CONFIG_RECOVERY_COUNT
+	struct recovery_count *rcount;
+#endif
 
-	list_for_each_entry_safe(mhead, tmp, &user_head, list) {
+	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			if (pgd_page->base & PGD_FLAG_MASK) {
 				if (!is_available_pgd(mhead->mm)) {
-					printk(KERN_INFO "delete m pgd %lx pid %d %d\n", PGD_FLAG_MASK, current->pid, current->tgid);
+					// printk(KERN_INFO "delete m pgd %lx pid %d %d\n", PGD_FLAG_MASK, current->pid, current->tgid);
 					pgd_page->base = 0;
 
 					delete_broken_pte_all(mhead);
@@ -87,11 +90,29 @@ void delete_pgd_ds_log(struct page *pgd_page)
 					list_del(&mhead->list);
 					kfree(mhead);
 					printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);
+
+#ifdef CONFIG_RECOVERY_COUNT
+					list_for_each_entry(rcount, &count_head, list) {
+						if (rcount->pid == current->tgid) {
+							printk(KERN_INFO "kern recovery count %d: %ld / %ld\n", rcount->pid, rcount->ksuccount, rcount->kcount);
+							printk(KERN_INFO "user recovery count %d: %d / %d\n", rcount->pid, rcount->usuccount, rcount->ucount);
+							rcount->pid = 0;
+							rcount->kcount = 0;
+							rcount->ksuccount = 0;
+							rcount->ucount = 0;
+							rcount->usuccount = 0;
+							list_del(&rcount->list);
+							kfree(rcount);
+							break;
+						}
+					}
+#endif
 				}
 			}
 			break;
 		}
 	}
+
 	return;
 }
 EXPORT_SYMBOL_GPL(delete_pgd_ds_log);

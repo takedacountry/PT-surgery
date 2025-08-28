@@ -5,6 +5,7 @@
 #include <linux/list.h>
 #include <linux/slab.h> 
 #include <linux/printk.h>
+#include <linux/preempt.h> 
 #include <asm/pgtable.h>
 #include <asm/pgtable_64_types.h>
 #include <asm/pgalloc.h>
@@ -41,8 +42,20 @@
 #define FLAG_RW				(_AT(long, 1) << RW_BIT)
 #define FLAG_RW_NOT			(~FLAG_RW)
 
+// #define CONFIG_RECOVERY_COUNT
+
+// for memcached
+// #define DIVISION_NUM (43750)
+
+// for redis
+// #define DIVISION_NUM (40000)
+
+// for apache
+#define DIVISION_NUM (50000)
+
 extern struct list_head user_head;
-extern struct list_head kern_head;
+// extern struct list_head kern_head;
+extern struct list_head count_head;
 extern rwlock_t user_head_lock;
 
 static inline pte_t *pte_offset_index(pmd_t *pmd, unsigned long index)
@@ -87,7 +100,10 @@ static inline long make_ds_offset(long base, unsigned long pte_value)
 
 static inline struct ds_log *make_ds_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
 {
-	struct ds_log *list = kmalloc(sizeof(struct ds_log), GFP_KERNEL);
+	struct ds_log *list;
+	preempt_disable();
+	list = kmalloc(sizeof(struct ds_log), GFP_KERNEL);
+	preempt_enable();
 	if(!list)
 		return NULL;
 
@@ -100,7 +116,10 @@ static inline struct ds_log *make_ds_node(unsigned long base, unsigned long limi
 
 static inline struct broken_pte_log *make_broken_pte_node(unsigned long base) 
 {
-	struct broken_pte_log *list = kmalloc(sizeof(struct broken_pte_log), GFP_KERNEL);
+	struct broken_pte_log *list;
+	preempt_disable();
+	list = kmalloc(sizeof(struct broken_pte_log), GFP_KERNEL);
+	preempt_enable();
 	if(!list)
 		return NULL;
 
@@ -207,21 +226,32 @@ static inline pte_t *pte_realloc(struct mm_struct *mm)
 // 	return new;
 // }
 
-static inline void update_dup_pte(pte_t **ptep, struct ds_log *itr, unsigned long start, unsigned long end)
+static inline int update_dup_pte(pte_t **ptep, struct ds_log *itr, unsigned long start, unsigned long end)
 {
 	unsigned long count;
 	pte_t *pte = *(ptep);
 
-	for(count=start; count < itr->limit; count++) {
+#ifdef CONFIG_RECOVERY_COUNT
+	unsigned int emes;
+	get_random_bytes(&emes, sizeof(emes));
+	if (emes % DIVISION_NUM == 0) {
+		printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log %lx in pte recovery\n", (unsigned long)itr);
+		return -1;
+	}
+#endif
+
+	for (count=start; count < itr->limit; count++) {
 		if(itr->base <= count)
 			set_pte_recover(pte, __pte(((pteval_t)(count - itr->offset) << PAGE_SHIFT) | itr->flag));
 		pte++;
 	}
 	
 	*(ptep) = pte;
+
+	return 0;
 }
 
-static inline void update_dup_pgtable(unsigned long va_start, pte_t *pte, struct page *page)
+static inline int update_dup_pgtable(unsigned long va_start, pte_t *pte, struct page *page)
 {
 	struct ds_log *itr;
 	unsigned long va_end;
@@ -229,11 +259,12 @@ static inline void update_dup_pgtable(unsigned long va_start, pte_t *pte, struct
 	va_end = va_start | PT_PGTABLE_MASK;
 
 	list_for_each_entry(itr, &page->ds_head, list) {
-		printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
-		update_dup_pte(&pte, itr, va_start, va_end);
+		// printk(KERN_INFO "    %lx %lx %lx %lx\n", itr->base, itr->limit, itr->offset, itr->flag);
+		if (update_dup_pte(&pte, itr, va_start, va_end) < 0)
+			return -1;
 		va_start = itr->limit;
 	}
-	return;
+	return 0;
 }
 
 static inline void delete_ds_all(struct page *page)
@@ -278,8 +309,8 @@ static inline void copy_ds_log(struct page *before, struct page *after)
 		list_del(&itr->list);
 		list_add_tail(&itr->list, &after->ds_head);
 	}
-	print_ds_log(before);
-	print_ds_log(after);
+	// print_ds_log(before);
+	// print_ds_log(after);
 }
 
 static inline void restore_page(struct page *before, struct page *after)
@@ -294,14 +325,41 @@ static inline void restore_page(struct page *before, struct page *after)
 	}
 }
 
-static inline void delete_broken_pte_log(struct m_head_struct *mhead, unsigned long start, unsigned long end)
+static inline int delete_broken_pte_log(struct m_head_struct *mhead, unsigned long start, unsigned long end)
 {
 	struct broken_pte_log *itr, *tmp;
+	int count = 0;
 
 	list_for_each_entry_safe(itr, tmp, &mhead->head, list) {
 		if (start <= itr->base && itr->base <= end) {
 			list_del(&itr->list);
 			kfree(itr);
+			count++;
 		}
 	}
+	return count;
+}
+
+static inline int dec_preempt_before_schedule(void)
+{
+	int count = preempt_count();
+	// printk(KERN_INFO "dec preempt %d before %d\n", current->tgid, preempt_count());
+	if (count < 10) {
+		preempt_count_sub(count);
+	} else {
+		preempt_count_add(1);
+	}
+	// printk(KERN_INFO "dec preempt %d after %d\n", current->tgid, preempt_count());
+	return count;
+}
+
+static inline void inc_preempt_after_schedule(int count)
+{
+	// printk(KERN_INFO "inc preempt %d before %d\n", current->tgid, preempt_count());
+	if (count < 10) {
+		preempt_count_add(count);
+	} else {
+		preempt_count_sub(1);
+	}
+	// printk(KERN_INFO "inc preempt %d after %d\n", current->tgid, preempt_count());
 }

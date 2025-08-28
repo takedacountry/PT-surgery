@@ -624,8 +624,9 @@ end:
 	return 0;
 }
 
-static void count_up_m_ds(struct task_struct *p)
+static void count_up_m_ds(void)
 {
+	struct m_head_struct *mhead;
 	// pgd_t *pgdp;
 	p4d_t *p4dp;
 	pud_t *pudp;
@@ -635,32 +636,34 @@ static void count_up_m_ds(struct task_struct *p)
 	struct page *pte_page;
 	struct ds_log *dnode;
 	
-	int ds_num = 0;
-	int m_num = 0;
-	int pte_num = 0;
-
-	m_num++;
-	for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
-		if(get_pgdp(p->mm, pgd, &p4dp) == 0) {
-			m_num++;
-			for(unsigned long pud=0; pud<MAX; pud++) {
-				if(get_pudp(p4dp, pud, &pudp) == 0) {
-					m_num++;
-            		for(unsigned long pmd=0; pmd<MAX; pmd++) {
-						if(get_pmdp(pudp, pmd, &pmdp) == 0) {
-							pte_page = virt_to_page(pte_offset_index(pmdp, 0));
-							m_num++;
-							pte_num++;
-							list_for_each_entry(dnode, &pte_page->ds_head, list) {
-								ds_num++;
+	list_for_each_entry(mhead, &user_head, list) {
+		int ds_num = 0;
+		int m_num = 0;
+		int pte_num = 0;
+		
+		m_num++;
+		for(unsigned long pgd=0; pgd<USER_MAX; pgd++) {
+			if(get_pgdp(mhead->mm, pgd, &p4dp) == 0) {
+				m_num++;
+				for(unsigned long pud=0; pud<MAX; pud++) {
+					if(get_pudp(p4dp, pud, &pudp) == 0) {
+						m_num++;
+						for(unsigned long pmd=0; pmd<MAX; pmd++) {
+							if(get_pmdp(pudp, pmd, &pmdp) == 0) {
+								pte_page = virt_to_page(pte_offset_index(pmdp, 0));
+								m_num++;
+								pte_num++;
+								list_for_each_entry(dnode, &pte_page->ds_head, list) {
+									ds_num++;
+								}
 							}
 						}
-		        	}
+					}
 				}
-	        }
+			}
 		}
-    }
-	printk(KERN_INFO "pid %d m count %d, pte count %d, ds count %d\n",p->pid, m_num, pte_num, ds_num);
+		printk(KERN_INFO "pid %d m count %d, pte count %d, ds count %d\n", mhead->pid, m_num, pte_num, ds_num);
+	}
 
 	return;
 }
@@ -715,6 +718,7 @@ SYSCALL_DEFINE0(mycall_m_search2)
 
 SYSCALL_DEFINE0(mycall_m_ds_count)
 {
-	count_up_m_ds(current);
+	// count_up_m_ds(current);
+	count_up_m_ds();
 	return 0;
 }

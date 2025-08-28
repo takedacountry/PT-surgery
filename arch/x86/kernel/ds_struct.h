@@ -43,6 +43,16 @@ struct broken_pte_log{
 struct m_head_struct{
 	pid_t pid;
 	struct mm_struct *mm;
+	struct task_struct *krecoverd_task;
 	struct list_head head;
+	struct list_head list;
+};
+
+struct recovery_count{
+	pid_t pid;
+	unsigned long kcount;
+	unsigned long ksuccount;
+	unsigned int ucount;
+	unsigned int usuccount;
 	struct list_head list;
 };

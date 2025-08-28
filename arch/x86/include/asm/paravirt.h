@@ -451,6 +451,7 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 	}
 	else {
 		// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
+		// printk(KERN_INFO "  set pte %lx -> %lx\n",(unsigned long)pte_val(*ptep), (unsigned long)pte_val(pte));
 		make_ds_log_usr(ptep, pte);	
 	}
 

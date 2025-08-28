@@ -35,6 +35,7 @@ int main_hook(int argc, char **argv, char **envp)
         // chdir("/");
         int ret = main_orig(argc, argv, envp);
         printf("-----after main-----\n");
+        // printf("print pgtable %ld\n", syscall(SYS_mycall_print_user_pgtable));
         printf("count ds m %ld\n", syscall(SYS_mycall_m_ds_count));
         printf("main() returned %d\n", ret);
         return ret;

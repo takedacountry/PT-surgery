@@ -40,3 +40,5 @@ extern void register_child(struct task_struct *p);
 extern long print_user_pgtable(struct task_struct *p);
 extern long print_user_pgtable2(struct task_struct *p);
 extern long print_pgtable(struct mm_struct *mm, pid_t pid);
+
+// extern void check_target_pid(void);

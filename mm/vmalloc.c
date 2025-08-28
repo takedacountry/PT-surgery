@@ -2903,6 +2903,8 @@ static int vmap_pfn_apply(pte_t *pte, unsigned long addr, void *private)
 		make_ds_log_usr(pte, *pte);
 	}
 	else {
+		// *pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
+		// make_ds_log_usr(pte, *pte);
 		pte_t entry = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
 		make_ds_log_usr(pte, entry);
 	}
