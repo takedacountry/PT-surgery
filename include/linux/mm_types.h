@@ -208,9 +208,7 @@ struct page {
 #ifdef CONFIG_MEMCG
 	unsigned long memcg_data;
 #endif
-	void *dup_pt;				/* duplicate page table */
-	unsigned long base;			/* user addreess */ 
-	struct list_head ds_head;	/* ds head */
+	struct ds_info *ds_info;
 	/*
 	 * On machines where all RAM is mapped into kernel address space,
 	 * we can simply calculate the virtual address. On machines with

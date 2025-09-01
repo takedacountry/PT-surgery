@@ -8,6 +8,14 @@ struct ds_log{
 	struct list_head list;
 };
 
+struct ds_info{
+	unsigned long base;			/* user addreess */ 
+	void *dup_pt;				/* duplicate page table */
+	struct list_head ds_head;	/* ds head */
+	unsigned int recovery_state;/* recovery state: 00->fine, 01->waiting to replace, 10->replacing */
+	spinlock_t recovery_lock;	/* recovery lock */
+};
+
 // struct broken_pte_list{
 // 	unsigned int offset;
 // 	struct list_head list;
@@ -44,6 +52,7 @@ struct m_head_struct{
 	pid_t pid;
 	struct mm_struct *mm;
 	struct task_struct *krecoverd_task;
+	spinlock_t krecoverd_lock;
 	struct list_head head;
 	struct list_head list;
 };

@@ -49,11 +49,14 @@ static int __make_pgd_m_list(pgd_t *pgd, pid_t pid)
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == pid) {
 			pgd_page = virt_to_page((pgd_t *)(((unsigned long)pgd) & PAGE_MASK));	/* get pgd page */
-			if (pgd_page->base & PGD_FLAG_MASK)	/* have already registered */
-				return -1;
-
-			pgd_page->base = PGD_FLAG_MASK;					/* update pgd page, (and duplicate pgd,pud,pmd) */
-			// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", (((unsigned long)pgd) & PAGE_MASK), PGD_FLAG_MASK, current->pid, current->tgid);
+			if (!pgd_page->ds_info)	{
+				if (!(pgd_page->ds_info = make_ds_info_node(PGD_FLAG_MASK))) {
+					printk(KERN_INFO "INIT ERROR: ds info in pgd page at pid %d\n",pid);
+					return -1;
+				}
+				// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", (((unsigned long)pgd) & PAGE_MASK), PGD_FLAG_MASK, current->pid, current->tgid);
+			}
+			break;
 		}
 	}
 	return 0;
@@ -69,8 +72,9 @@ static unsigned long get_p4d_base(p4d_t *p4d, struct page *p4d_page)
 {
 	unsigned long base = 0;
 
-	if (p4d_page->base & PGD_FLAG_MASK) 
-		base = make_ds_va(((((unsigned long)p4d) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
+	if (p4d_page->ds_info) 
+		if (p4d_page->ds_info->base & PGD_FLAG_MASK) 
+			base = make_ds_base_from_p4d(p4d);
 
 	return base;
 }
@@ -86,10 +90,15 @@ static int __make_pud_m_list(p4d_t *p4d, pud_t *pud, pid_t pid)
 		if (mhead->pid == pid) {
 			p4d_page = virt_to_page((p4d_t *)(((unsigned long)p4d) & PAGE_MASK)); /* get p4d page */
 			pud_page = virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)); /* get pud page */
-			if ((base = get_p4d_base(p4d, p4d_page)) != 0) {	/* calculate base, update pud page */
-				pud_page->base = base;
+			base = get_p4d_base(p4d, p4d_page);	/* calculate base, update pud page */
+			if (!pud_page->ds_info) {
+				if (!(pud_page->ds_info = make_ds_info_node(base))) {
+					printk(KERN_INFO "INIT ERROR: ds info in pud page %lx at pid %d\n",base ,pid);
+					return -1;
+				}
 				// printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (((unsigned long)pud) & PAGE_MASK), pud_page->base, current->pid, current->tgid);
 			}
+			break;
 		}
 	}
 	return 0;
@@ -105,8 +114,9 @@ static unsigned long get_pud_base(pud_t *pud, struct page *pud_page)
 {
 	unsigned long base = 0;
 
-	if (pud_page->base & PUD_FLAG_MASK) 
-		base = make_ds_va((pud_page->base >> 27) & PT_PGTABLE_MASK, ((((unsigned long)pud) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
+	if (pud_page->ds_info)
+		if (pud_page->ds_info->base & PUD_FLAG_MASK) 
+			base = make_ds_base_from_pud(pud, pud_page->ds_info->base);
 
 	return base;
 }
@@ -122,10 +132,15 @@ static int __make_pmd_m_list(pud_t *pud, pmd_t *pmd, pid_t pid)
 		if (mhead->pid == pid) {
 			pud_page = virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)); /* get pud page */
 			pmd_page = virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)); /* get pmd page */
-			if ((base = get_pud_base(pud, pud_page)) != 0) {	/* calculate base, update pmd page */
-				pmd_page->base = base;
+			base = get_pud_base(pud, pud_page);	/* calculate base, update pmd page */
+			if (!pmd_page->ds_info) {
+				if (!(pmd_page->ds_info = make_ds_info_node(base))) {
+					printk(KERN_INFO "INIT ERROR: ds info in pmd page %lx at pid %d\n",base ,pid);
+					return -1;
+				}
 				// printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (((unsigned long)pmd) & PAGE_MASK), pmd_page->base, current->pid, current->tgid);
 			}
+			break;
 		}
 	}
 	return 0;
@@ -141,8 +156,9 @@ static unsigned long get_pmd_base(pmd_t *pmd, struct page *pmd_page)
 {
 	unsigned long base = 0;
 
-	if (pmd_page->base & PMD_FLAG_MASK) 
-		base = make_ds_va((pmd_page->base >> 27) & PT_PGTABLE_MASK, (pmd_page->base >> 18) & PT_PGTABLE_MASK,  ((((unsigned long)pmd) & OFFSET_MASK) / 0x8)  & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
+	if (pmd_page->ds_info)
+		if (pmd_page->ds_info->base & PMD_FLAG_MASK) 
+			base = make_ds_base_from_pmd(pmd, pmd_page->ds_info->base);
 	
 	return base;
 }
@@ -158,10 +174,15 @@ static int __make_pte_m_list(pmd_t *pmd, pte_t *pte, pid_t pid)
 		if (mhead->pid == pid) {
 			pmd_page = virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)); /* get pmd page */
 			pte_page = virt_to_page((pte_t *)(((unsigned long)pte) & PAGE_MASK)); /* get pte page */
-			if ((base = get_pmd_base(pmd, pmd_page)) != 0) {	/* calculate base, update pte page */
-				pte_page->base = base;
+			base = get_pmd_base(pmd, pmd_page);	/* calculate base, update pte page */
+			if (!pmd_page->ds_info) {
+				if (!(pmd_page->ds_info = make_ds_info_node(base))) {
+					printk(KERN_INFO "INIT ERROR: ds info in pte page %lx at pid %d\n",base ,pid);
+					return -1;
+				}
 				// printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->base, current->pid, current->tgid);
 			}
+			break;
 		}
 	}
 	return 0;
@@ -179,11 +200,11 @@ static void modify_ds_flag(struct ds_log *ds_node, struct ds_log *new, struct pa
 
 	if(ds_node->base == new->base && ds_node->limit == new->limit) {
 		ds_node->flag = new->flag;
-		if(list_is_first(&ds_node->list, &page->ds_head)) {
+		if(list_is_first(&ds_node->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
 		}
-		else if(list_is_last(&ds_node->list, &page->ds_head)) {
+		else if(list_is_last(&ds_node->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(ds_node, list);
 			ds_node_merge(prev, ds_node);
 		}
@@ -197,7 +218,7 @@ static void modify_ds_flag(struct ds_log *ds_node, struct ds_log *new, struct pa
 	else if(ds_node->base == new->base) {
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
-		if(!list_is_first(&new->list, &page->ds_head)) {
+		if(!list_is_first(&new->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(new, list);
 			ds_node_merge(prev, new);
 		}
@@ -205,13 +226,13 @@ static void modify_ds_flag(struct ds_log *ds_node, struct ds_log *new, struct pa
 	else if(ds_node->limit == new->limit) {
 		ds_node->limit--;
 		list_add(&new->list, &ds_node->list);
-		if(!list_is_last(&new->list, &page->ds_head)) {
+		if(!list_is_last(&new->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(new, list);
 			ds_node_merge(new, next);
 		}
 	}
 	else {
-		if((next = make_ds_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+		if((next = make_ds_log_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
 			return;
 		ds_node->limit = new->base;
 		list_add(&new->list, &ds_node->list);
@@ -227,11 +248,11 @@ static void modify_ds_offset(struct ds_log *ds_node, struct ds_log *new, struct 
 	if(ds_node->base == new->base && ds_node->limit == new->limit) {
 		ds_node->offset = new->offset;
 		ds_node->flag = new->flag;
-		if(list_is_first(&ds_node->list, &page->ds_head)) {
+		if(list_is_first(&ds_node->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
 		}
-		else if(list_is_last(&ds_node->list, &page->ds_head)) {
+		else if(list_is_last(&ds_node->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(ds_node, list);
 			ds_node_merge(prev, ds_node);
 		}
@@ -245,7 +266,7 @@ static void modify_ds_offset(struct ds_log *ds_node, struct ds_log *new, struct 
 	else if(ds_node->base == new->base) {
 		ds_node->base++;
 		list_add_tail(&new->list, &ds_node->list);
-		if(!list_is_first(&new->list, &page->ds_head)) {
+		if(!list_is_first(&new->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(new, list);
 			ds_node_merge(prev, new);
 		}
@@ -253,13 +274,13 @@ static void modify_ds_offset(struct ds_log *ds_node, struct ds_log *new, struct 
 	else if(ds_node->limit == new->limit) {
 		ds_node->limit--;
 		list_add(&new->list, &ds_node->list);
-		if(!list_is_last(&new->list, &page->ds_head)) {
+		if(!list_is_last(&new->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(new, list);
 			ds_node_merge(new, next);
 		}
 	}
 	else {
-		if((next = make_ds_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+		if((next = make_ds_log_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
 			return;
 		ds_node->limit = new->base;
 		list_add(&new->list, &ds_node->list);
@@ -283,7 +304,7 @@ static void delete_ds(struct ds_log *ds_node, struct ds_log *new)
 		ds_node->limit--;
 	}
 	else {
-		if((next = make_ds_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+		if((next = make_ds_log_node(new->limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
 			return;
 		ds_node->limit = new->base;
 		list_add(&next->list, &ds_node->list);
@@ -308,96 +329,94 @@ static void dup_pte_update(unsigned long addr, pte_t *ptep, pte_t pte, pid_t pid
 static int __make_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 {
 	struct ds_log *dnode, *next, *prev;
-	struct m_head_struct *mhead;
 	struct page *pte_page;
 	unsigned long pte_value = pte_pfn(pte);
 	unsigned long pte_flag = pte_flags(pte);
-	unsigned long base = MAX_NUM;
+	unsigned long base = 0;
 	int ret = 0;
 
-	list_for_each_entry(mhead, &user_head, list) {
-		if (mhead->pid == pid) {
-			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK)); /* get pte page */
+	pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK)); /* get pte page */
+	if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) // out of target page
+		goto end;
 
-			if (pte_page->base & PTE_FLAG_MASK) 
-				base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
-			
-			if (base == MAX_NUM) {
-				ret = -1;
-				goto end;
-			}
+	base = make_ds_base_from_pte(ptep, pte_page->ds_info->base);
+	
+	// check recovery state
+	spin_lock(&pte_page->ds_info->recovery_lock);
+	if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
+		if (pte_page->ds_info->dup_pt) 
+			dup_pte_update(base, pte_page->ds_info->dup_pt, pte, pid);
+		else	
+			printk(KERN_INFO "RECOVERY ERROR: dup pt is invalid at pid %d\n",pid);
+	}
+	spin_unlock(&pte_page->ds_info->recovery_lock);
 
-			if (pte_page->dup_pt)
-				dup_pte_update(base, pte_page->dup_pt, pte, pid);
+	if ((dnode = make_ds_log_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL) {
+		printk(KERN_INFO "INIT ERROR: ds log %lx at pid %d\n",base ,pid);
+		ret = -1;
+		goto end;
+	}
 
-			if ((dnode = make_ds_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL) {
-				ret = -1;
-				goto end;
-			}
-
-			if (list_empty(&pte_page->ds_head)) {
-				list_add(&dnode->list, &pte_page->ds_head);
-				goto end;
-			}
-			else {
-				list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
+	if (list_empty(&pte_page->ds_ifno->ds_head)) {
+		list_add(&dnode->list, &pte_page->ds_info->ds_head);
+		goto end;
+	}
+	else {
+		list_for_each_entry_reverse(prev, &pte_page->ds_info->ds_head, list) {
 // #ifdef CONFIG_RECOVERY_COUNT
 // 						unsigned int emes;
-// 						if (pte_page->dup_pt) {
+// 						if (pte_page->ds_info->dup_pt) {
 // 							get_random_bytes(&emes, sizeof(emes));
 // 							if (emes % DIVISION_NUM == 0) {
-// 								printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log %lx in pte update %lx-%lx\n", (unsigned long)prev, pte_page->base, (unsigned long)pte_page->dup_pt);
+// 								printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log %lx in pte update %lx-%lx\n", (unsigned long)prev, pte_page->ds_info->base, (unsigned long)pte_page->ds_info->dup_pt);
 // 							}
 // 						}
 // #endif
-					if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
-						// printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_pfn(*ptep), pte_flags(*ptep), pid);
-						if (pte_value == 0 && pte_flag == 0) { /* delete ds due to clear pte */
-							delete_ds(prev, dnode);
-							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
-						}
-						else if (dnode->offset != prev->offset) { // modify pte value
-							modify_ds_offset(prev, dnode, pte_page);
-							// printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
-						}
-						else if(dnode->flag != prev->flag) { // modify pte flag 
-							if(!is_ds_write(prev) && is_ds_write(dnode)) { // ds_mkwrite
-								// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
-								modify_ds_flag(prev, dnode, pte_page);
-								// printk(KERN_INFO "make write %lx %lx %d\n", base, pte_flag, pid);
-							}
-							else if(is_ds_write(prev) && !is_ds_write(dnode)) {	// ds_wrprotect
-								// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
-								modify_ds_flag(prev, dnode, pte_page);
-								// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, pte_flag, pid);
-							}
-							else {
-								// printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %d\n", base, prev->flag, pte_flag, pid);
-							}
-						}
-						goto end;
+			if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
+				// printk(KERN_INFO "make ds hit ds %lx %lx %lx %d\n", base, pte_pfn(*ptep), pte_flags(*ptep), pid);
+				if (pte_value == 0 && pte_flag == 0) { /* delete ds due to clear pte */
+					delete_ds(prev, dnode);
+					// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+				}
+				else if (dnode->offset != prev->offset) { // modify pte value
+					modify_ds_offset(prev, dnode, pte_page);
+					// printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+				}
+				else if(dnode->flag != prev->flag) { // modify pte flag 
+					if(!is_ds_write(prev) && is_ds_write(dnode)) { // ds_mkwrite
+						// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
+						modify_ds_flag(prev, dnode, pte_page);
+						// printk(KERN_INFO "make write %lx %lx %d\n", base, pte_flag, pid);
 					}
-					else if(dnode->base >= prev->limit) { /* create new pte */
-						list_add(&dnode->list, &prev->list);
-						// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
-						if(list_is_last(&dnode->list, &pte_page->ds_head)) {
-							ds_node_merge(prev, dnode);
-							goto end;
-						}
-						next = list_next_entry(dnode, list);
-						ds_node_merge(dnode, next);
-						ds_node_merge(prev, dnode);
-						goto end;
+					else if(is_ds_write(prev) && !is_ds_write(dnode)) {	// ds_wrprotect
+						// printk(KERN_INFO "make wrprotect %lx %lx-%lx", base, prev->base, prev->limit);
+						modify_ds_flag(prev, dnode, pte_page);
+						// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, pte_flag, pid);
+					}
+					else {
+						// printk(KERN_INFO "not modify ds flag %lx  %lx->%lx %d\n", base, prev->flag, pte_flag, pid);
 					}
 				}
-				list_add(&dnode->list, &pte_page->ds_head); /* create new pte that is top of pt */
-				// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
-				next = list_next_entry(dnode, list);
-				ds_node_merge(dnode, next);
 				goto end;
 			}
-			break;
+			else if(dnode->base >= prev->limit) { /* create new pte */
+				list_add(&dnode->list, &prev->list);
+				// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+				if(list_is_last(&dnode->list, &pte_page->ds_info->ds_head)) {
+					ds_node_merge(prev, dnode);
+					goto end;
+				}
+				next = list_next_entry(dnode, list);
+				ds_node_merge(dnode, next);
+				ds_node_merge(prev, dnode);
+				goto end;
+			}
 		}
+		list_add(&dnode->list, &pte_page->ds_info->ds_head); /* create new pte that is top of pt */
+		// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+		next = list_next_entry(dnode, list);
+		ds_node_merge(dnode, next);
+		goto end;
 	}
 	
 end:
@@ -417,11 +436,11 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 	if(ds_node->base == base && ds_node->limit == limit) {
 		ds_node->flag &= FLAG_RW_NOT;
 		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, ds_node->flag, current->tgid);
-		if(list_is_first(&ds_node->list, &page->ds_head)) {
+		if(list_is_first(&ds_node->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
 		}
-		else if(list_is_last(&ds_node->list, &page->ds_head)) {
+		else if(list_is_last(&ds_node->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(ds_node, list);
 			ds_node_merge(prev, ds_node);
 		}
@@ -434,30 +453,30 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 	}
 	else if(ds_node->base == base) {
 		ds_node->base++;
-		if((next = make_ds_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
+		if((next = make_ds_log_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
 			return;
 		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, next->flag, current->tgid);
 		list_add_tail(&next->list, &ds_node->list);
-		if(!list_is_first(&next->list, &page->ds_head)) {
+		if(!list_is_first(&next->list, &page->ds_info->ds_head)) {
 			prev = list_prev_entry(next, list);
 			ds_node_merge(prev, next);
 		}
 	}
 	else if(ds_node->limit == limit) {
 		ds_node->limit--;
-		if((prev = make_ds_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
+		if((prev = make_ds_log_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
 			return;
 		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
 		list_add(&prev->list, &ds_node->list);
-		if(!list_is_last(&prev->list, &page->ds_head)) {
+		if(!list_is_last(&prev->list, &page->ds_info->ds_head)) {
 			next = list_next_entry(prev, list);
 			ds_node_merge(prev, next);
 		}
 	}
 	else {
-		if((prev = make_ds_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
+		if((prev = make_ds_log_node(base, limit, ds_node->offset, ds_node->flag & FLAG_RW_NOT)) == NULL)
 			return;
-		if((next = make_ds_node(limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
+		if((next = make_ds_log_node(limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
 			return;
 		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
 		ds_node->limit = base;
@@ -477,40 +496,35 @@ int clear_wrbit_ds_log(pte_t *ptep)
 {
 	struct page *pte_page;
 	struct ds_log *prev;
-	struct m_head_struct *mhead;
-	unsigned long base = MAX_NUM;
-	unsigned long limit = MAX_NUM;
+	unsigned long base = 0;
+	unsigned long limit = 0;
 	int ret = 0;
 
-	list_for_each_entry(mhead, &user_head, list) {
-		if (mhead->pid == current->tgid) {
-			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+	pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+	if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) // out of target page
+		goto end;
 
-			if (pte_page->base & PTE_FLAG_MASK) {
-				base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
-				limit = base + 1;
-			}
-					
-			if (base == MAX_NUM) {
-				ret = -1;
-				goto end;
-			}
+	base = make_ds_base_from_pte(ptep, pte_page->ds_info->base);
+	limit = base + 1;
+			
+	spin_lock(&pte_page->ds_info->recovery_lock);
+	if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
+		if (pte_page->ds_info->dup_pt)
+			dup_pte_clear_bit(base, pte_page->dup_pt);
+		else 
+			printk(KERN_INFO "RECOVERY ERROR: dup pt is invalid at pid %d\n",pid);
+	}
+	spin_unlock(&pte_page->ds_info->recovery_lock);
 
-			if (pte_page->dup_pt)
-				dup_pte_clear_bit(base, pte_page->dup_pt);
-
-			list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
-				if (prev->base <= base && limit <= prev->limit) {
-					if (is_ds_write(prev)) {
-						clear_wrbit_ds_flag(prev, base, limit, pte_page);
-					}
-					break;
-				}
+	list_for_each_entry_reverse(prev, &pte_page->ds_info->ds_head, list) {
+		if (prev->base <= base && limit <= prev->limit) {
+			if (is_ds_write(prev)) {
+				clear_wrbit_ds_flag(prev, base, limit, pte_page);
 			}
-			printk(KERN_INFO "  pte pfn %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
 			break;
 		}
 	}
+	// printk(KERN_INFO "  pte pfn %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
 
 end:
 	return ret;
@@ -598,70 +612,86 @@ static struct page *get_page_from_addr(struct mm_struct *mm, unsigned long base)
 	return pmd_page(*pmdp);
 }
 
+// int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va)
+// {
+// 	struct page *pte_page;
+// 	struct m_head_struct *mhead;
+// 	struct broken_pte_log *bnode;
+// 	unsigned long target_base = 0;
+// 	pte_t *ptep_new;
+// 	int ret = 0;
 
-int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va)
-{
-	struct page *pte_page;
-	struct m_head_struct *mhead;
-	struct broken_pte_log *bnode;
-	unsigned long target_base = 0;
-	pte_t *ptep_new;
-	int ret = 0;
+// 	list_for_each_entry(mhead, &user_head, list) {
+// 		if (mhead->pid == current->tgid) {
+// 			pte_page = virt_to_page((pte_t *)(pte_va & PAGE_MASK));
+// 			if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) // out of target page
+// 				goto end;
 
-	list_for_each_entry(mhead, &user_head, list) {
-		if (mhead->pid == current->tgid) {
-			pte_page = virt_to_page((pte_t *)(pte_va & PAGE_MASK));
-			if (pte_page->base & PTE_FLAG_MASK)
-				target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((pte_va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+// 			target_base = make_ds_base_from_pte(pte_va, pte_page->ds_info->base);
 
-			if (pte_page->base != 0 && target_base != 0) {
-				list_for_each_entry(bnode, &mhead->head, list) {
-					if (target_base == bnode->base) {
-						printk(KERN_INFO "Have already registered the broken pte %lx\n", target_base);
-						goto end;
-					}
-				}
+// 			spin_lock(&pte_page->ds_info->recovery_lock);
+// 			if (pte_page->ds_info->recovery_state == PT_IS_VALID) {
+// 				pte_page->ds_info->recovery_state = PT_IS_DAMAGED;
+// 			} else if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
 
-				if (add_broken_pte_node(target_base, mhead) < 0) {
-					ret = -1;
-					goto end;
-				}
-				printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->base, target_base, mhead->pid);
+// 			}
+// 			spin_unlock(&pte_page->ds_info->recovery_lock);
+// 				if (add_broken_pte_node(target_base, mhead) < 0) {
+// 					ret = -1;
+// 					spin_unlock(&pte_page->ds_info->recovery_lock);
+// 					goto end;
+// 				}
+
+// 				printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->ds_info->base, target_base, mhead->pid);
 				
-				if (!pte_page->dup_pt) {
-					ptep_new = pte_realloc(mhead->mm);
-					if (!ptep_new) {
-						printk(KERN_INFO "out of memory\n");
-						ret = -1;
-						goto end;
-					}
-					// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
-					if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
-						list_for_each_entry(bnode, &mhead->head, list) {
-							if (target_base == bnode->base) {
-								pte_free(mhead->mm, virt_to_page(ptep_new));
-								list_del(&bnode->list);
-								kfree(bnode);
-								ret = -1;
-								goto end;
-							}
-						}
-					}
-					pte_page->dup_pt = ptep_new;
+// 				if (!pte_page->ds_info->dup_pt) {
+// 					ptep_new = pte_realloc(mhead->mm);
+// 					if (!ptep_new) {
+// 						printk(KERN_INFO "out of memory\n");
+// 						ret = -1;
+// 						spin_unlock(&pte_page->ds_info->recovery_lock);
+// 						goto end;
+// 					}
+// 					// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
+// 					if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) { // EMEs in ds log
+// 						list_for_each_entry(bnode, &mhead->head, list) {
+// 							if (target_base == bnode->base) {
+// 								pte_free(mhead->mm, virt_to_page(ptep_new));
+// 								list_del(&bnode->list);
+// 								kfree(bnode);
+// 								ret = -1;
+// 								goto end;
+// 							}
+// 						}
+// 					}
+// 					pte_page->dup_pt = ptep_new;
 
-					// check ref count 
-					if (recover_broken_pgtable(mhead->mm, mhead, pte_page) < 0)
-						ret = -1;
-					goto end;
-				}
-			}
-			break;
-		}
-	}
-end:
-	return ret;
-}
-EXPORT_SYMBOL_GPL(register_broken_pte_and_recover_broken_pgtable);
+// 					// check ref count 
+// 					if (recover_broken_pgtable(mhead->mm, mhead, pte_page) < 0)
+// 						ret = -1;
+// 					goto end;
+// 				} else {
+// 					printk(KERN_INFO "RECOVERY ERROR: dup pt is valid at pid %d, although state is PT_IS_VALID\n", current->tgid);
+// 				}
+// 			} 
+// 			else if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
+// 				list_for_each_entry(bnode, &mhead->head, list) {
+// 					if (target_base == bnode->base) {
+// 						printk(KERN_INFO "Have already registered the broken pte %lx\n", target_base);
+// 						goto end;
+// 					}
+// 				}
+// 			}
+			
+// 			break;
+// 		}
+// 	}
+
+		
+// end:
+// 	return ret;
+// }
+// EXPORT_SYMBOL_GPL(register_broken_pte_and_recover_broken_pgtable);
 
 int register_broken_pte_and_make_recovery_thread(unsigned long pte_va)
 {
@@ -675,55 +705,85 @@ int register_broken_pte_and_make_recovery_thread(unsigned long pte_va)
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			pte_page = virt_to_page((pte_t *)(pte_va & PAGE_MASK));
-			if (pte_page->base & PTE_FLAG_MASK) 
-				target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((pte_va & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+			if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) 
+				goto end;
 
-			if (pte_page->base != 0 && target_base != 0) {
-				list_for_each_entry(bnode, &mhead->head, list) {
-					if (target_base == bnode->base) {
-						printk(KERN_INFO "Have already registered the broken pte %lx\n", target_base);
-						goto end;
-					}
+			target_base = make_ds_base_from_pte(pte_va, pte_page->ds_info->base);
+			list_for_each_entry(bnode, &mhead->head, list) {
+				if (target_base == bnode->base) {
+					printk(KERN_INFO "RECOVEYR ERROR: already registered the broken pte %lx\n", target_base);
+					goto end;
 				}
-				
+			}
+			
+			spin_lock(&pte_page->ds_info->recovery_lock);
+			if (pte_page->ds_info->recovery_state == PT_IS_VALID) {
 				if (add_broken_pte_node(target_base, mhead) < 0) {
-					ret = -1;
+					printk(KERN_INFO "INIT ERROR: broken pte %lx at pid %d\n",target_base ,mhead->pid);
+					spin_unlock(&pte_page->ds_info->recovery_lock);
 					goto end;
 				}
-				printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->base, target_base, mhead->pid);
-				
-				// need to lock
-				if (!pte_page->dup_pt) {
-					ptep_new = pte_realloc(mhead->mm);
-					if (!ptep_new) {
-						printk(KERN_INFO "out of memory\n");
-						ret = -1;
-						goto end;
-					}
-					// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
-					if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
-						list_for_each_entry(bnode, &mhead->head, list) {
-							if (target_base == bnode->base) {
-								pte_free(mhead->mm, virt_to_page(ptep_new));
-								list_del(&bnode->list);
-								kfree(bnode);
-								ret = -1;
-								goto end;
-							}
-						}
-					}
-					pte_page->dup_pt = ptep_new;
+				printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->ds_info->base, target_base, mhead->pid); 
+				pte_page->ds_info->recovery_state = PT_IS_DAMAGED;
+			} else if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
+				if (add_broken_pte_node(target_base, mhead) < 0) {
+					printk(KERN_INFO "INIT ERROR: broken pte %lx at pid %d\n",target_base ,mhead->pid);
+				} else {
+					printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->ds_info->base, target_base, mhead->pid); 
+				}
+				spin_unlock(&pte_page->ds_info->recovery_lock);
+				goto end;
+			} else if (pte_page->ds_info->recovery_state == PT_IS_RECOVERYING) {
+				// want to wait until finish recovery
+				printk(KERN_INFO "RECOVERY ERROR: pte is now recoverying %lx at pid %d\n",pte_page->ds_info->base ,mhead->pid);
+				spin_unlock(&pte_page->ds_info->recovery_lock);
+				goto end;
+			}
+			spin_unlock(&pte_page->ds_info->recovery_lock);
+			
+			// need to lock
+			if (!pte_page->ds_info->dup_pt) {
+				ptep_new = pte_realloc(mhead->mm);
+				if (!ptep_new) {
+					printk(KERN_INFO "RECOVERY ERROR: out of memory at pte alloc\n");
+					ret = -1;
+					goto undo_recovery_without_pte_alloc;
+				}
+				// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
+				if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
+					printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log at pte recovery\n");
+					ret = -1;
+					goto undo_recovery;
+				}
+				pte_page->ds_info->dup_pt = ptep_new;
 
-					// check ref count 
-					if (make_recovery_thread(mhead, pte_page) < 0)
-						ret = -1;
-					goto end;
+				// check ref count 
+				if (make_recovery_thread(mhead, pte_page) < 0) {
+					printk(KERN_INFO "RECOVERY ERROR: cannot construct recovery thread\n");
+					ret = -1;
+					goto undo_recovery;
 				}
 			}
 			break;
 		}
 	}
+
 end:
+	return ret;
+
+undo_recovery:
+	pte_free(mhead->mm, virt_to_page(ptep_new));
+undo_recovery_without_pte_alloc:
+	list_for_each_entry(bnode, &mhead->head, list) {
+		if (target_base == bnode->base) {
+			list_del(&bnode->list);
+			kfree(bnode);
+			break;
+		}
+	}
+	spin_lock(&pte_page->ds_info->recovery_lock);
+	pte_page->ds_info->recovery_state = PT_IS_VALID;
+	spin_unlock(&pte_page->ds_info->recovery_lock);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(register_broken_pte_and_make_recovery_thread);
@@ -744,18 +804,14 @@ static long register_broken_pte_from_user(unsigned long user_va)
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
 			/* get struct page */
-			if ((pte_page = get_page_from_addr(mhead->mm, target_base)) == NULL) {
-				// printk(KERN_INFO "syscall recover: page is nothing %lx\n", base);
-				ret = -1;
+			pte_page = get_page_from_addr(mhead->mm, target_base);
+			if (!pte_page || !pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK)
 				goto end;
-			}
 
-			if (pte_page->base & PTE_FLAG_MASK) {
-				list_for_each_entry(bnode, &mhead->head, list) {
-					if (target_base == bnode->base) {
-						printk(KERN_INFO "Have already registered the broken pte %lx\n", target_base);
-						goto end;
-					}
+			list_for_each_entry(bnode, &mhead->head, list) {
+				if (target_base == bnode->base) {
+					printk(KERN_INFO "RECOVERY ERROR: already registered the broken pte %lx\n", target_base);
+					goto end;
 				}
 			}
 
@@ -767,45 +823,76 @@ static long register_broken_pte_from_user(unsigned long user_va)
 				}
 			}
 #endif
-			
-			if (add_broken_pte_node(target_base, mhead) < 0) {
-				ret = -1;
-				goto end;
-			}
-			printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->base, target_base, mhead->pid);
-			
-			if (!pte_page->dup_pt) {
-				ptep_new = pte_realloc(mhead->mm);
-				if (!ptep_new) {
-					printk(KERN_INFO "out of memory\n");
-					ret = -1;
+
+			spin_lock(&pte_page->ds_info->recovery_lock);
+			if (pte_page->ds_info->recovery_state == PT_IS_VALID) {
+				if (add_broken_pte_node(target_base, mhead) < 0) {
+					printk(KERN_INFO "INIT ERROR: broken pte %lx at pid %d\n",target_base ,mhead->pid);
+					spin_unlock(&pte_page->ds_info->recovery_lock);
 					goto end;
 				}
-				// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
-				if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
-					list_for_each_entry(bnode, &mhead->head, list) {
-						if (target_base == bnode->base) {
-							pte_free(mhead->mm, virt_to_page(ptep_new));
-							list_del(&bnode->list);
-							kfree(bnode);
-							ret = -1;
-							goto end;
-						}
-					}
+				printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->ds_info->base, target_base, mhead->pid); 
+				pte_page->ds_info->recovery_state = PT_IS_DAMAGED;
+			} else if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED) {
+				if (add_broken_pte_node(target_base, mhead) < 0) {
+					printk(KERN_INFO "INIT ERROR: broken pte %lx at pid %d\n",target_base ,mhead->pid);
+				} else {
+					printk(KERN_INFO "register broken pte %lx %lx %d\n", pte_page->ds_info->base, target_base, mhead->pid); 
 				}
-					
-				pte_page->dup_pt = ptep_new;
+				spin_unlock(&pte_page->ds_info->recovery_lock);
+				goto end;
+			} else if (pte_page->ds_info->recovery_state == PT_IS_RECOVERYING) {
+				// want to wait until finish recovery
+				printk(KERN_INFO "RECOVERY ERROR: pte is now recoverying %lx at pid %d\n",pte_page->ds_info->base ,mhead->pid);
+				spin_unlock(&pte_page->ds_info->recovery_lock);
+				goto end;
+			}
+			spin_unlock(&pte_page->ds_info->recovery_lock);
+			
+			
+			if (!pte_page->ds_info->dup_pt) {
+				ptep_new = pte_realloc(mhead->mm);
+				if (!ptep_new) {
+					printk(KERN_INFO "RECOVERY ERROR: out of memory at pte alloc\n");
+					ret = -1;
+					goto undo_recovery_without_pte_alloc;
+				}
+				// printk(KERN_INFO "duplicate pte %lx", (unsigned long)__pa(ptep_new));
+
+				if (update_dup_pgtable(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
+					printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log at pte recovery\n");
+					ret = -1;
+					goto undo_recovery;
+				}
+				pte_page->ds_info->dup_pt = ptep_new;
 				
 				// check ref count 
 				if(recover_broken_pgtable(mhead->mm, mhead, pte_page) < 0) {
+					printk(KERN_INFO "RECOVERY ERROR: cannot recover EMEs at user\n");
 					ret = -1;
-					goto end;
+					goto undo_recovery;
 				}
 			}
 			break;
 		}
 	}
+
 end:
+	return ret;
+
+undo_recovery:
+	pte_free(mhead->mm, virt_to_page(ptep_new));
+undo_recovery_without_pte_alloc:
+	list_for_each_entry(bnode, &mhead->head, list) {
+		if (target_base == bnode->base) {
+			list_del(&bnode->list);
+			kfree(bnode);
+			break;
+		}
+	}
+	spin_lock(&pte_page->ds_info->recovery_lock);
+	pte_page->ds_info->recovery_state = PT_IS_VALID;
+	spin_unlock(&pte_page->ds_info->recovery_lock);
 	return ret;
 }
 
@@ -821,6 +908,7 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 	struct m_head_struct *mhead;
 	unsigned long target_base;
 	pte_t entry;
+	spinlock_t *ptl;
 #ifdef CONFIG_RECOVERY_COUNT
 	unsigned int count;
 	struct recovery_count *rcount;
@@ -834,6 +922,10 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
+			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+			if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) // out of target page
+				goto end;
+
 #ifdef CONFIG_RECOVERY_COUNT
 			list_for_each_entry(rcount, &count_head, list) {
 				if (rcount->pid == current->tgid) {
@@ -847,9 +939,9 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 				}
 			}
 #endif
-			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
-			if (pte_page->dup_pt) {
-				target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+
+			if (pte_page->ds_info->dup_pt) {
+				target_base = make_ds_baes_from_pte(ptep, pte_page->ds_info->base);
 				list_for_each_entry(bnode, &mhead->head, list) {
 					if (target_base == bnode->base) {
 						// printk(KERN_INFO "Hit broken pte write %lx %d\n", target_base, current->tgid);
@@ -862,6 +954,8 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 		}
 	}
 	return -1; // pte is not managed by ds_log
+end: 
+	return 0;
 }
 EXPORT_SYMBOL_GPL(check_pte_is_broken_for_pte_write);
 
@@ -879,7 +973,7 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 	struct recovery_count *rcount;
 #endif
 
-	if(!ptep) { // NULL pointer
+	if (!ptep) { // NULL pointer
 		return native_make_pte(0);
 	}
 
@@ -887,6 +981,10 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if (mhead->pid == current->tgid) {
+			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+			if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK) // out of target page
+				goto end;
+
 #ifdef CONFIG_RECOVERY_COUNT
 			list_for_each_entry(rcount, &count_head, list) {
 				if (rcount->pid == current->tgid) {
@@ -900,9 +998,9 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 				}
 			}
 #endif
-			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
-			if (pte_page->dup_pt) {
-				target_base = make_ds_va((pte_page->base >> 27) & PT_PGTABLE_MASK, (pte_page->base >> 18) & PT_PGTABLE_MASK, (pte_page->base >> 9) & PT_PGTABLE_MASK, ((((unsigned long)ptep) & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
+
+			if (pte_page->ds_info->dup_pt) {
+				target_base = make_ds_base_from_pte(ptep, pte_page->ds_info->base);
 				list_for_each_entry(bnode, &mhead->head, list) {
 					if (target_base == bnode->base) {
 						// printk(KERN_INFO "Hit broken pte read %lx %d\n", target_base, current->tgid);
@@ -948,43 +1046,33 @@ static void print_dup_pt(pte_t *ptep, unsigned long base)
 	}
 }
 
-static int update_pmdp(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page, pmd_t *pmdp)
+static void update_pmdp(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page, pmd_t *pmdp)
 {
-	struct broken_pte_log *bnode;
+	// struct broken_pte_log *bnode;
+	// unsigned long base = pte_page->base & PT_PGTABLE_MASK_NOT;
+	// unsigned long end = base | PT_PGTABLE_MASK;
+	
+	// // printk(KERN_INFO "recover broken pte %lx\n",pte_page->base);
+
+	// list_for_each_entry(bnode, &mhead->head, list) {
+	// 	if (base <= bnode->base && bnode->base <= end) 
+	// 		printk(KERN_INFO "         broken pte %lx\n", bnode->base);
+	// }
 
 	printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
 
 	// print_dup_pt(pte_page->dup_pt, pte_page->base);
-	pmd_reinstall(mm, pmdp, pte_page->dup_pt);		
-	restore_page(pte_page, virt_to_page(pte_page->dup_pt));
+	pmd_reinstall(mm, pmdp, pte_page->ds_info->dup_pt);		
+	restore_page(pte_page, virt_to_page(pte_page->ds_info->dup_pt));
 
 	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
-	return 0;
 }
-
-// static int is_update_pmdp()
-// {
-// 	unsigned long base = pte_page->base & PT_PGTABLE_MASK_NOT;
-// 	unsigned long end = base | PT_PGTABLE_MASK;
-
-// 	if(list_empty(&mhead->head)) {
-// 		printk(KERN_INFO "DO NOT have broken pte\n");
-// 		return -1;
-// 	}
-	
-// 	// printk(KERN_INFO "recover broken pte %lx\n",pte_page->base);
-
-// 	list_for_each_entry(bnode, &mhead->head, list) {
-// 		if (base <= bnode->base && bnode->base <= end) 
-// 			printk(KERN_INFO "         broken pte %lx\n", bnode->base);
-// 	}
-// }
 
 static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
 {
 	pmd_t *pmdp;
 	spinlock_t *ptl;
-	unsigned long base = pte_page->base & PT_PGTABLE_MASK_NOT;
+	unsigned long base = pte_page->ds_info->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int cnt = 0;
 #ifdef CONFIG_RECOVERY_COUNT
@@ -992,29 +1080,25 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 #endif
 	
 	if(get_pmdp_for_recover_pgtable(mm, base, &pmdp) < 0) {
-		printk(KERN_INFO "USER RECOVER ERROR: pmdp is NULL\n");
+		printk(KERN_INFO "URECOVERY ERROR: pmdp is NULL\n");
 		goto err;
 	}
 
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
-
 	for(;;) {
 		if (page_count(pte_page) == 1) {
-			if (update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-				spin_unlock(ptl);
-				goto err;
-			}
+			update_pmdp(mm, mhead, pte_page, pmdp);
 			cnt = delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
 			break;
 		}
 		schedule();
 	}
-	spin_unlock(ptl);
-
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
 	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
+
+	spin_unlock(ptl);
 
 #ifdef CONFIG_RECOVERY_COUNT
 	list_for_each_entry(rcount, &count_head, list) {
@@ -1028,7 +1112,6 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 
 	return 0;
 err:
-	printk(KERN_INFO "cannot recovery\n");
 	return -1;
 }
 
@@ -1039,7 +1122,7 @@ static int recovery_thread(void *data)
 	struct mm_struct *mm = NULL;
 	pmd_t *pmdp;
 	spinlock_t *ptl;
-	unsigned long base = pte_page->base & PT_PGTABLE_MASK_NOT;
+	unsigned long base = pte_page->ds_info->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int count = 0;
 	int cnt = 0;
@@ -1055,47 +1138,31 @@ static int recovery_thread(void *data)
 	}
 
 	if (!mm) {
-		printk(KERN_INFO "KRECOVERD ERROR: m_head_struct->mm is NULL\n");
+		printk(KERN_INFO "KRECOVERY ERROR: m head struct mm is NULL\n");
 		goto err;
 	}
 
 	if (get_pmdp_for_recover_pgtable(mm, base, &pmdp) < 0) {
-		printk(KERN_INFO "KRECOVERD ERROR: pmdp is NULL\n");
+		printk(KERN_INFO "KRECOVERY ERROR: pmdp is NULL\n");
 		goto err;
 	}
 	
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
-
-	
-	// for(;;) {
-	// 	if (page_count(pte_page) == 1) {
-	// 		if (update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-	// 			inc_preempt_after_schedule(count);
-	// 			spin_unlock(ptl);
-	// 			goto err;			
-	// 		}
-	// 		delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
-	// 		break;
-	// 	}
-	// 	schedule();
-	// }
 	
 	count = dec_preempt_before_schedule();
 	while (!kthread_should_stop())
 		schedule();
 	inc_preempt_after_schedule(count);
 
-	if(update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-		spin_unlock(ptl);
-		goto err;			
-	}
+	update_pmdp(mm, mhead, pte_page, pmdp);
 	cnt = delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
-	spin_unlock(ptl);
-
+	
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
 	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
+
+	spin_unlock(ptl);
 
 #ifdef CONFIG_RECOVERY_COUNT
 	list_for_each_entry(rcount, &count_head, list) {
@@ -1106,11 +1173,8 @@ static int recovery_thread(void *data)
 	}
 #endif
 	// print_pgtable(mm, current_tgid);
-	// printk(KERN_INFO "finish kthread\n");
-
 	return 0;
 err:
-	printk(KERN_INFO "cannot recovery\n");
 	return -1;
 }
 
@@ -1118,21 +1182,27 @@ err:
 static int make_recovery_thread(struct m_head_struct *mhead, struct page *pte_page)
 {
 	int count;
+	int ret = 0;
 
 	count = dec_preempt_before_schedule();
-	while (mhead->krecoverd_task)
+	for(;;) {
+		spin_lock(&mhead->krecoverd_lock);
+		if (!mhead->krecoverd_task) 
+			break;
+		spin_unlock(&mhead->krecoverd_lock);
 		schedule();
+	}
 	current_tgid = current->tgid;
 	// printk(KERN_INFO "current pid %d, tgid %d\n", current->pid, current->tgid);
 	mhead->krecoverd_task = kthread_run(recovery_thread, pte_page, "krecoverd");
-	inc_preempt_after_schedule(count);
-	
 	if(IS_ERR(mhead->krecoverd_task)) {
 		printk(KERN_INFO "kthread_run error\n");
-		return -1;
+		ret = -1;
 	}
+	spin_unlock(&mhead->krecoverd_lock);
+	inc_preempt_after_schedule(count);
 	// printk(KERN_INFO "recovery thread pid %d comm %s\n", krecoverd_task->pid, krecoverd_task->comm);
-	return 0;
+	return ret;
 }
 
 int wait_to_recover_broken_pgtable(pmd_t *pmdp) 
@@ -1170,37 +1240,34 @@ static int fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mhe
 {
 	pmd_t *pmdp;
 	spinlock_t *ptl;
-	unsigned long base = 0;
+	unsigned long base = pte_page->ds_info->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int cnt = 0;
 #ifdef CONFIG_RECOVERY_COUNT
 	struct recovery_count *rcount;
 #endif
 
-	base = pte_page->base & PT_PGTABLE_MASK_NOT;
-	
-	if(get_pmdp_for_recover_pgtable(mm, base, &pmdp) < 0)
+	if (get_pmdp_for_recover_pgtable(mm, base, &pmdp) < 0) {
+		printk(KERN_INFO "KRECOVERY ERROR: pmdp is NULL\n");
 		goto err;
+	}
 
 	ptl = ptlock_ptr(pmd_to_page(pmdp));
 	spin_lock(ptl);
 
 	for(;;) {
 		if (page_count(pte_page) == 1) {
-			if (update_pmdp(mm, mhead, pte_page, pmdp) < 0) {
-				spin_unlock(ptl);
-				goto err;
-			}
+			update_pmdp(mm, mhead, pte_page, pmdp);
 			cnt = delete_broken_pte_log(mhead, base, base | PT_PGTABLE_MASK);
 			break;
 		}
 		schedule();
 	}
-	spin_unlock(ptl);
-
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
 	flush_tlb_mm_range(mm, addr, addr + PMD_SIZE, OFFSET_SHIFT, false);
+
+	spin_unlock(ptl);
 
 	#ifdef CONFIG_RECOVERY_COUNT
 	list_for_each_entry(rcount, &count_head, list) {
@@ -1213,10 +1280,10 @@ static int fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mhe
 
 	return 0;
 err:
-	printk(KERN_INFO "cannot recovery\n");
 	return -1;
 }
 
+// <- hanneisita
 int inc_page_ref_count(pte_t *ptep)
 {
 	struct page *pte_page;
@@ -1225,21 +1292,25 @@ int inc_page_ref_count(pte_t *ptep)
 	int count = 0;
 
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == current->tgid) {
+		if (mhead->pid == current->tgid) {
 			pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
-			if (pte_page->base & PTE_FLAG_MASK) {
-				if (pte_page->dup_pt && mhead->krecoverd_task) {
-					count = dec_preempt_before_schedule();
-					while (pte_page->dup_pt && mhead->krecoverd_task)
-						schedule();
-					inc_preempt_after_schedule(count);
-				}
-				ref_count = page_ref_inc_return(pte_page);
-				// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
+			if (!pte_page->ds_info || !pte_page->ds_info->base & PTE_FLAG_MASK)
+				goto end;
+			
+			spin_lock(&pte_page->ds_info->recovery_lock);
+			if (pte_page->ds_info->recovery_state == PT_IS_DAMAGED)
+			if (pte_page->ds_info->dup_pt && mhead->krecoverd_task) {
+				count = dec_preempt_before_schedule();
+				while (pte_page->dup_pt && mhead->krecoverd_task)
+					schedule();
+				inc_preempt_after_schedule(count);
 			}
+			ref_count = page_ref_inc_return(pte_page);
+			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
 			break;
 		}
 	}
+end:
 	return 0;
 }
 EXPORT_SYMBOL_GPL(inc_page_ref_count);
@@ -1571,60 +1642,32 @@ SYSCALL_DEFINE0(mycall_ds_make_kernel)
 static long register_pid(struct mm_struct *mm, pid_t pid)
 {
 	struct m_head_struct *mhead;
-	int ret = 0;
-
-	// target_task = current;
 	
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == pid) {
-			// printk(KERN_INFO "Have already registered the pid %d\n", pid);
-			ret = -1;
-			goto end;
+			printk(KERN_INFO "Have already registered the pid %d\n", pid);
+			return -1;
 		}
 	}
 
-	preempt_disable();
-	mhead = kmalloc(sizeof(struct m_head_struct), GFP_KERNEL);
-	preempt_enable();
-	if (!mhead) {
-		ret = -1;
-		goto end;
+	if (!make_m_head_struct_node(mm, pid)) {
+		printk(KERN_INFO "INIT ERROR: m head struct in %d process\n", pid);
+		return -1;
 	}
-	mhead->pid = pid;
-	mhead->mm = mm;
-	mhead->krecoverd_task = NULL;
-	INIT_LIST_HEAD(&mhead->head);
-	list_add(&mhead->list, &user_head);
 
 	printk(KERN_INFO "init pid %d\n",pid);
-end:
-	return ret;
+	return 0;
 }
 
-static void register_recovery_count(pid_t pid)
-{
-	struct recovery_count *rcount;
-	
-	preempt_disable();
-	rcount = kmalloc(sizeof(struct recovery_count), GFP_KERNEL);
-	preempt_enable();
-	if (!rcount) {
-		return;
-	}
-	rcount->pid = pid;
-	rcount->kcount = 0;
-	rcount->ksuccount = 0;
-	rcount->ucount = 0;
-	rcount->usuccount = 0;
-	list_add(&rcount->list, &count_head);
-}
 
 SYSCALL_DEFINE0(mycall_ds_register_pid)
 {
 	long ret = register_pid(current->mm, current->tgid); 
 #ifdef CONFIG_RECOVERY_COUNT
-	if (ret == 0)
-		register_recovery_count(current->tgid);
+	if (ret == 0) {
+		if(!make_recovery_count_node(current->tgid))
+			printk(KERN_INFO "INIT ERROR: recovery count in %d process\n", pid);
+	}
 #endif
 	return ret;
 	// return register_pid(current->mm, current->tgid);

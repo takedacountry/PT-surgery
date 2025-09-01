@@ -5587,9 +5587,7 @@ out:
 
 	// my code
 	if (page) {
-		page->base = 0;
-		page->dup_pt = NULL;
-		INIT_LIST_HEAD(&page->ds_head);
+		page->ds_info = NULL;
 	}
 
 	return page;
@@ -5656,8 +5654,7 @@ void __free_pages(struct page *page, unsigned int order)
 	int head = PageHead(page);
 
 	// my code
-	page->base = 0;
-	page->dup_pt = NULL;
+	page->ds_info = NULL;
 
 	if (put_page_testzero(page))
 		free_the_page(page, order);

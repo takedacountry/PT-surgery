@@ -42,6 +42,9 @@
 #define FLAG_RW				(_AT(long, 1) << RW_BIT)
 #define FLAG_RW_NOT			(~FLAG_RW)
 
+#define PT_IS_VALID 		(0)
+#define PT_IS_DAMAGED		(1)
+#define PT_IS_RECOVERYING	(2)
 // #define CONFIG_RECOVERY_COUNT
 
 // for memcached
@@ -86,10 +89,30 @@ static inline pgd_t *pgd_offset_index(struct mm_struct *mm, unsigned long index)
   	return mm->pgd + index;
 }
 
-static inline long make_ds_va(unsigned long a, unsigned long b, unsigned long c, unsigned long d)
+static inline unsigned long make_ds_base(unsigned long pgd_offset, unsigned long pud_offset, unsigned long pmd_offset, unsigned long pte_offset)
 {
-	unsigned long va = a << 27 | b << 18 | c << 9 | d;
-	return va;	
+	unsigned long base = pgd_offset << 27 | pud_offset << 18 | pmd_offset << 9 | pte_offset;
+	return base;	
+}
+
+static inline unsigned long make_ds_base_from_p4d(unsigned long p4d)
+{
+	return make_ds_base(((p4d & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, 0, PUD_FLAG_MASK & PT_PGTABLE_MASK);
+}
+
+static inline unsigned long make_ds_base_from_pud(unsigned long pud, unsigned long base)
+{
+	return make_ds_base((base >> 27) & PT_PGTABLE_MASK, ((pud & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK, 0, PMD_FLAG_MASK & PT_PGTABLE_MASK);
+}
+
+static inline unsigned long make_ds_base_from_pmd(unsigned long pmd, unsigned long base)
+{
+	return make_ds_base((base >> 27) & PT_PGTABLE_MASK, (base >> 18) & PT_PGTABLE_MASK,  ((pmd & OFFSET_MASK) / 0x8)  & PT_PGTABLE_MASK, PTE_FLAG_MASK & PT_PGTABLE_MASK);
+}
+
+static inline unsigned long make_ds_base_from_pte(unsigned long pte, unsigned long base)
+{
+	return make_ds_base((base >> 27) & PT_PGTABLE_MASK, (base >> 18) & PT_PGTABLE_MASK, (base >> 9) & PT_PGTABLE_MASK, ((pte & OFFSET_MASK) / 0x8) & PT_PGTABLE_MASK);
 }
 
 static inline long make_ds_offset(long base, unsigned long pte_value)
@@ -98,33 +121,77 @@ static inline long make_ds_offset(long base, unsigned long pte_value)
 	return offset;
 }
 
-static inline struct ds_log *make_ds_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
+static inline struct ds_log *make_ds_log_node(unsigned long base, unsigned long limit, long offset, unsigned long flag)
 {
-	struct ds_log *list;
-	preempt_disable();
-	list = kmalloc(sizeof(struct ds_log), GFP_KERNEL);
-	preempt_enable();
-	if(!list)
+	struct ds_log *itr;
+	itr = kmalloc(sizeof(struct ds_log), GFP_KERNEL);
+	if(!itr)
 		return NULL;
 
-	list->base = base;
-	list->limit = limit;
-	list->offset = offset;
-	list->flag = flag;
-	return list;
+	itr->base = base;
+	itr->limit = limit;
+	itr->offset = offset;
+	itr->flag = flag;
+	return itr;
+}
+
+static inline struct ds_info *make_ds_info_node(unsigned long base) 
+{
+	struct ds_info *itr;
+	itr = kmalloc(sizeof(struct ds_info), GFP_KERNEL);
+	if(!itr)
+		return NULL;
+
+	itr->base = base;
+	itr->dup_pt = NULL;
+	INIT_LIST_HEAD(&itr->ds_head);
+	itr->recovery_state = 0;
+	spin_lock_init(&itr->recovery_lock);
+	return itr;
 }
 
 static inline struct broken_pte_log *make_broken_pte_node(unsigned long base) 
 {
-	struct broken_pte_log *list;
-	preempt_disable();
-	list = kmalloc(sizeof(struct broken_pte_log), GFP_KERNEL);
-	preempt_enable();
-	if(!list)
+	struct broken_pte_log *itr;
+	itr = kmalloc(sizeof(struct broken_pte_log), GFP_KERNEL);
+	if(!itr)
 		return NULL;
 
-	list->base = base;
-	return list;
+	itr->base = base;
+	return itr;
+}
+
+static inline struct m_head_struct *make_m_head_struct_node(struct mm_struct *mm, pid_t pid)
+{
+	struct m_head_struct *itr;
+	itr = kmalloc(sizeof(struct m_head_struct), GFP_KERNEL);
+	if (!itr) 
+		return NULL;
+
+	mhead->pid = pid;
+	mhead->mm = mm;
+	mhead->krecoverd_task = NULL;
+	spin_lock_init(&mhead->krecoverd_lock);
+	INIT_LIST_HEAD(&mhead->head);
+	list_add(&mhead->list, &user_head);
+	return itr;
+}
+
+static inline struct recovery_count *make_recovery_count_node(pid_t pid)
+{
+	struct recovery_count *itr;
+	
+	itr = kmalloc(sizeof(struct recovery_count), GFP_KERNEL);
+	if (!itr)
+		return NULL;
+	
+	itr->pid = pid;
+	itr->kcount = 0;
+	itr->ksuccount = 0;
+	itr->ucount = 0;
+	itr->usuccount = 0;
+	list_add(&itr->list, &count_head);
+	return itr;
 }
 
 static inline bool is_ds_node_merge(struct ds_log *prev, struct ds_log *next)
@@ -150,8 +217,9 @@ static inline int add_broken_pte_node(unsigned long base, struct m_head_struct *
 {
 	struct broken_pte_log *itr;
 
-	if((itr = make_broken_pte_node(base)) == NULL)
-		return -ENOMEM;
+	itr = make_broken_pte_node(base);
+	if (!itr)
+		return -1;
 
 	list_add_tail(&itr->list, &mnode->head);
 	return 0;
@@ -234,10 +302,8 @@ static inline int update_dup_pte(pte_t **ptep, struct ds_log *itr, unsigned long
 #ifdef CONFIG_RECOVERY_COUNT
 	unsigned int emes;
 	get_random_bytes(&emes, sizeof(emes));
-	if (emes % DIVISION_NUM == 0) {
-		printk(KERN_INFO "RECOVERY ERROR: detect EMEs at ds_log %lx in pte recovery\n", (unsigned long)itr);
+	if (emes % DIVISION_NUM == 0)
 		return -1;
-	}
 #endif
 
 	for (count=start; count < itr->limit; count++) {

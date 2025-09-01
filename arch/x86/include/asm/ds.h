@@ -20,7 +20,7 @@ extern int make_pte_m_list(pmd_t *pmd, pte_t *pte);
 extern int make_ds_log_usr(pte_t *ptep, pte_t pte);
 extern int clear_wrbit_ds_log(pte_t *ptep);
 
-extern int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va);
+// extern int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va);
 extern int register_broken_pte_and_make_recovery_thread(unsigned long pte_va);
 extern int check_pte_is_broken_for_pte_write(pte_t *ptep);
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
