@@ -12,12 +12,12 @@
 #define PTE_FLAG_MASK		(_AT(long, 1) << PTE_FLAG_SHIFT)
 
 extern struct list_head user_head;
-extern int make_pgd_m_list(pgd_t *pgd);
-extern int make_pud_m_list(p4d_t *p4d, pud_t *pud);
-extern int make_pmd_m_list(pud_t *pud, pmd_t *pmd);
-extern int make_pte_m_list(pmd_t *pmd, pte_t *pte);
+extern int make_pgd_m_log(pgd_t *pgd);
+extern int make_pud_m_log(p4d_t *p4d, pud_t *pud);
+extern int make_pmd_m_log(pud_t *pud, pmd_t *pmd);
+extern int make_pte_m_log(pmd_t *pmd, pte_t *pte);
 
-extern int make_ds_log_usr(pte_t *ptep, pte_t pte);
+extern int make_pte_ds_log_usr(pte_t *ptep, pte_t pte);
 extern int clear_wrbit_ds_log(pte_t *ptep);
 
 // extern int register_broken_pte_and_recover_broken_pgtable(unsigned long pte_va);
@@ -37,8 +37,8 @@ extern void delete_pgd_ds_log(struct page *pgd_page);
 extern bool check_parent_is_target(pid_t ppid, pid_t pid);
 extern void register_child(struct task_struct *p);
 
-extern long print_user_pgtable(struct task_struct *p);
-extern long print_user_pgtable2(struct task_struct *p);
-extern long print_pgtable(struct mm_struct *mm, pid_t pid);
+// extern long print_user_pgtable(struct task_struct *p);
+// extern long print_user_pgtable2(struct task_struct *p);
+// extern long print_pgtable(struct mm_struct *mm, pid_t pid);
 
 // extern void check_target_pid(void);

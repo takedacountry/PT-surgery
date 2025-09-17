@@ -14,14 +14,8 @@
 #include <stdint.h>
 
 #define SYS_mycall_print_user_pgtable 457
-#define SYS_mycall_print_kernel_pgtable 458
-#define SYS_mycall_ds_make 459
 #define SYS_mycall_ds_search 460
 #define SYS_mycall_recover_all_pgtable 461
-#define SYS_mycall_ds_m_delete 462
-#define SYS_mycall_ds_make_user 463
-#define SYS_mycall_ds_make_kernel 464
-#define SYS_mycall_print_kernel_pgtable2 465
 #define SYS_mycall_print_user_pgtable2 466
 #define SYS_mycall_m_search 467
 #define SYS_mycall_register_broken_pte 468
@@ -89,8 +83,8 @@ int main(void)
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
     printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
-    char *ma = (char*)malloc(INDEX);
-    char *mb = (char*)malloc(INDEX);
+    char *ma = (char*)malloc(PAGESIZE);
+    // char *mb = (char*)malloc(INDEX);
     // char *mc = (char*)malloc(INDEX);
     // char *md = (char*)malloc(INDEX);
     // char *me = (char*)malloc(INDEX);
@@ -122,8 +116,8 @@ int main(void)
     // char *mo1 = (char*)malloc(INDEX);
     // char *mp1 = (char*)malloc(INDEX);
     
-    memset(ma, 0, INDEX);
-    memset(mb, 0, INDEX);
+    memset(ma, 0, PAGESIZE);
+    // memset(mb, 0, INDEX);
     // memset(mc, 0, INDEX);
     // memset(md, 0, INDEX);
     // memset(me, 0, INDEX);
@@ -156,7 +150,7 @@ int main(void)
     // memset(mp1, 0, INDEX);
     
     printf("va: %p\n", ma); // print user va 
-    printf("va: %p\n", mb); // print user va 
+    // printf("va: %p\n", mb); // print user va 
     // printf("va: %p\n", mc); // print user va 
     // printf("va: %p\n", md); // print user va 
     // printf("va: %p\n", me); // print user va
@@ -259,15 +253,15 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     
-    for (int i=0; i < 50000; i++) {
-        int r = rand() % 10000;
-        if (r == 0) {
-            printf("%ld %p\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)thread_func), thread_func);
-        }
-    }
+    // for (int i=0; i < 50000; i++) {
+    //     int r = rand() % 10000;
+    //     if (r == 0) {
+    //         printf("%ld %p\n", syscall(SYS_mycall_register_broken_pte, (unsigned long)thread_func), thread_func);
+    //     }
+    // }
 
     free(ma);
-    free(mb);
+    // free(mb);
     // free(mc);
     // free(md);
     // free(me);

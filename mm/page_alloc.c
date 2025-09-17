@@ -5586,9 +5586,8 @@ out:
 	kmsan_alloc_page(page, order, alloc_gfp);
 
 	// my code
-	if (page) {
-		page->ds_info = NULL;
-	}
+	if (page)		
+		page->m_log = NULL;
 
 	return page;
 }
@@ -5654,7 +5653,7 @@ void __free_pages(struct page *page, unsigned int order)
 	int head = PageHead(page);
 
 	// my code
-	page->ds_info = NULL;
+	page->m_log = NULL;
 
 	if (put_page_testzero(page))
 		free_the_page(page, order);

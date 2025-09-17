@@ -108,7 +108,7 @@
 // 			goto err;
 // 		}
 		
-// 		update_dup_pgtable(va_start, ptep_new, mnode);
+// 		restore_replica(va_start, ptep_new, mnode);
 // 		member_write_lock(mnode);
 // 		pmd_reinstall_lock(current->mm, pmdp, ptep_new);
 // 		modify_m_va(mnode, (unsigned long)ptep_new);
@@ -144,7 +144,7 @@
 // 		// 	goto err;
 // 		// }
 		
-// 		// update_dup_pgtable(va_start, ptep_new, mnode);
+// 		// restore_replica(va_start, ptep_new, mnode);
 // 		// pmd_reinstall_kernel(pmdp, ptep_new);
 // 		// modify_m_va(mnode, (unsigned long)ptep_new);
 		
@@ -198,7 +198,7 @@ static long recover_all_pgtable(void)
 // 			for(unsigned long a=0; a<USER_MAX; a++) {
 // 		        for(unsigned long b=0; b<MAX; b++) {
 // 		        	for(unsigned long c=0; c<MAX; c++) {
-// 						va_start = make_ds_va(a, b, c, 0);
+// 						va_start = make_ds_base(a, b, c, 0);
 		
 // 						list_for_each_entry(itr, &m_head->head, list) {
 // 							member_read_lock(itr);
