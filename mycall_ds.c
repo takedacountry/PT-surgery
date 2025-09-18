@@ -81,7 +81,7 @@ int main(void)
     // pthread_t thread2;
 
     printf("%ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
-    // printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+    printf("%ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
     
     char *ma = (char*)malloc(PAGESIZE);
     // char *mb = (char*)malloc(INDEX);

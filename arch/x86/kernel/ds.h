@@ -45,7 +45,7 @@
 #define PT_IS_HEALTHY		(0)
 #define PT_IS_DAMAGED		(1)
 #define PT_IS_RECOVERYING	(2)
-#define CONFIG_RECOVERY_COUNT
+// #define CONFIG_RECOVERY_COUNT
 
 // for memcached
 // #define DIVISION_NUM (43750)
@@ -565,6 +565,8 @@ static inline int restore_page(struct page *before, struct page *after)
 		return -1;
 
 	init_m_log(after->m_log, before->m_log->base);
+	before->m_log->base = 0;
+	before->m_log->replica = NULL;
 	copy_ds_log(before, after);
 	return 0;
 }
