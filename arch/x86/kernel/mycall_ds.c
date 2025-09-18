@@ -49,7 +49,7 @@ static int __make_pgd_m_log(pgd_t *pgd, pid_t pid)
 					return -1;
 
 			init_m_log(pgd_page->m_log, PGD_FLAG_MASK);	/* update m_log in pgd page */
-			printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", (((unsigned long)pgd) & PAGE_MASK), PGD_FLAG_MASK, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pgd alloc %lx, %lx, %d, %d\n", (((unsigned long)pgd) & PAGE_MASK), PGD_FLAG_MASK, current->pid, current->tgid);
 		}
 	}
 	return 0;
@@ -79,7 +79,7 @@ static int __make_pud_m_log(p4d_t *p4d, pud_t *pud, pid_t pid)
 					return -1;
 
 			init_m_log(pud_page->m_log, make_ds_base_from_p4d((unsigned long)p4d));	/* update m_log in pud page */
-			printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (((unsigned long)pud) & PAGE_MASK), pud_page->m_log->base, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pud alloc %lx, %lx, %d, %d\n", (((unsigned long)pud) & PAGE_MASK), pud_page->m_log->base, current->pid, current->tgid);
 		}
 	}
 	return 0;
@@ -109,7 +109,7 @@ static int __make_pmd_m_log(pud_t *pud, pmd_t *pmd, pid_t pid)
 					return -1;
 
 			init_m_log(pmd_page->m_log, make_ds_base_from_pud((unsigned long)pud, pud_page->m_log->base));	/* update m_log in pmd page */
-			printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (((unsigned long)pmd) & PAGE_MASK), pmd_page->m_log->base, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pmd alloc %lx, %lx, %d, %d\n", (((unsigned long)pmd) & PAGE_MASK), pmd_page->m_log->base, current->pid, current->tgid);
 		}
 	}
 	return 0;
@@ -139,7 +139,7 @@ static int __make_pte_m_log(pmd_t *pmd, pte_t *pte, pid_t pid)
 					return -1;
 
 			init_m_log(pte_page->m_log, make_ds_base_from_pmd((unsigned long)pmd, pmd_page->m_log->base));	/* update m_log in pte page */
-			printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->m_log->base, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->m_log->base, current->pid, current->tgid);
 		}
 	}
 	return 0;
@@ -306,7 +306,7 @@ static int __make_pte_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 			spin_lock(&pte_page->ds_lock);
 			if (list_empty(&pte_page->ds_head)) {
 				list_add(&dnode->list, &pte_page->ds_head);
-				printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+				// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 			}
 			else {
 				list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
@@ -323,15 +323,15 @@ static int __make_pte_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 					if (prev->base <= dnode->base && dnode->limit <= prev->limit) {
 						if (pte_value == 0 && pte_flag == 0) { /* delete ds_log */
 							delete_ds(prev, dnode);
-							printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
+							// printk(KERN_INFO "delete ds %lx-%lx\n", dnode->base, dnode->limit);
 						}
 						else if (dnode->offset != prev->offset) { /* modify ds_log offset */
 							modify_ds_offset(prev, dnode, pte_page);
-							printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+							// printk(KERN_INFO "modify ds offset %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						}
 						else if(ds_log_flag_diff(dnode->flag, prev->flag)) { /* modify ds_log flag */
 							modify_ds_flag(prev, dnode, pte_page);
-							printk(KERN_INFO "modify ds flag %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+							// printk(KERN_INFO "modify ds flag %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 
 							// if(!ds_log_rw_diff(prev) && ds_log_rw_diff(dnode)) { /* ds_log mkwrite */
 							// 	// printk(KERN_INFO "make write %lx %lx-%lx", base, prev->base, prev->limit);
@@ -352,7 +352,7 @@ static int __make_pte_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 					}
 					else if(dnode->base >= prev->limit) { /* create new pte */
 						list_add(&dnode->list, &prev->list);
-						printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+						// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 						if(list_is_last(&dnode->list, &pte_page->ds_head)) {
 							ds_node_merge(prev, dnode);
 							spin_unlock(&pte_page->ds_lock);
@@ -366,7 +366,7 @@ static int __make_pte_ds_log_usr(pte_t *ptep, pte_t pte, pid_t pid)
 					}
 				}
 				list_add(&dnode->list, &pte_page->ds_head); /* create new pte that is top of pt */
-				printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
+				// printk(KERN_INFO "make ds %lx %lx %lx %d\n", base, pte_value, pte_flag, pid);
 				next = list_next_entry(dnode, list);
 				ds_node_merge(dnode, next);
 			}
@@ -389,7 +389,7 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 	struct ds_log *next, *prev;
 	if(ds_node->base == base && ds_node->limit == limit) {
 		ds_node->flag &= _PAGE_RW_NOT;
-		printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, ds_node->flag, current->tgid);
+		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, ds_node->flag, current->tgid);
 		if(list_is_first(&ds_node->list, &page->ds_head)) {
 			next = list_next_entry(ds_node, list);
 			ds_node_merge(ds_node, next);
@@ -409,7 +409,7 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 		ds_node->base++;
 		if((next = make_ds_log_node(base, limit, ds_node->offset, ds_node->flag & _PAGE_RW_NOT)) == NULL)
 			return;
-		printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, next->flag, current->tgid);
+		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, next->flag, current->tgid);
 		list_add_tail(&next->list, &ds_node->list);
 		if(!list_is_first(&next->list, &page->ds_head)) {
 			prev = list_prev_entry(next, list);
@@ -420,7 +420,7 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 		ds_node->limit--;
 		if((prev = make_ds_log_node(base, limit, ds_node->offset, ds_node->flag & _PAGE_RW_NOT)) == NULL)
 			return;
-		printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
+		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
 		list_add(&prev->list, &ds_node->list);
 		if(!list_is_last(&prev->list, &page->ds_head)) {
 			next = list_next_entry(prev, list);
@@ -432,7 +432,7 @@ static void clear_wrbit_ds_flag(struct ds_log *ds_node, unsigned long base, unsi
 			return;
 		if((next = make_ds_log_node(limit, ds_node->limit, ds_node->offset, ds_node->flag)) == NULL)
 			return;
-		printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
+		// printk(KERN_INFO "make wrprotect %lx %lx %d\n", base, prev->flag, current->tgid);
 		ds_node->limit = base;
 		list_add(&prev->list, &ds_node->list);
 		list_add(&next->list, &prev->list);
@@ -751,7 +751,7 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 					get_random_bytes(&count, sizeof(count));
 					if (count % DIVISION_NUM == 0) {
 						rcount->kcount++;
-						// printk(KERN_INFO "detect EMEs at write %lx and start recovery\n", (unsigned long)ptep);
+						printk(KERN_INFO "detect EMEs at write %lx and start recovery\n", (unsigned long)ptep);
 						register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 					}
 					break;
@@ -811,7 +811,7 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 					get_random_bytes(&count, sizeof(count));
 					if (count % DIVISION_NUM == 0) {
 						rcount->kcount++;
-						// printk(KERN_INFO "detect EMEs at read %lx and start recovery\n", (unsigned long)ptep);
+						printk(KERN_INFO "detect EMEs at read %lx and start recovery\n", (unsigned long)ptep);
 						register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 					}
 					break;
@@ -920,7 +920,7 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 #ifdef CONFIG_RECOVERY_COUNT
 	list_for_each_entry(rcount, &count_head, list) {
 		if (rcount->pid == current->tgid) {
-			rcount->usuccount += cnt;
+			rcount->usuccount += count;
 			break;
 		}
 	}
@@ -949,6 +949,7 @@ static int recovery_thread(void *data)
 	struct recovery_count *rcount;
 #endif
 
+	printk(KERN_INFO "start recovery thread\n");
 	if (get_pmdp_for_recover_pgtable(mhead->mm, base, &pmdp) < 0) {
 		printk(KERN_INFO "KRECOVERD ERROR: pmdp is NULL\n");
 		goto failed;
@@ -957,10 +958,14 @@ static int recovery_thread(void *data)
 	// ptl = ptlock_ptr(pmd_to_page(pmdp));
 	// spin_lock(ptl);
 
+	printk(KERN_INFO "kthread should stop\n");
+
 	preempt = dec_preempt_before_schedule();
 	while (!kthread_should_stop())
 		schedule();
 	inc_preempt_after_schedule(preempt);
+
+	printk(KERN_INFO "fin kthread should stop\n");
 
 	if (update_pmdp(mhead->mm, pte_page, pmdp) < 0) {
 		// spin_unlock(ptl);
@@ -1156,7 +1161,7 @@ int inc_page_ref_count(pte_t *ptep)
 			inc_preempt_after_schedule(count);
 
 			ref_count = page_ref_inc_return(pte_page);
-			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
+			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->m_log->base, ref_count, current->tgid);
 			break;
 		}
 	}
@@ -1180,15 +1185,18 @@ int dec_page_ref_count(pte_t *ptep)
 				goto end;
 
 			ref_count = page_ref_dec_return(pte_page);
-			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
+			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->m_log->base, ref_count, current->tgid);
 
 			count = dec_preempt_before_schedule();
 			if (mhead->kinfo) {
-				if (pte_page->m_log->replica && page_count(pte_page) == 1) {
+				if (pte_page->m_log->replica && ref_count == 1) {
+					printk(KERN_INFO "kthread stop\n");
 					if ((ret = kthread_stop(mhead->kinfo->krecoverd_task)) < 0) {
-						// printk(KERN_INFO "kthread failure %d and start recovery\n",ret);
+						printk(KERN_INFO "kthread failure %d and start recovery\n",ret);
 						fix_krecoverd_failure(mhead->mm, mhead, pte_page);
 					}
+					fix_krecoverd_failure(mhead->mm, mhead, pte_page);
+					printk(KERN_INFO "fin kthread stop\n");
 				}
 			}
 			inc_preempt_after_schedule(count);

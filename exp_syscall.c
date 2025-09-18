@@ -36,6 +36,7 @@
 #define two_mb (1UL << 21) // 2MB
 #define four_mb (1UL << 22) // 4MB
 #define eight_mb (1UL << 23) // 8MB
+#define sixteen_mb (1UL << 24) // 16MB
 #define four_kb (1UL << 12) // 4KB
 #define handle_error(msg) \
     do { perror(msg); exit(EXIT_FAILURE); } while(0) 
@@ -65,9 +66,10 @@ int main(void)
     // p = mmap(NULL, sixteen_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, eight_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, four_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
-    // p = mmap(NULL, two_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
+    p = mmap(NULL, two_gb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
+    // p = mmap(NULL, sixteen_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, eight_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
-    p = mmap(NULL, four_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
+    // p = mmap(NULL, four_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, two_mb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     // p = mmap(NULL, four_kb, PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE|MAP_POPULATE, -1, 0);
     end_mmap = clock();
@@ -81,34 +83,35 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_ds_search));
     // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     
-    // pid = fork();
-    // if (pid == 0) {
-    //     printf("child process!\n");
-    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    //     exit(0);
-    // }else if (pid == -1){
-    //     perror("fork");
-    //     exit(EXIT_FAILURE);
-    // }else {
-    //     int status;
-    //     printf("Adult process!\n");
-    //     wait(&status);
-    //     if (WIFEXITED(status)) {
-    //         printf("exit: %d\n", WEXITSTATUS(status));
-    //     }
-    // }
+    pid = fork();
+    if (pid == 0) {
+        // printf("child process!\n");
+        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+        exit(0);
+    }else if (pid == -1){
+        perror("fork");
+        exit(EXIT_FAILURE);
+    }else {
+        int status;
+        // printf("Adult process!\n");
+        wait(&status);
+        if (WIFEXITED(status)) {
+            printf("exit: %d\n", WEXITSTATUS(status));
+        }
+    }
 
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-    syscall(SYS_mycall_register_broken_pte, p);
+    // syscall(SYS_mycall_register_broken_pte, p);
 
     start_mprotect = clock();
     // if (mprotect(p, thirtytwo_gb, PROT_READ) == -1)
     // if (mprotect(p, sixteen_gb, PROT_READ) == -1)
     // if (mprotect(p, eight_gb, PROT_READ) == -1)
     // if (mprotect(p, four_gb, PROT_READ) == -1)
-    // if (mprotect(p, two_gb, PROT_READ) == -1)
+    if (mprotect(p, two_gb, PROT_READ) == -1)
+    // if (mprotect(p, sixteen_mb, PROT_READ) == -1)
     // if (mprotect(p, eight_mb, PROT_READ) == -1)
-    if (mprotect(p, four_mb, PROT_READ) == -1)
+    // if (mprotect(p, four_mb, PROT_READ) == -1)
     // if (mprotect(p, two_mb, PROT_READ) == -1)
     // if (mprotect(p, four_kb, PROT_READ) == -1)
        handle_error("mprotect error");
@@ -124,9 +127,10 @@ int main(void)
     // munmap(p, sixteen_gb);
     // munmap(p, eight_gb);
     // munmap(p, four_gb);
-    // munmap(p, two_gb);
+    munmap(p, two_gb);
+    // munmap(p, sixteen_mb);
     // munmap(p, eight_mb);
-    munmap(p, four_mb);
+    // munmap(p, four_mb);
     // munmap(p, two_mb);
     // munmap(p, four_kb);
     end_munmap = clock();

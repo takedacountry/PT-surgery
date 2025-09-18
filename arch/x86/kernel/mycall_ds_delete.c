@@ -23,7 +23,7 @@ void delete_pte_ds_log(struct page *pte_page)
 			delete_ds_all(pte_page);
 			exit_m_log(pte_page->m_log);
 			exit_page_for_pt_surgery(pte_page);
-			printk(KERN_INFO "delete m pte %lx pid %d\n", base, current->tgid);
+			// printk(KERN_INFO "delete m pte %lx pid %d\n", base, current->tgid);
 			break;
 		}
 	}
@@ -44,7 +44,7 @@ void delete_pmd_ds_log(struct page *pmd_page)
 			base = pmd_page->m_log->base;
 			exit_m_log(pmd_page->m_log);
 			exit_page_for_pt_surgery(pmd_page);
-			printk(KERN_INFO "delete m pmd %lx pid %d\n", base, current->tgid);
+			// printk(KERN_INFO "delete m pmd %lx pid %d\n", base, current->tgid);
 			break;
 		}
 	}
@@ -65,7 +65,7 @@ void delete_pud_ds_log(struct page *pud_page)
 			base = pud_page->m_log->base;
 			exit_m_log(pud_page->m_log);
 			exit_page_for_pt_surgery(pud_page);
-			printk(KERN_INFO "delete m pud %lx pid %d\n", base, current->tgid);
+			// printk(KERN_INFO "delete m pud %lx pid %d\n", base, current->tgid);
 			break;
 		}
 	}
@@ -88,7 +88,7 @@ void delete_pgd_ds_log(struct page *pgd_page)
 			if (!is_available_pgd(mhead->mm)) {
 				exit_m_log(pgd_page->m_log);
 				exit_page_for_pt_surgery(pgd_page);
-				printk(KERN_INFO "delete m pgd %lx pid %d\n", PGD_FLAG_MASK, current->tgid);
+				// printk(KERN_INFO "delete m pgd %lx pid %d\n", PGD_FLAG_MASK, current->tgid);
 
 				mhead->pid = 0;
 				mhead->mm = NULL;

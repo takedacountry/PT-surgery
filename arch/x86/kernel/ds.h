@@ -45,7 +45,8 @@
 #define PT_IS_HEALTHY		(0)
 #define PT_IS_DAMAGED		(1)
 #define PT_IS_RECOVERYING	(2)
-// #define CONFIG_RECOVERY_COUNT
+
+#define CONFIG_RECOVERY_COUNT
 
 // for memcached
 // #define DIVISION_NUM (43750)
@@ -54,7 +55,10 @@
 // #define DIVISION_NUM (40000)
 
 // for apache
-#define DIVISION_NUM (50000)
+// #define DIVISION_NUM (50000)
+
+// for debug
+#define DIVISION_NUM (5000)
 
 extern struct list_head user_head;
 // extern struct list_head kern_head;
