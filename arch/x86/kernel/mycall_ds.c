@@ -604,21 +604,22 @@ int register_broken_pte_and_make_recovery_thread(unsigned long pte_va)
 			
 			spin_lock(&pte_page->m_log->recovery_lock);
 			if (!pte_page->m_log->replica) {
-				spin_unlock(&pte_page->m_log->recovery_lock);
 				ptep_new = pte_realloc(mhead->mm);
 				if (!ptep_new) {
+					spin_unlock(&pte_page->m_log->recovery_lock);	
 					printk(KERN_INFO "REPLICA ERROR: kmalloc failed\n");
 					ret = -1;
 					goto end;
 				}
 				printk(KERN_INFO "replica %lx", (unsigned long)__pa(ptep_new));
 				if (restore_replica(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
+					spin_unlock(&pte_page->m_log->recovery_lock);
 					delete_broken_pte_all(pte_page->m_log);
 					pte_free(mhead->mm, virt_to_page(ptep_new));
 					ret = -1;
 					goto end;
 				}
-				spin_lock(&pte_page->m_log->recovery_lock);
+				
 				pte_page->m_log->replica = ptep_new;
 				spin_unlock(&pte_page->m_log->recovery_lock);
 
@@ -681,22 +682,22 @@ static long register_broken_pte_from_user(unsigned long user_va)
 
 			spin_lock(&pte_page->m_log->recovery_lock);
 			if (!pte_page->m_log->replica) {
-				spin_unlock(&pte_page->m_log->recovery_lock);
 				ptep_new = pte_realloc(mhead->mm);
 				if (!ptep_new) {
+					spin_unlock(&pte_page->m_log->recovery_lock);
 					printk(KERN_INFO "REPLICA ERROR: kmalloc failed\n");
 					ret = -1;
 					goto end;
 				}
 				printk(KERN_INFO "replica %lx", (unsigned long)__pa(ptep_new));
 				if (restore_replica(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
+					spin_unlock(&pte_page->m_log->recovery_lock);
 					delete_broken_pte_all(pte_page->m_log);
 					pte_free(mhead->mm, virt_to_page(ptep_new));
 					ret = -1;
 					goto end;
 				}
 					
-				spin_lock(&pte_page->m_log->recovery_lock);
 				pte_page->m_log->replica = ptep_new;
 				spin_unlock(&pte_page->m_log->recovery_lock);
 				
@@ -761,24 +762,21 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 			if (!pte_page->m_log || !(pte_page->m_log->base & PTE_FLAG_MASK))
 				break;
 
-			spin_lock(&pte_page->m_log->recovery_lock);
-			if (!pte_page->m_log->replica) {
-				spin_unlock(&pte_page->m_log->recovery_lock);
-				return 0; // pte is safety
-			}
-			spin_unlock(&pte_page->m_log->recovery_lock);
-				
-			target_base = make_ds_base_from_pte((unsigned long)ptep, pte_page->m_log->base);
-			spin_lock(&pte_page->m_log->broken_lock);
-			list_for_each_entry(bnode, &pte_page->m_log->head, list) {
-				if (target_base == bnode->base) {
-					// printk(KERN_INFO "Hit broken pte write %lx %d\n", target_base, current->tgid);
-					// printk(KERN_INFO "get broken    pte %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
-					spin_unlock(&pte_page->m_log->broken_lock);
-					return 1; // pte is broken
+			if (pte_page->m_log->replica) {
+				target_base = make_ds_base_from_pte((unsigned long)ptep, pte_page->m_log->base);
+				spin_lock(&pte_page->m_log->broken_lock);
+				list_for_each_entry(bnode, &pte_page->m_log->head, list) {
+					if (target_base == bnode->base) {
+						// printk(KERN_INFO "Hit broken pte write %lx %d\n", target_base, current->tgid);
+						// printk(KERN_INFO "get broken    pte %lx %lx\n", pte_pfn(*ptep), pte_flags(*ptep));
+						spin_unlock(&pte_page->m_log->broken_lock);
+						return 1; // pte is broken
+					}
 				}
+				spin_unlock(&pte_page->m_log->broken_lock);
+				return 0; // pte is healthy
 			}
-			spin_unlock(&pte_page->m_log->broken_lock);
+			return 0; // PT is healthy
 		}
 	}
 	return -1; // pte is not managed by ds_log
@@ -865,17 +863,15 @@ static void print_replica(pte_t *ptep, unsigned long base)
 
 static int update_pmdp(struct mm_struct *mm, struct page *pte_page, pmd_t *pmdp)
 {
-	pte_t *replica;
 	printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
 
 	spin_lock(&pte_page->m_log->recovery_lock);
-	print_replica(pte_page->m_log->replica, pte_page->m_log->base);
-	replica = (pte_t *)pte_page->m_log->replica;
 	if (restore_page(pte_page, virt_to_page(pte_page->m_log->replica)) < 0) {
 		spin_unlock(&pte_page->m_log->recovery_lock);
 		return -1;	
 	}
-	pmd_reinstall(mm, pmdp, replica);
+	print_replica(pte_page->m_log->replica, pte_page->m_log->base);
+	pmd_reinstall(mm, pmdp, pte_page->m_log->replica);
 	spin_unlock(&pte_page->m_log->recovery_lock);
 
 	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
@@ -885,7 +881,7 @@ static int update_pmdp(struct mm_struct *mm, struct page *pte_page, pmd_t *pmdp)
 static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
 {
 	pmd_t *pmdp;
-	spinlock_t *ptl;
+	// spinlock_t *ptl;
 	unsigned long base = pte_page->m_log->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int count = 0;
@@ -900,12 +896,12 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 		goto end;
 	}
 
-	ptl = ptlock_ptr(pmd_to_page(pmdp));
-	spin_lock(ptl);
+	// ptl = ptlock_ptr(pmd_to_page(pmdp));
+	// spin_lock(ptl);
 	for(;;) {
 		if (page_count(pte_page) == 1) {
 			if (update_pmdp(mm, pte_page, pmdp) < 0) {
-				spin_unlock(ptl);			
+				// spin_unlock(ptl);			
 				printk(KERN_INFO "USER RECOVER ERROR: failed to update pmdp\n");
 				ret = -1;
 				goto end;
@@ -915,7 +911,7 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 		}
 		schedule();
 	}
-	spin_unlock(ptl);
+	// spin_unlock(ptl);
 
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
@@ -930,6 +926,10 @@ static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mh
 	}
 #endif
 	// printk(KERN_INFO "finish recovery\n");
+	pte_page->m_log->base = 0;
+	spin_lock(&pte_page->m_log->recovery_lock);
+	pte_page->m_log->replica = NULL;
+	spin_unlock(&pte_page->m_log->recovery_lock);
 end:
 	return ret;
 }
@@ -940,7 +940,7 @@ static int recovery_thread(void *data)
 	struct m_head_struct *mhead = kinfo->mhead;
 	struct page *pte_page = kinfo->page;
 	pmd_t *pmdp;
-	spinlock_t *ptl;
+	// spinlock_t *ptl;
 	unsigned long base = pte_page->m_log->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int preempt = 0;
@@ -954,8 +954,8 @@ static int recovery_thread(void *data)
 		goto failed;
 	}
 	
-	ptl = ptlock_ptr(pmd_to_page(pmdp));
-	spin_lock(ptl);
+	// ptl = ptlock_ptr(pmd_to_page(pmdp));
+	// spin_lock(ptl);
 
 	preempt = dec_preempt_before_schedule();
 	while (!kthread_should_stop())
@@ -963,13 +963,13 @@ static int recovery_thread(void *data)
 	inc_preempt_after_schedule(preempt);
 
 	if (update_pmdp(mhead->mm, pte_page, pmdp) < 0) {
-		spin_unlock(ptl);
+		// spin_unlock(ptl);
 		printk(KERN_INFO "KRECOVERD ERROR: failed to update pmdp\n");
 		goto failed;
 	}
 
 	count = delete_broken_pte_all(pte_page->m_log);
-	spin_unlock(ptl);
+	// spin_unlock(ptl);
 
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
@@ -987,12 +987,14 @@ static int recovery_thread(void *data)
 
 failed:
 	delete_broken_pte_all(pte_page->m_log);
-	spin_lock(&pte_page->m_log->recovery_lock);
 	pte_free(mhead->mm, virt_to_page(pte_page->m_log->replica));
+
+end:
+	pte_page->m_log->base = 0;
+	spin_lock(&pte_page->m_log->recovery_lock);
 	pte_page->m_log->replica = NULL;
 	spin_unlock(&pte_page->m_log->recovery_lock);
 
-end:
 	spin_lock(&mhead->krecoverd_lock);
 	destroy_kinfo_node(kinfo);
 	mhead->kinfo = NULL;
@@ -1017,7 +1019,6 @@ static int make_recovery_thread(struct m_head_struct *mhead, struct page *pte_pa
 	for(;;) {
 		spin_lock(&mhead->krecoverd_lock);
 		if (!mhead->kinfo){
-			spin_unlock(&mhead->krecoverd_lock);
 			create->krecoverd_task = kthread_run(recovery_thread, create, "krecoverd");
 			if (IS_ERR(create->krecoverd_task)) {
 				destroy_kinfo_node(create);
@@ -1026,7 +1027,6 @@ static int make_recovery_thread(struct m_head_struct *mhead, struct page *pte_pa
 				goto end;
 			}
 			
-			spin_lock(&mhead->krecoverd_lock);
 			mhead->kinfo = create;
 			spin_unlock(&mhead->krecoverd_lock);
 			printk(KERN_INFO "recovery thread pid %d comm %s\n", create->krecoverd_task->pid, create->krecoverd_task->comm);
@@ -1054,14 +1054,11 @@ int wait_to_recover_broken_pgtable(pmd_t *pmdp)
 			
 			// count = dec_preempt_before_schedule();
 			for (;;) {
-				spin_lock(&pte_page->m_log->recovery_lock);
 				if (!pte_page->m_log->replica) {
 					// printk(KERN_INFO "Replaced replica\n");
 					// inc_preempt_after_schedule(count);
-					spin_unlock(&pte_page->m_log->recovery_lock);
 					break;
 				}
-				spin_unlock(&pte_page->m_log->recovery_lock);
 				// printk(KERN_INFO "wait to recover broken pgtable %lx\n", pte_page->m_log->base);
 				schedule();
 			}
@@ -1076,7 +1073,7 @@ EXPORT_SYMBOL_GPL(wait_to_recover_broken_pgtable);
 static void fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
 {
 	pmd_t *pmdp;
-	spinlock_t *ptl;
+	// spinlock_t *ptl;
 	unsigned long base = pte_page->m_log->base & PT_PGTABLE_MASK_NOT;
 	unsigned long addr = 0;
 	int count = 0;
@@ -1089,12 +1086,12 @@ static void fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mh
 		goto failed;
 	}
 
-	ptl = ptlock_ptr(pmd_to_page(pmdp));
-	spin_lock(ptl);
+	// ptl = ptlock_ptr(pmd_to_page(pmdp));
+	// spin_lock(ptl);
 	for(;;) {
 		if (page_count(pte_page) == 1) {
 			if (update_pmdp(mm, pte_page, pmdp) < 0) {
-				spin_unlock(ptl);
+				// spin_unlock(ptl);
 				printk(KERN_INFO "KRECOVERD ERROR: failed to update pmdp\n");
 				goto failed;
 			}
@@ -1103,7 +1100,7 @@ static void fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mh
 		}
 		schedule();
 	}
-	spin_unlock(ptl);
+	// spin_unlock(ptl);
 
 	// want to add TLB flush operation
 	addr = base << OFFSET_SHIFT;
@@ -1121,12 +1118,14 @@ static void fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mh
 
 failed:
 	delete_broken_pte_all(pte_page->m_log);
-	spin_lock(&pte_page->m_log->recovery_lock);
 	pte_free(mhead->mm, virt_to_page(pte_page->m_log->replica));
+
+end:
+	pte_page->m_log->base = 0;
+	spin_lock(&pte_page->m_log->recovery_lock);
 	pte_page->m_log->replica = NULL;
 	spin_unlock(&pte_page->m_log->recovery_lock);
 
-end:
 	spin_lock(&mhead->krecoverd_lock);
 	destroy_kinfo_node(mhead->kinfo);
 	mhead->kinfo = NULL;
@@ -1149,12 +1148,9 @@ int inc_page_ref_count(pte_t *ptep)
 
 			count = dec_preempt_before_schedule();
 			for (;;) {
-				spin_lock(&pte_page->m_log->recovery_lock);
 				if (!pte_page->m_log->replica) {
-					spin_unlock(&pte_page->m_log->recovery_lock);
 					break;
 				}
-				spin_unlock(&pte_page->m_log->recovery_lock);
 				schedule();
 			}
 			inc_preempt_after_schedule(count);
@@ -1187,25 +1183,15 @@ int dec_page_ref_count(pte_t *ptep)
 			// printk(KERN_INFO "m %lx ref count %d %d\n", pte_page->base, ref_count, current->tgid);
 
 			count = dec_preempt_before_schedule();
-			spin_lock(&mhead->krecoverd_lock);
 			if (mhead->kinfo) {
-				spin_lock(&pte_page->m_log->recovery_lock);
 				if (pte_page->m_log->replica && page_count(pte_page) == 1) {
-					spin_unlock(&pte_page->m_log->recovery_lock);
-					spin_unlock(&mhead->krecoverd_lock);
-
 					if ((ret = kthread_stop(mhead->kinfo->krecoverd_task)) < 0) {
 						// printk(KERN_INFO "kthread failure %d and start recovery\n",ret);
 						fix_krecoverd_failure(mhead->mm, mhead, pte_page);
 					}
-					goto inc_preempt;
 				}
-				spin_unlock(&pte_page->m_log->recovery_lock);
 			}
-			spin_unlock(&mhead->krecoverd_lock);
-		inc_preempt:
 			inc_preempt_after_schedule(count);
-
 			break;
 		}
 	}
