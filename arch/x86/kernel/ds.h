@@ -464,7 +464,7 @@ static inline int restore_replica_from_ds_log(pte_t **ptep, struct ds_log *itr, 
 	unsigned int emes;
 	get_random_bytes(&emes, sizeof(emes));
 	if (emes % DIVISION_NUM == 0) {	
-		printk(KERN_INFO "REPLICA ERROR: EMEs in ds_log \n");
+		printk(KERN_INFO "RECOVERY ERROR: EMEs in ds_log\n");
 		return -1;
 	}
 #endif
