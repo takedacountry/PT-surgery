@@ -54,7 +54,7 @@ int main(void)
     // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
 
     syscall(SYS_mycall_ds_register_pid);
-    syscall(SYS_mycall_make_ds_usr_from_pgtable);
+    // syscall(SYS_mycall_make_ds_usr_from_pgtable);
 
     // printf("This is 4GB code\n");
     // printf("This is 4MB code\n");
@@ -81,24 +81,24 @@ int main(void)
 
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable));
     // printf("%ld\n", syscall(SYS_mycall_ds_search));
-    // printf("%ld\n", syscall(SYS_mycall_m_ds_count));
+    printf("%ld\n", syscall(SYS_mycall_m_ds_count));
     
-    pid = fork();
-    if (pid == 0) {
-        // printf("child process!\n");
-        // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
-        exit(0);
-    }else if (pid == -1){
-        perror("fork");
-        exit(EXIT_FAILURE);
-    }else {
-        int status;
-        // printf("Adult process!\n");
-        wait(&status);
-        if (WIFEXITED(status)) {
-            printf("exit: %d\n", WEXITSTATUS(status));
-        }
-    }
+    // pid = fork();
+    // if (pid == 0) {
+    //     // printf("child process!\n");
+    //     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
+    //     exit(0);
+    // }else if (pid == -1){
+    //     perror("fork");
+    //     exit(EXIT_FAILURE);
+    // }else {
+    //     int status;
+    //     // printf("Adult process!\n");
+    //     wait(&status);
+    //     if (WIFEXITED(status)) {
+    //         printf("exit: %d\n", WEXITSTATUS(status));
+    //     }
+    // }
 
     // printf("%ld\n", syscall(SYS_mycall_print_user_pgtable2));
     // syscall(SYS_mycall_register_broken_pte, p);

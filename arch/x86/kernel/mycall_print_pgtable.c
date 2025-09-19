@@ -612,7 +612,7 @@ static void count_up_m_ds(void)
 								list_for_each_entry(dnode, &pte_page->ds_head, list) {
 									ds_num++;
 								}
-								spin_lock(&pte_page->ds_lock);
+								spin_unlock(&pte_page->ds_lock);
 							}
 						}
 					}

@@ -52,13 +52,13 @@
 // #define DIVISION_NUM (43750)
 
 // for redis
-// #define DIVISION_NUM (40000)
+#define DIVISION_NUM (40000)
 
 // for apache
 // #define DIVISION_NUM (50000)
 
 // for debug
-#define DIVISION_NUM (5000)
+// #define DIVISION_NUM (5000)
 
 extern struct list_head user_head;
 // extern struct list_head kern_head;
@@ -285,26 +285,26 @@ static inline struct broken_pte_log *make_broken_pte_node(unsigned long base)
 	return itr;
 }
 
-static inline struct krecoverd_info *make_kinfo_node(struct m_head_struct *mhead, struct page *page)
-{
-	struct krecoverd_info *itr = kmalloc((sizeof(struct krecoverd_info)), GFP_ATOMIC);
-	if (!itr) {
-		printk(KERN_INFO "KRECOVERED_INFO ERROR: kmalloc failed\n");
-		return NULL;
-	}
-	itr->mhead = mhead;
-	itr->page = page;
-	itr->krecoverd_task = NULL;
-	return itr;
-}
+// static inline struct krecoverd_info *make_kinfo_node(struct m_head_struct *mhead, struct page *page)
+// {
+// 	struct krecoverd_info *itr = kmalloc((sizeof(struct krecoverd_info)), GFP_ATOMIC);
+// 	if (!itr) {
+// 		printk(KERN_INFO "KRECOVERED_INFO ERROR: kmalloc failed\n");
+// 		return NULL;
+// 	}
+// 	itr->mhead = mhead;
+// 	itr->page = page;
+// 	itr->krecoverd_task = NULL;
+// 	return itr;
+// }
 
-static inline void destroy_kinfo_node(struct krecoverd_info *itr)
-{
-	itr->mhead = NULL;
-	itr->page = NULL;
-	itr->krecoverd_task = NULL;
-	kfree(itr);
-}
+// static inline void destroy_kinfo_node(struct krecoverd_info *itr)
+// {
+// 	itr->mhead = NULL;
+// 	itr->page = NULL;
+// 	itr->krecoverd_task = NULL;
+// 	kfree(itr);
+// }
 
 // static inline struct m_head_struct *make_m_head_struct_node(struct mm_struct *mm, pid_t pid)
 // {

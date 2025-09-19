@@ -22,17 +22,17 @@ struct m_log {
 	// unsigned int recovery_state;/* recovery state: 00->fine, 01->waiting to replace, 10->replacing */
 };
 
-struct krecoverd_info{
-	struct m_head_struct *mhead;
-	struct page *page;
-	struct task_struct *krecoverd_task;
-};
+// struct krecoverd_info{
+// 	struct m_head_struct *mhead;
+// 	struct page *page;
+// 	struct task_struct *krecoverd_task;
+// };
 
 struct m_head_struct{
 	pid_t pid;
 	struct mm_struct *mm;
-	struct krecoverd_info *kinfo;
-	spinlock_t krecoverd_lock;
+	// struct krecoverd_info *kinfo;
+	// spinlock_t krecoverd_lock;
 	struct list_head list;
 };
 

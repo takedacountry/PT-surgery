@@ -21,8 +21,8 @@ static int (*main_orig)(int, char **, char **);
 
 int main_hook(int argc, char **argv, char **envp)
 {
-        printf("register pid %ld %d\n", syscall(SYS_mycall_ds_register_pid, getpid()), getpid());
-        printf("make ds usr  %ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
+        printf("register pid %ld %d\n", syscall(SYS_mycall_ds_register_pid), getpid());
+        // printf("make ds usr  %ld\n", syscall(SYS_mycall_make_ds_usr_from_pgtable));
         printf("count ds m %ld\n", syscall(SYS_mycall_m_ds_count));
         printf("-----Before main-----\n");
         // chroot("./");
