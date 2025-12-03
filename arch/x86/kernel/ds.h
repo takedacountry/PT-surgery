@@ -42,20 +42,16 @@
 #define _PAGE_RW_NOT 		(~_PAGE_RW)
 #define _PAGE_ACCESSED_DIRTY (_PAGE_ACCESSED | _PAGE_DIRTY)
 
-#define PT_IS_HEALTHY		(0)
-#define PT_IS_DAMAGED		(1)
-#define PT_IS_RECOVERYING	(2)
-
-#define CONFIG_RECOVERY_COUNT
+// #define CONFIG_RECOVERY_COUNT
 
 // for memcached
 // #define DIVISION_NUM (43750)
 
 // for redis
-#define DIVISION_NUM (40000)
+// #define DIVISION_NUM (40000)
 
 // for apache
-// #define DIVISION_NUM (50000)
+#define DIVISION_NUM (102050)
 
 // for debug
 // #define DIVISION_NUM (5000)

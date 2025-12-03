@@ -92,7 +92,6 @@ void delete_pgd_ds_log(struct page *pgd_page)
 
 				mhead->pid = 0;
 				mhead->mm = NULL;
-				// mhead->kinfo = NULL;
 				list_del(&mhead->list);
 				kfree(mhead);
 				printk(KERN_INFO "delete m head %d %d\n", current->pid, current->tgid);

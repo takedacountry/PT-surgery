@@ -30,10 +30,11 @@
 
 LIST_HEAD(user_head);
 // LIST_HEAD(kern_head);
+#ifdef CONFIG_RECOVERY_COUNT
 LIST_HEAD(count_head);
-// DEFINE_SPINLOCK(user_lock);
+#endif
 
-static int make_recovery_thread(struct m_head_struct *mhead, struct page *pte_page);
+// static int make_recovery_thread(struct m_head_struct *mhead, struct page *pte_page);
 static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page);
 
 static int __make_pgd_m_log(pgd_t *pgd, pid_t pid)
@@ -139,7 +140,7 @@ static int __make_pte_m_log(pmd_t *pmd, pte_t *pte, pid_t pid)
 					return -1;
 
 			init_m_log(pte_page->m_log, make_ds_base_from_pmd((unsigned long)pmd, pmd_page->m_log->base));	/* update m_log in pte page */
-			// printk(KERN_INFO "make m pte alloc %lx, %lx, %d, %d\n", (((unsigned long)pte) & PAGE_MASK), pte_page->m_log->base, current->pid, current->tgid);
+			// printk(KERN_INFO "make m pte alloc %lx, %lx, %lx, %d\n", (unsigned long)pmd_val(*pmd), (((unsigned long)pte) & PAGE_MASK), pte_page->m_log->base, current->tgid);
 		}
 	}
 	return 0;
@@ -630,7 +631,7 @@ int register_broken_pte_and_make_recovery_thread(unsigned long pte_va)
 					ret = -1;
 					goto end;
 				}
-				printk(KERN_INFO "replica %lx", (unsigned long)__pa(ptep_new));
+				printk(KERN_INFO "replica %lx %lx %d", pte_page->m_log->base, (unsigned long)__pa(ptep_new), mhead->pid);
 				if (restore_replica(target_base & PT_PGTABLE_MASK_NOT, ptep_new, pte_page) < 0) {
 					spin_unlock(&pte_page->m_log->recovery_lock);
 					printk(KERN_INFO "KERN RECOVERY ERROR: restore replica failed\n");
@@ -773,7 +774,7 @@ int check_pte_is_broken_for_pte_write(pte_t *ptep)
 					get_random_bytes(&count, sizeof(count));
 					if (count % DIVISION_NUM == 0) {
 						rcount->kcount++;
-						printk(KERN_INFO "detect EMEs at write %lx and start recovery\n", (unsigned long)ptep);
+						// printk(KERN_INFO "detect EMEs at write %lx and start recovery\n", (unsigned long)ptep);
 						register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 					}
 					break;
@@ -837,7 +838,7 @@ pte_t check_pte_is_broken_for_pte_read(pte_t *ptep)
 					get_random_bytes(&count, sizeof(count));
 					if (count % DIVISION_NUM == 0) {
 						rcount->kcount++;
-						printk(KERN_INFO "detect EMEs at read %lx and start recovery\n", (unsigned long)ptep);
+						// printk(KERN_INFO "detect EMEs at read %lx and start recovery\n", (unsigned long)ptep);
 						register_broken_pte_and_make_recovery_thread((unsigned long)ptep);
 					}
 					break;
@@ -889,7 +890,7 @@ static void print_replica(pte_t *ptep, unsigned long base)
 
 static int update_pmdp(struct mm_struct *mm, struct page *pte_page, pmd_t *pmdp)
 {
-	printk(KERN_INFO "pmd before: %lx\n",(unsigned long)pmd_val(*pmdp));
+	printk(KERN_INFO "pmd before: %lx %lx %d\n", pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
 	// print_replica(pte_offset_index(pmdp, 0), pte_page->m_log->base);
 
 	spin_lock(&pte_page->m_log->recovery_lock);
@@ -901,9 +902,10 @@ static int update_pmdp(struct mm_struct *mm, struct page *pte_page, pmd_t *pmdp)
 	pmd_reinstall(mm, pmdp, pte_page->m_log->replica);
 	spin_unlock(&pte_page->m_log->recovery_lock);
 
-	printk(KERN_INFO "pmd after: %lx\n",(unsigned long)pmd_val(*pmdp));
+	printk(KERN_INFO "pmd after:  %lx %lx %d\n",pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
 	return 0;
 }
+
 
 static int recover_broken_pgtable(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
 {
@@ -1101,7 +1103,7 @@ int wait_to_recover_broken_pgtable(pmd_t *pmdp)
 }
 EXPORT_SYMBOL_GPL(wait_to_recover_broken_pgtable);
 
-static int fix_krecoverd_failure(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
+static int lazy_replacement(struct mm_struct *mm, struct m_head_struct *mhead, struct page *pte_page)
 {
 	pmd_t *pmdp;
 	// spinlock_t *ptl;
@@ -1198,8 +1200,8 @@ int dec_page_ref_count(pte_t *ptep)
 	struct page *pte_page; 
 	struct m_head_struct *mhead;
 	int ref_count = 0;
-	int count = 0;
-	int ret = 0;
+	// int count = 0;
+	// int ret = 0;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
@@ -1216,9 +1218,9 @@ int dec_page_ref_count(pte_t *ptep)
 					// printk(KERN_INFO "kthread stop\n");
 					// if ((ret = kthread_stop(mhead->kinfo->krecoverd_task)) < 0) {
 					// 	printk(KERN_INFO "kthread failure %d and start recovery\n",ret);
-					// 	fix_krecoverd_failure(mhead->mm, mhead, pte_page);
+					// 	lazy_replacement(mhead->mm, mhead, pte_page);
 					// }
-					if (fix_krecoverd_failure(mhead->mm, mhead, pte_page) < 0) {
+					if (lazy_replacement(mhead->mm, mhead, pte_page) < 0) {
 						delete_broken_pte_all(pte_page->m_log);
 						spin_lock(&pte_page->m_log->recovery_lock);
 						pte_free(mhead->mm, virt_to_page(pte_page->m_log->replica));
