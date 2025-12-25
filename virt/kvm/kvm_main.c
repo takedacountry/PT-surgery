@@ -2575,7 +2575,7 @@ static int hva_to_pfn_remapped(struct vm_area_struct *vma,
 	pte_t *ptep;
 	spinlock_t *ptl;
 	int r;
-	// my code
+	// add for pt surgery 
 	pte_t entry;
 
 	r = follow_pte(vma->vm_mm, addr, &ptep, &ptl);
@@ -2598,7 +2598,7 @@ static int hva_to_pfn_remapped(struct vm_area_struct *vma,
 			return r;
 	}
 
-	// my code
+	// modify for pt surgery 3
 	entry = check_pte_is_broken_for_pte_read(ptep);
 
 	if (write_fault && !pte_write(entry)) {

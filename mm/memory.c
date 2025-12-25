@@ -87,8 +87,8 @@
 #include <asm/tlb.h>
 #include <asm/tlbflush.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 
+#include <asm/pt_surgery.h>
 
 #include "pgalloc-track.h"
 #include "internal.h"
@@ -224,16 +224,15 @@ static void check_sync_rss_stat(struct task_struct *task)
 static void free_pte_range(struct mmu_gather *tlb, pmd_t *pmd,
 			   unsigned long addr)
 {
-	// my code
+	// modify for pt surgery 2
 	// pgtable_t token = pmd_pgtable(*pmd);
 	pgtable_t token;
-	wait_to_recover_broken_pgtable(pmd);
 
 	token = pmd_pgtable(*pmd);
 	pmd_clear(pmd);
 	pte_free_tlb(tlb, token, addr);
-	// my code
-	delete_pte_ds_log((struct page *)token);
+	// add for pt surgery 1
+	destroy_pte_m_log((struct page *)token);
 	mm_dec_nr_ptes(tlb->mm);
 }
 
@@ -401,8 +400,8 @@ void free_pgd_range(struct mmu_gather *tlb,
 			continue;
 		free_p4d_range(tlb, pgd, addr, next, floor, ceiling);
 	} while (pgd++, addr = next, addr != end);
-	// my code
-	delete_pgd_ds_log(virt_to_page((pgd_t *)(((unsigned long)pgd) & PAGE_MASK)));
+	// add for pt surgery
+	destroy_pgd_m_log(virt_to_page((pgd_t *)(((unsigned long)pgd) & PAGE_MASK)));
 }
 
 void free_pgtables(struct mmu_gather *tlb, struct maple_tree *mt,
@@ -481,11 +480,6 @@ int __pte_alloc(struct mm_struct *mm, pmd_t *pmd)
 	if (!new)
 		return -ENOMEM;
 
-	// my code
-	// if(make_pte_m_log((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid) < 0)
-	// 	printk(KERN_INFO "pte m list failure %lx %lx %d\n",(unsigned long)page_address((struct page *)new), (unsigned long)pmd, current->pid);
-	// make_pte_m_log((unsigned long)pmd, (unsigned long)page_address((struct page *)new), current->pid);
-	
 	pmd_install(mm, pmd, &new);
 	if (new)
 		pte_free(mm, new);
@@ -737,13 +731,13 @@ static void restore_exclusive_pte(struct vm_area_struct *vma,
 				  pte_t *ptep)
 {
 	pte_t pte;
-	// my code
+	// add for pt surgery 2
 	pte_t my_pte;
 
 	swp_entry_t entry;
 
 	pte = pte_mkold(mk_pte(page, READ_ONCE(vma->vm_page_prot)));
-	// my code
+	// modify for pt surgery 3
 	my_pte = check_pte_is_broken_for_pte_read(ptep);
 
 	if (pte_swp_soft_dirty(my_pte))
@@ -787,7 +781,7 @@ static int
 try_restore_exclusive_pte(pte_t *src_pte, struct vm_area_struct *vma,
 			unsigned long addr)
 {
-	// my code
+	// modify for pt surgery 1
 	swp_entry_t entry = pte_to_swp_entry(check_pte_is_broken_for_pte_read(src_pte));
 	struct page *page = pfn_swap_entry_to_page(entry);
 
@@ -812,8 +806,9 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 		struct vm_area_struct *src_vma, unsigned long addr, int *rss)
 {
 	unsigned long vm_flags = dst_vma->vm_flags;
-	// my code
+	// modify for pt surgery 1 
 	pte_t pte = check_pte_is_broken_for_pte_read(src_pte);
+	// add for pt surgery 1
 	pte_t my_pte;
 	struct page *page;
 	swp_entry_t entry = pte_to_swp_entry(pte);
@@ -831,8 +826,9 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 			spin_unlock(&mmlist_lock);
 		}
 		/* Mark the swap entry as shared. */
-		// my code
+		// add for pt surgery 1 
 		my_pte = check_pte_is_broken_for_pte_read(src_pte);
+		// modify for pt surgery 2
 		if (pte_swp_exclusive(my_pte)) {
 			pte = pte_swp_clear_exclusive(my_pte);
 			set_pte_at(src_mm, addr, src_pte, pte);
@@ -853,8 +849,9 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 			entry = make_readable_migration_entry(
 							swp_offset(entry));
 			pte = swp_entry_to_pte(entry);
-			// my code
+			// add for pt surgery 1
 			my_pte = check_pte_is_broken_for_pte_read(src_pte);
+			// modify for pt surgery 2
 			if (pte_swp_soft_dirty(my_pte))
 				pte = pte_swp_mksoft_dirty(pte);
 			if (pte_swp_uffd_wp(my_pte))
@@ -890,8 +887,9 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 			entry = make_readable_device_private_entry(
 							swp_offset(entry));
 			pte = swp_entry_to_pte(entry);
-			// my code
+			// add for pt surgery 1
 			my_pte = check_pte_is_broken_for_pte_read(src_pte);
+			// modify for pt surgery 1
 			if (pte_swp_uffd_wp(my_pte))
 				pte = pte_swp_mkuffd_wp(pte);
 			set_pte_at(src_mm, addr, src_pte, pte);
@@ -937,7 +935,7 @@ copy_present_page(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma
 {
 	struct page *new_page;
 	pte_t pte;
-	// my code
+	// add for pt surgery 1
 	pte_t my_pte;
 
 	new_page = *prealloc;
@@ -958,8 +956,10 @@ copy_present_page(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma
 	/* All done, just insert the new page copy in the child */
 	pte = mk_pte(new_page, dst_vma->vm_page_prot);
 	pte = maybe_mkwrite(pte_mkdirty(pte), dst_vma);
-	// my code
+	
+	// add for pt surgery 1
 	my_pte = check_pte_is_broken_for_pte_read(src_pte);
+	// modify for pt surgery 1
 	if (userfaultfd_pte_wp(dst_vma, my_pte))
 		/* Uffd-wp needs to be delivered to dest pte as well */
 		pte = pte_wrprotect(pte_mkuffd_wp(pte));
@@ -978,7 +978,7 @@ copy_present_pte(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 {
 	struct mm_struct *src_mm = src_vma->vm_mm;
 	unsigned long vm_flags = src_vma->vm_flags;
-	// my code
+	// modify for pt surgery 1
 	// pte_t pte = *src_pte;
 	pte_t pte = check_pte_is_broken_for_pte_read(src_pte);
 	struct page *page;
@@ -1063,7 +1063,7 @@ copy_pte_range(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	int rss[NR_MM_COUNTERS];
 	swp_entry_t entry = (swp_entry_t){0};
 	struct page *prealloc = NULL;
-	// my code
+	// add for pt surgery 1
 	pte_t my_pte;
 
 again:
@@ -1093,9 +1093,11 @@ again:
 			    spin_needbreak(src_ptl) || spin_needbreak(dst_ptl))
 				break;
 		}
-		// my code
+		
+		// add for pt surgery 1
 		my_pte = check_pte_is_broken_for_pte_read(src_pte);
 
+		// modify for pt surgery 4
 		if (pte_none(my_pte)) {
 			progress++;
 			continue;
@@ -1454,7 +1456,7 @@ again:
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	do {
-		// my code
+		// modify for pt surgery 1
 		// pte_t ptent = *pte;
 		pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 		struct page *page;
@@ -1898,7 +1900,7 @@ static int validate_page_before_insert(struct page *page)
 static int insert_page_into_pte_locked(struct vm_area_struct *vma, pte_t *pte,
 			unsigned long addr, struct page *page, pgprot_t prot)
 {
-	// my code
+	// modify for pt surgery 1
 	if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
 		return -EBUSY;
 	/* Ok, finally just insert the thing.. */
@@ -2185,13 +2187,13 @@ static vm_fault_t insert_pfn(struct vm_area_struct *vma, unsigned long addr,
 	struct mm_struct *mm = vma->vm_mm;
 	pte_t *pte, entry;
 	spinlock_t *ptl;
-	// my code
+	// add for pt surgery 2
 	pte_t my_pte;
 
 	pte = get_locked_pte(mm, addr, &ptl);
 	if (!pte)
 		return VM_FAULT_OOM;
-	// my code
+	// modify for pt surgery 4
 	my_pte = check_pte_is_broken_for_pte_read(pte);
 	if (!pte_none(my_pte)) {
 		if (mkwrite) {
@@ -2442,7 +2444,7 @@ static int remap_pte_range(struct mm_struct *mm, pmd_t *pmd,
 		return -ENOMEM;
 	arch_enter_lazy_mmu_mode();
 	do {
-		// my code
+		// modify for pt surgery 1
 		BUG_ON(!pte_none(check_pte_is_broken_for_pte_read(pte)));
 		if (!pfn_modify_allowed(pfn, prot)) {
 			err = -EACCES;
@@ -2684,7 +2686,7 @@ static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
 
 	if (fn) {
 		do {
-			// my code
+			// modify for pt surgery 1
 			if (create || !pte_none(check_pte_is_broken_for_pte_read(pte))) {
 				err = fn(pte++, addr, data);
 				if (err)
@@ -5342,10 +5344,6 @@ int __pud_alloc(struct mm_struct *mm, p4d_t *p4d, unsigned long address)
 		smp_wmb(); /* See comment in pmd_install() */
 		p4d_populate(mm, p4d, new);
 
-		// my code
-		// if(make_pud_m_log((unsigned long)p4d, (unsigned long)new) < 0)
-		// 	printk(KERN_INFO "pud m list failure at pud_alloc %ld\n",(unsigned long)new);
-		// make_pud_m_log((unsigned long)p4d, (unsigned long)new, current->pid);
 	} else	/* Another has populated it */
 		pud_free(mm, new);
 	spin_unlock(&mm->page_table_lock);
@@ -5371,10 +5369,6 @@ int __pmd_alloc(struct mm_struct *mm, pud_t *pud, unsigned long address)
 		smp_wmb(); /* See comment in pmd_install() */
 		pud_populate(mm, pud, new);
 
-		// my code
-		// if(make_pmd_m_log((unsigned long)pud, (unsigned long)new) < 0)
-		// 	printk(KERN_INFO "pmd m list failure at pmd_alloc %ld\n",(unsigned long)new);
-		// make_pmd_m_log((unsigned long)pud, (unsigned long)new, current->pid);
 	} else {	/* Another has populated it */
 		pmd_free(mm, new);
 	}
@@ -5432,7 +5426,7 @@ int follow_pte(struct mm_struct *mm, unsigned long address,
 		goto out;
 
 	ptep = pte_offset_map_lock(mm, pmd, address, ptlp);
-	// my code
+	// modify for pt surgery 1
 	if (!pte_present(check_pte_is_broken_for_pte_read(ptep)))
 		goto unlock;
 	*ptepp = ptep;
@@ -5470,7 +5464,7 @@ int follow_pfn(struct vm_area_struct *vma, unsigned long address,
 	ret = follow_pte(vma->vm_mm, address, &ptep, &ptl);
 	if (ret)
 		return ret;
-	// my code
+	// modify for pt surgery 1
 	*pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
 	pte_unmap_unlock(ptep, ptl);
 	return 0;
@@ -5491,7 +5485,7 @@ int follow_phys(struct vm_area_struct *vma,
 
 	if (follow_pte(vma->vm_mm, address, &ptep, &ptl))
 		goto out;
-	// my code
+	// modify for pt surgery 1
 	// pte = *ptep;
 	pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -5530,7 +5524,7 @@ int generic_access_phys(struct vm_area_struct *vma, unsigned long addr,
 	spinlock_t *ptl;
 	int offset = offset_in_page(addr);
 	int ret = -EINVAL;
-	// my code
+	// add for pt surgery 1
 	pte_t my_pte;
 
 	if (!(vma->vm_flags & (VM_IO | VM_PFNMAP)))
@@ -5539,7 +5533,7 @@ int generic_access_phys(struct vm_area_struct *vma, unsigned long addr,
 retry:
 	if (follow_pte(vma->vm_mm, addr, &ptep, &ptl))
 		return -EINVAL;
-	// my code
+	// modify for pt surgery 1
 	// pte = *ptep;
 	pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -5558,8 +5552,9 @@ retry:
 	if (follow_pte(vma->vm_mm, addr, &ptep, &ptl))
 		goto out_unmap;
 
-	// my code
+	// add for pt surgery 1
 	my_pte = check_pte_is_broken_for_pte_read(ptep);
+	// modify for pt surgery 1 
 	if (!pte_same(pte, my_pte)) {
 		pte_unmap_unlock(ptep, ptl);
 		iounmap(maddr);

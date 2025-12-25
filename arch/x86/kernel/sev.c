@@ -477,7 +477,7 @@ fault:
 	return ES_EXCEPTION;
 }
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt *ctxt,
@@ -488,7 +488,7 @@ static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt 
 	phys_addr_t pa;
 	pgd_t *pgd;
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	pgd = __va(read_cr3_pa());
@@ -505,9 +505,9 @@ static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt 
 		return ES_EXCEPTION;
 	}
 
-	// my code
 	entry = check_pte_is_broken_for_pte_read(pte);
 
+	// modify for pt surgery 2
 	if (WARN_ON_ONCE(pte_val(entry) & _PAGE_ENC))
 		/* Emulated MMIO to/from encrypted memory not supported */
 		return ES_UNSUPPORTED;

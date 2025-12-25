@@ -54,8 +54,8 @@
 
 #include <asm/tlbflush.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 #include <trace/events/migrate.h>
 
@@ -302,7 +302,7 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 	swp_entry_t entry;
 
 	spin_lock(ptl);
-	// my code
+	// modify for pt surgery 1
 	// pte = *ptep;
 	pte = check_pte_is_broken_for_pte_read(ptep);
 	if (!is_swap_pte(pte))

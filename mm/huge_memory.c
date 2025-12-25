@@ -46,7 +46,7 @@
 #define CREATE_TRACE_POINTS
 #include <trace/events/thp.h>
 
-// my code
+// add for pt surgery 
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -2033,7 +2033,7 @@ static void __split_huge_zero_page_pmd(struct vm_area_struct *vma,
 
 	for (i = 0; i < HPAGE_PMD_NR; i++, haddr += PAGE_SIZE) {
 		pte_t *pte, entry;
-		// my code
+		// add for pt surgery 2
 		pte_t _entry;
 
 		entry = pfn_pte(my_zero_pfn(haddr), vma->vm_page_prot);
@@ -2041,7 +2041,7 @@ static void __split_huge_zero_page_pmd(struct vm_area_struct *vma,
 		if (pmd_uffd_wp(old_pmd))
 			entry = pte_mkuffd_wp(entry);
 		pte = pte_offset_map(&_pmd, haddr);
-		// my code
+		// modify for pt surgery 1
 		_entry = check_pte_is_broken_for_pte_read(pte);
 
 		VM_BUG_ON(!pte_none(_entry));

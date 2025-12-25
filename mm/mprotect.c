@@ -39,8 +39,8 @@
 
 #include "internal.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 static inline bool can_change_pte_writable(struct vm_area_struct *vma,
 					   unsigned long addr, pte_t pte)
@@ -113,7 +113,7 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
 	flush_tlb_batched_pending(vma->vm_mm);
 	arch_enter_lazy_mmu_mode();
 	do {
-		// my code
+		// modify for pt surgery 1
 		// oldpte = *pte;
 		oldpte = check_pte_is_broken_for_pte_read(pte);
 
@@ -526,7 +526,7 @@ unsigned long change_protection(struct mmu_gather *tlb,
 static int prot_none_pte_entry(pte_t *pte, unsigned long addr,
 			       unsigned long next, struct mm_walk *walk)
 {
-	// my code
+	// modify for pt surgery 1
 	return pfn_modify_allowed(pte_pfn(check_pte_is_broken_for_pte_read(pte)), *(pgprot_t *)(walk->private)) ?
 		0 : -EACCES;
 }
@@ -535,7 +535,7 @@ static int prot_none_hugetlb_entry(pte_t *pte, unsigned long hmask,
 				   unsigned long addr, unsigned long next,
 				   struct mm_walk *walk)
 {
-	// my code
+	// modify for pt surgery 1
 	return pfn_modify_allowed(pte_pfn(check_pte_is_broken_for_pte_read(pte)), *(pgprot_t *)(walk->private)) ?
 		0 : -EACCES;
 }

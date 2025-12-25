@@ -32,8 +32,8 @@
 
 #include "internal.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 static pud_t *get_old_pud(struct mm_struct *mm, unsigned long addr)
 {
@@ -182,7 +182,7 @@ static void move_ptes(struct vm_area_struct *vma, pmd_t *old_pmd,
 
 	for (; old_addr < old_end; old_pte++, old_addr += PAGE_SIZE,
 				   new_pte++, new_addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		if (pte_none(check_pte_is_broken_for_pte_read(old_pte)))
 			continue;
 

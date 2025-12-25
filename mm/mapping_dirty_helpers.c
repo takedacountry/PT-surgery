@@ -7,8 +7,8 @@
 #include <asm/cacheflush.h>
 #include <asm/tlbflush.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 /**
  * struct wp_walk - Private struct for pagetable walk callbacks
@@ -38,7 +38,7 @@ static int wp_pte(pte_t *pte, unsigned long addr, unsigned long end,
 		  struct mm_walk *walk)
 {
 	struct wp_walk *wpwalk = walk->private;
-	// my code
+	// modify for pt surgery
 	// pte_t ptent = *pte;
 	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 
@@ -96,7 +96,7 @@ static int clean_record_pte(pte_t *pte, unsigned long addr,
 {
 	struct wp_walk *wpwalk = walk->private;
 	struct clean_walk *cwalk = to_clean_walk(wpwalk);
-	// my code
+	// modify for pt surgery 1
 	// pte_t ptent = *pte;
 	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 

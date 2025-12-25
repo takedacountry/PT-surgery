@@ -84,8 +84,8 @@
 #include "page_reporting.h"
 #include "swap.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 #include <asm-generic/pgalloc.h>
 
 /* Free Page Internal flags: for internal, non-pcp variants of free_pages(). */
@@ -5585,7 +5585,7 @@ out:
 	trace_mm_page_alloc(page, order, alloc_gfp, ac.migratetype);
 	kmsan_alloc_page(page, order, alloc_gfp);
 
-	// my code
+	// add for pt surgery 2
 	if (page)		
 		page->m_log = NULL;
 
@@ -5652,7 +5652,7 @@ void __free_pages(struct page *page, unsigned int order)
 	/* get PageHead before we drop reference */
 	int head = PageHead(page);
 
-	// my code
+	// add for pt surgery 1
 	page->m_log = NULL;
 
 	if (put_page_testzero(page))

@@ -46,8 +46,8 @@
 #include "internal.h"
 #include "pgalloc-track.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 #ifdef CONFIG_HAVE_ARCH_HUGE_VMAP
 static unsigned int __ro_after_init ioremap_max_page_shift = BITS_PER_LONG - 1;
@@ -114,7 +114,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 	if (!pte)
 		return -ENOMEM;
 	do {
-		// my code
+		// modify for pt surgery 
 		BUG_ON(!pte_none(check_pte_is_broken_for_pte_read(pte)));
 
 #ifdef CONFIG_HUGETLB_PAGE
@@ -484,7 +484,7 @@ static int vmap_pages_pte_range(pmd_t *pmd, unsigned long addr,
 	do {
 		struct page *page = pages[*nr];
 
-		// my code
+		// modify for pt surgery 
 		if (WARN_ON(!pte_none(check_pte_is_broken_for_pte_read(pte))))
 			return -EBUSY;
 		if (WARN_ON(!page))
@@ -716,7 +716,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
 		return NULL;
 
 	ptep = pte_offset_map(pmd, addr);
-	// my code
+	// modify for pt surgery 3
 	// pte = *ptep;
 	pte = check_pte_is_broken_for_pte_read(ptep);
 	if (pte_present(pte))
@@ -2886,15 +2886,15 @@ struct vmap_pfn_data {
 static int vmap_pfn_apply(pte_t *pte, unsigned long addr, void *private)
 {
 	struct vmap_pfn_data *data = private;
-	// my code
+	// add for pt surgery 1
 	int ret;
 
 	if (WARN_ON_ONCE(pfn_valid(data->pfns[data->idx])))
 		return -EINVAL;
 
-	// my code
 	// *pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
 
+	// add for pt surgery 11
 	if((ret = check_pte_is_broken_for_pte_write(pte)) < 0) {
 		*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
 	}
@@ -2903,8 +2903,6 @@ static int vmap_pfn_apply(pte_t *pte, unsigned long addr, void *private)
 		make_pte_ds_log_usr(pte, *pte);
 	}
 	else {
-		// *pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
-		// make_pte_ds_log_usr(pte, *pte);
 		pte_t entry = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
 		make_pte_ds_log_usr(pte, entry);
 	}

@@ -86,7 +86,7 @@
 #include "mmu.h"
 #include "debugfs.h"
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 #ifdef CONFIG_X86_VSYSCALL_EMULATION
@@ -137,7 +137,7 @@ void make_lowmem_page_readonly(void *vaddr)
 	if (pte == NULL)
 		return;		/* vaddr missing */
 
-	// my code
+	// modify for pt surgery 
 	ptev = pte_wrprotect(check_pte_is_broken_for_pte_read(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
@@ -154,7 +154,7 @@ void make_lowmem_page_readwrite(void *vaddr)
 	if (pte == NULL)
 		return;		/* vaddr missing */
 	
-	// my code
+	// modify for pt surgery 
 	ptev = pte_mkwrite(check_pte_is_broken_for_pte_read(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
@@ -297,7 +297,7 @@ static void xen_set_pte(pte_t *ptep, pte_t pteval)
 pte_t xen_ptep_modify_prot_start(struct vm_area_struct *vma,
 				 unsigned long addr, pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 
 	/* Just return the pte as-is.  We preserve the bits on commit */
 	trace_xen_mmu_ptep_modify_prot_start(vma->vm_mm, addr, ptep, check_pte_is_broken_for_pte_read(ptep));
 	return check_pte_is_broken_for_pte_read(ptep);

@@ -47,8 +47,8 @@
 #include "internal.h"
 #include "hugetlb_vmemmap.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 
+#include <asm/pt_surgery.h>
 
 int hugetlb_max_hstate __read_mostly;
 unsigned int default_hstate_idx;
@@ -7116,7 +7116,7 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, struct vm_area_struct *vma,
 	p4d_t *p4d;
 	pud_t *pud;
 	pte_t *pte = NULL;
-	// my code
+	// add for pt surgery 2 
 	pte_t entry;
 
 	pgd = pgd_offset(mm, addr);
@@ -7135,9 +7135,9 @@ pte_t *huge_pte_alloc(struct mm_struct *mm, struct vm_area_struct *vma,
 				pte = (pte_t *)pmd_alloc(mm, pud, addr);
 		}
 	}
-	// my code
 	entry = check_pte_is_broken_for_pte_read(pte);
 
+	// modify for pt surgery 1
 	BUG_ON(pte && pte_present(entry) && !pte_huge(entry));
 
 	return pte;

@@ -523,7 +523,7 @@ static void smaps_pte_hole_lookup(unsigned long addr, struct mm_walk *walk)
 #endif
 }
 
-// my code
+// add for pt surgery 2
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static void smaps_pte_entry(pte_t *pte, unsigned long addr,
@@ -535,9 +535,10 @@ static void smaps_pte_entry(pte_t *pte, unsigned long addr,
 	struct page *page = NULL;
 	bool migration = false, young = false, dirty = false;
 
-	// my code
+	// add for pt surgery 1
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+	// modify for pt surgery 6
 	if (pte_present(entry)) {
 		page = vm_normal_page(vma, addr, entry);
 		young = pte_young(entry);
@@ -734,9 +735,10 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
 	struct vm_area_struct *vma = walk->vma;
 	struct page *page = NULL;
 
-	// my code
+	// add for pt surgery 1
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+	// modify for pt surgery 4 
 	if (pte_present(entry)) {
 		page = vm_normal_page(vma, addr, entry);
 	} else if (is_swap_pte(entry)) {
@@ -1112,7 +1114,7 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
 	 * of how soft-dirty works.
 	 */
 
-	// my code
+	// modify for pt surgery 1 
 	// pte_t ptent = *pte;
 	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
 
@@ -1202,7 +1204,7 @@ out:
 
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// ptent = *pte;
 		ptent = check_pte_is_broken_for_pte_read(pte);
 
@@ -1559,9 +1561,10 @@ static int pagemap_pmd_range(pmd_t *pmdp, unsigned long addr, unsigned long end,
 	for (; addr < end; pte++, addr += PAGE_SIZE) {
 		pagemap_entry_t pme;
 
-		// my code
+		// add for pt surgery 1
 		pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+		// modify for pt surgery 2 
 		pme = pte_to_pagemap_entry(pm, vma, addr, entry);
 		err = add_to_pagemap(addr, &pme, pm);
 		if (err)
@@ -1899,9 +1902,10 @@ static int gather_pte_stats(pmd_t *pmd, unsigned long addr,
 #endif
 	orig_pte = pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	do {
-		// my code
+		// add for pt surgery 1
 		pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+		// modify for pt surgery 2 
 		struct page *page = can_gather_numa_stats(entry, vma, addr);
 		if (!page)
 			continue;

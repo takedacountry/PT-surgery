@@ -37,8 +37,8 @@
 #include "internal.h"
 #include "swap.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>  
 
 struct madvise_walk_private {
 	struct mmu_gather *tlb;
@@ -214,7 +214,7 @@ static int swapin_walk_pmd_entry(pmd_t *pmd, unsigned long start,
 		pte_t *ptep;
 
 		ptep = pte_offset_map_lock(vma->vm_mm, pmd, index, &ptl);
-		// my code
+		// modify for pt surgery 1
 		// pte = *ptep;
 		pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -419,7 +419,7 @@ regular_page:
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr < end; pte++, addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// ptent = *pte;
 		ptent = check_pte_is_broken_for_pte_read(pte);
 
@@ -627,7 +627,7 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 	flush_tlb_batched_pending(mm);
 	arch_enter_lazy_mmu_mode();
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// ptent = *pte;
 		ptent = check_pte_is_broken_for_pte_read(pte);
 

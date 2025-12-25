@@ -66,8 +66,8 @@
 #include "internal.h"
 #include "ras/ras_event.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 int sysctl_memory_failure_early_kill __read_mostly = 0;
 
@@ -318,7 +318,7 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	VM_BUG_ON_VMA(address == -EFAULT, vma);
@@ -339,9 +339,9 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	if (pmd_devmap(*pmd))
 		return PMD_SHIFT;
 	pte = pte_offset_map(pmd, address);
-	// my code
 	entry = check_pte_is_broken_for_pte_read(pte);
 	
+	// modify for pt surgery 1
 	if (pte_present(entry) && pte_devmap(entry))
 		ret = PAGE_SHIFT;
 	pte_unmap(pte);
@@ -700,7 +700,7 @@ static int hwpoison_pte_range(pmd_t *pmdp, unsigned long addr,
 	mapped_pte = ptep = pte_offset_map_lock(walk->vma->vm_mm, pmdp,
 						addr, &ptl);
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1 add 1
 		pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
 		ret = check_hwpoisoned_entry(entry, addr, PAGE_SHIFT,

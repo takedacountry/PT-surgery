@@ -24,7 +24,7 @@
 
 #include "internal.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 struct follow_page_context {
@@ -473,7 +473,7 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
 		pte_t *pte, unsigned int flags)
 {
 	if (flags & FOLL_TOUCH) {
-		// my code
+		// modify for pt surgery 6
 		// pte_t entry = *pte;
 		pte_t entry, _entry;
 		entry = check_pte_is_broken_for_pte_read(pte);
@@ -562,7 +562,7 @@ retry:
 		return no_page_table(vma, flags);
 
 	ptep = pte_offset_map_lock(mm, pmd, address, &ptl);
-	// my code
+	// modify for pt surgery 1
 	// pte = *ptep;
 	pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -938,7 +938,7 @@ static int get_gate_page(struct mm_struct *mm, unsigned long address,
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 	int ret = -EFAULT;
 
@@ -962,7 +962,7 @@ static int get_gate_page(struct mm_struct *mm, unsigned long address,
 		return -EFAULT;
 	VM_BUG_ON(pmd_trans_huge(*pmd));
 	pte = pte_offset_map(pmd, address);
-	// my code
+	// modify for pt surgery 4
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (pte_none(entry))
@@ -2444,7 +2444,7 @@ static int gup_pte_range(pmd_t pmd, pmd_t *pmdp, unsigned long addr,
 	struct dev_pagemap *pgmap = NULL;
 	int nr_start = *nr, ret = 0;
 	pte_t *ptep, *ptem;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	ptem = ptep = pte_offset_map(&pmd, addr);
@@ -2485,6 +2485,7 @@ static int gup_pte_range(pmd_t pmd, pmd_t *pmdp, unsigned long addr,
 
 		entry = check_pte_is_broken_for_pte_read(ptep);
 
+		// modify for pt surgery 1 
 		if (unlikely(pmd_val(pmd) != pmd_val(*pmdp)) ||
 		    unlikely(pte_val(pte) != pte_val(entry))) {
 			gup_put_folio(folio, 1, flags);
@@ -2651,7 +2652,7 @@ static int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
 	struct page *page;
 	struct folio *folio;
 	pte_t pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 	int refs;
 
@@ -2676,6 +2677,7 @@ static int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
 	
 	entry = check_pte_is_broken_for_pte_read(ptep);
 
+	// modify for pt surgery 1 
 	if (unlikely(pte_val(pte) != pte_val(entry))) {
 		gup_put_folio(folio, refs, flags);
 		return 0;

@@ -17,8 +17,8 @@
 #include <asm/tlbflush.h>
 #include "internal.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 static int migrate_vma_collect_skip(unsigned long start,
 				    unsigned long end,
@@ -121,7 +121,7 @@ again:
 		swp_entry_t entry;
 		pte_t pte;
 
-		// my code
+		// modify for pt surgery 1
 		// pte = *ptep;
 		pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -206,7 +206,7 @@ again:
 			bool anon_exclusive;
 			pte_t swp_pte;
 
-			// my code
+			// modify for pt surgery 1
 			flush_cache_page(vma, addr, pte_pfn(check_pte_is_broken_for_pte_read(ptep)));
 			anon_exclusive = PageAnon(page) && PageAnonExclusive(page);
 			if (anon_exclusive) {
@@ -586,7 +586,7 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 	pud_t *pudp;
 	pmd_t *pmdp;
 	pte_t *ptep;
-	// my code
+	// add for pt surgery 2
 	pte_t my_pte;
 
 	/* Only allow populating anonymous memory */
@@ -662,7 +662,7 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 	if (check_stable_address_space(mm))
 		goto unlock_abort;
 
-	// my code
+	// modify for pt surgery 4
 	my_pte = check_pte_is_broken_for_pte_read(ptep);
 
 	if (pte_present(my_pte)) {

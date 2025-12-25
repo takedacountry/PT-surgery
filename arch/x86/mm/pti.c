@@ -39,7 +39,7 @@
 #include <asm/sections.h>
 #include <asm/set_memory.h>
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 #undef pr_fmt
@@ -269,7 +269,7 @@ static pte_t *pti_user_pagetable_walk_pte(unsigned long address)
 	}
 
 	pte = pte_offset_kernel(pmd, address);
-	// my code
+	// modify for pt surgery 1
 	if (pte_flags(check_pte_is_broken_for_pte_read(pte)) & _PAGE_USER) {
 		WARN_ONCE(1, "attempt to walk to user pte\n");
 		return NULL;
@@ -282,11 +282,11 @@ static void __init pti_setup_vsyscall(void)
 {
 	pte_t *pte, *target_pte;
 	unsigned int level;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	pte = lookup_address(VSYSCALL_ADDR, &level);
-	// my code
+	// modify for pt surgery 2
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (!pte || WARN_ON(level != PG_LEVEL_4K) || pte_none(entry))
@@ -324,7 +324,7 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 		pgd_t *pgd;
 		p4d_t *p4d;
 		pud_t *pud;
-		// my code
+		// add for pt surgery 2
 		pte_t entry;
 
 		/* Overflow check */
@@ -392,7 +392,7 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 			/* Walk the page-table down to the pte level */
 			pte = pte_offset_kernel(pmd, addr);
 			
-			// my code
+			// modify for pt surgery 4
 			entry = check_pte_is_broken_for_pte_read(pte);
 
 			if (pte_none(entry)) {

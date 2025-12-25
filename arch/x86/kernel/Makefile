@@ -67,10 +67,10 @@ obj-y			+= resource.o
 obj-y			+= irqflags.o
 obj-y			+= static_call.o
 
-obj-y                   += mycall_print_pgtable.o
-obj-y                   += mycall_ds.o
-obj-y                   += mycall_ds_delete.o
-obj-y                   += mycall_ds_recovery.o
+obj-y					+= pt_surgery_construct.o
+obj-y                   += pt_surgery_debug.o
+obj-y                   += pt_surgery_recovery.o
+obj-y                   += pt_surgery_sync.o
 
 obj-y				+= process.o
 obj-y				+= fpu/

@@ -1681,11 +1681,12 @@ static int igt_mmap_gpu(void *arg)
 	return 0;
 }
 
-// my code
+// add for pt surgery 2
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static int check_present_pte(pte_t *pte, unsigned long addr, void *data)
 {
+	// modify for pt surgery 1
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
 	if (!pte_present(entry) || pte_none(entry)) {
 		pr_err("missing PTE:%lx\n",

@@ -44,8 +44,8 @@
 #include "internal.h"
 #include "mm_slot.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 #ifdef CONFIG_NUMA
 #define NUMA(x)		(x)
@@ -1023,8 +1023,6 @@ static u32 calc_checksum(struct page *page)
 	return checksum;
 }
 
-// my code
-// How to check broken pte.
 static int write_protect_page(struct vm_area_struct *vma, struct page *page,
 			      pte_t *orig_pte)
 {
@@ -1131,7 +1129,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	unsigned long addr;
 	int err = -EFAULT;
 	struct mmu_notifier_range range;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	addr = page_address_in_vma(page, vma);
@@ -1156,7 +1154,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 	mmu_notifier_invalidate_range_start(&range);
 
 	ptep = pte_offset_map_lock(mm, pmd, addr, &ptl);
-	// my code
+	// modify for pt surgery 2
 	entry = check_pte_is_broken_for_pte_read(ptep);
 
 	if (!pte_same(entry, orig_pte)) {

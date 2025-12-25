@@ -1057,6 +1057,14 @@ asmlinkage long sys_set_mempolicy_home_node(unsigned long start, unsigned long l
 					    unsigned long home_node,
 					    unsigned long flags);
 
+
+/* pt_surgery system calls */
+asmlinkage long sys_pt_surgery_register_pid(void);
+asmlinkage long sys_pt_surgery_handle_damaged_pte(unsigned long addr);
+asmlinkage long sys_pt_surgery_print_user_pgtable(void);
+asmlinkage long sys_pt_surgery_print_ds_log(void);
+asmlinkage long sys_pt_surgery_count_ds_log(void);
+
 /*
  * Architecture-specific system calls
  */

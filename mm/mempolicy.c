@@ -109,8 +109,8 @@
 
 #include "internal.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 /* Internal flags */
 #define MPOL_MF_DISCONTIG_OK (MPOL_MF_INTERNAL << 0)	/* Skip checks for continuous vmas */
@@ -522,8 +522,9 @@ static int queue_pages_pte_range(pmd_t *pmd, unsigned long addr,
 
 	mapped_pte = pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
-		// my code
+		// add for pt surgery 1
 		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		// modify for pt surgery 2
 		if (!pte_present(entry))
 			continue;
 		page = vm_normal_page(vma, addr, entry);

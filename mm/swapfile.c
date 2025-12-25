@@ -47,7 +47,7 @@
 #include <linux/swap_cgroup.h>
 #include "swap.h"
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static bool swap_count_continued(struct swap_info_struct *, pgoff_t,
@@ -1770,7 +1770,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 	spinlock_t *ptl;
 	pte_t *pte, new_pte;
 	int ret = 1;
-	// my code
+	// add for pt surgery 2
 	pte_t my_pte;
 
 	swapcache = page;
@@ -1779,7 +1779,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		return -ENOMEM;
 
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
-	// my code
+	// modify for pt surgery 1
 	if (unlikely(!pte_same_as_swp(check_pte_is_broken_for_pte_read(pte), swp_entry_to_pte(entry)))) {
 		ret = 0;
 		goto out;
@@ -1812,7 +1812,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		 * call and have the page locked.
 		 */
 		VM_BUG_ON_PAGE(PageWriteback(page), page);
-		// my code
+		// modify for pt surgery 1
 		if (pte_swp_exclusive(check_pte_is_broken_for_pte_read(pte)))
 			rmap_flags |= RMAP_EXCLUSIVE;
 
@@ -1822,7 +1822,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		lru_cache_add_inactive_or_unevictable(page, vma);
 	}
 	new_pte = pte_mkold(mk_pte(page, vma->vm_page_prot));
-	// my code
+	// modify for pt surgery 2
 	my_pte = check_pte_is_broken_for_pte_read(pte);
 	if (pte_swp_soft_dirty(my_pte))
 		new_pte = pte_mksoft_dirty(new_pte);
@@ -1854,9 +1854,10 @@ static int unuse_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
 	do {
 		struct folio *folio;
 		unsigned long offset;
-		// my code
+		// add for pt surgery 1
 		pte_t my_pte = check_pte_is_broken_for_pte_read(pte);
 
+		// modify for pt surgery 2
 		if (!is_swap_pte(my_pte))
 			continue;
 

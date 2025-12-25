@@ -16,7 +16,7 @@
 #include <asm/cacheflush.h>
 #include <asm/kdebug.h>
 
-// my code
+// add for pt surgery 1 
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -61,8 +61,8 @@ static int print_split(struct split_state *s)
 		unsigned long addr = (unsigned long)__va(i << PAGE_SHIFT);
 		unsigned int level;
 		pte_t *pte;
-		// my code
-		pte_t entry;
+		// add for pt surgery 3
+ 		pte_t entry;
 
 		pte = lookup_address(addr, &level);
 		if (!pte) {
@@ -71,7 +71,7 @@ static int print_split(struct split_state *s)
 			continue;
 		}
 
-		// my code
+		// modify for pt surgery 3
 		entry = check_pte_is_broken_for_pte_read(pte);
 
 		if (level == PG_LEVEL_1G && sizeof(long) == 8) {
@@ -131,7 +131,7 @@ static int pageattr_test(void)
 	unsigned int level;
 	int i, k;
 	int err;
-	// my code
+	// add for pt surgery 4 
 	pte_t entry;
 
 	if (print)
@@ -161,7 +161,7 @@ static int pageattr_test(void)
 		for (k = 0; k < len[i]; k++) {
 			pte = lookup_address(addr[i] + k*PAGE_SIZE, &level);
 
-			// my code
+			// modify for pt surgery 4
 			entry = check_pte_is_broken_for_pte_read(pte);
 			if (!pte || pgprot_val(pte_pgprot(entry)) == 0 ||
 			    !(pte_val(entry) & _PAGE_PRESENT)) {
@@ -212,7 +212,7 @@ static int pageattr_test(void)
 
 		pte = lookup_address(addr[i], &level);
 
-		// my code
+		// modify for pt surgery 2
 		entry = check_pte_is_broken_for_pte_read(pte);
 		if (!pte || !pte_testbit(entry) || pte_huge(entry)) {
 			printk(KERN_ERR "CPA %lx: bad pte %Lx\n", addr[i],
@@ -246,7 +246,7 @@ static int pageattr_test(void)
 		}
 		pte = lookup_address(addr[i], &level);
 		
-		// my code
+		// modify for pt surgery 2
 		entry = check_pte_is_broken_for_pte_read(pte);
 		if (!pte || pte_testbit(entry)) {
 			printk(KERN_ERR "CPA %lx: bad pte after revert %Lx\n",

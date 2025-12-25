@@ -73,8 +73,8 @@
 
 #include <trace/events/vmscan.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 struct cgroup_subsys memory_cgrp_subsys __read_mostly;
 EXPORT_SYMBOL(memory_cgrp_subsys);
@@ -5940,7 +5940,7 @@ static int mem_cgroup_count_precharge_pte_range(pmd_t *pmd,
 		return 0;
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	for (; addr != end; pte++, addr += PAGE_SIZE)
-		if (get_mctgt_type(vma, addr, check_pte_is_broken_for_pte_read(pte), NULL)) // my code
+		if (get_mctgt_type(vma, addr, check_pte_is_broken_for_pte_read(pte), NULL)) // modify for pt surgery 1
 			mc.precharge++;	/* increment precharge temporarily */
 	pte_unmap_unlock(pte - 1, ptl);
 	cond_resched();
@@ -6159,7 +6159,7 @@ static int mem_cgroup_move_charge_pte_range(pmd_t *pmd,
 retry:
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	for (; addr != end; addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t ptent = *(pte++);
 		pte_t ptent = check_pte_is_broken_for_pte_read(pte++);
 

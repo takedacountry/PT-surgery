@@ -22,7 +22,7 @@
 #define DAMON_MIN_REGION 1
 #endif
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -304,7 +304,7 @@ static int damon_mkold_pmd_entry(pmd_t *pmd, unsigned long addr,
 		unsigned long next, struct mm_walk *walk)
 {
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 	spinlock_t *ptl;
 
@@ -326,7 +326,7 @@ static int damon_mkold_pmd_entry(pmd_t *pmd, unsigned long addr,
 	if (pmd_none(*pmd) || unlikely(pmd_bad(*pmd)))
 		return 0;
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
-	// my code
+	// modify for pt surgery 1
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (!pte_present(entry))
@@ -438,7 +438,7 @@ static int damon_young_pmd_entry(pmd_t *pmd, unsigned long addr,
 		unsigned long next, struct mm_walk *walk)
 {
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2 
 	pte_t entry;
 	spinlock_t *ptl;
 	struct page *page;
@@ -478,7 +478,7 @@ regular_page:
 		return -EINVAL;
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	
-	// my code
+	// modify for pt surgery 3
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (!pte_present(entry))

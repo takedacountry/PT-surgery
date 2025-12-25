@@ -76,14 +76,14 @@ static bool is_enabled(void)
 	return atomic_read(&mmiotrace_enabled);
 }
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static void print_pte(unsigned long address)
 {
 	unsigned int level;
 	pte_t *pte = lookup_address(address, &level);
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	if (!pte) {
@@ -92,7 +92,7 @@ static void print_pte(unsigned long address)
 		return;
 	}
 
-	// my code
+	// modify for pt surgery 2
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (level == PG_LEVEL_2M) {

@@ -167,7 +167,7 @@ static void __init sme_populate_pgd_large(struct sme_populate_pgd_data *ppd)
 	set_pmd(pmd, __pmd(ppd->paddr | ppd->pmd_flags));
 }
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static void __init sme_populate_pgd(struct sme_populate_pgd_data *ppd)
@@ -192,7 +192,7 @@ static void __init sme_populate_pgd(struct sme_populate_pgd_data *ppd)
 		return;
 
 	pte = pte_offset_map(pmd, ppd->vaddr);
-	// my code
+	// modify for pt surgery 1
 	if (pte_none(check_pte_is_broken_for_pte_read(pte)))
 		set_pte(pte, __pte(ppd->paddr | ppd->pte_flags));
 }

@@ -25,8 +25,8 @@
 #include "internal.h"
 #include "mm_slot.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 
+#include <asm/pt_surgery.h>
 
 enum scan_result {
 	SCAN_FAIL,
@@ -508,7 +508,7 @@ static void release_pte_pages(pte_t *pte, pte_t *_pte,
 	struct page *page, *tmp;
 
 	while (--_pte >= pte) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
 		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
 
@@ -548,7 +548,7 @@ static int __collapse_huge_page_isolate(struct vm_area_struct *vma,
 
 	for (_pte = pte; _pte < pte + HPAGE_PMD_NR;
 	     _pte++, address += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
 		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
 
@@ -692,7 +692,7 @@ static void __collapse_huge_page_copy(pte_t *pte, struct page *page,
 	pte_t *_pte;
 	for (_pte = pte; _pte < pte + HPAGE_PMD_NR;
 				_pte++, page++, address += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
 		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
 
@@ -1165,7 +1165,7 @@ static int hpage_collapse_scan_pmd(struct mm_struct *mm,
 	pte = pte_offset_map_lock(mm, pmd, address, &ptl);
 	for (_address = address, _pte = pte; _pte < pte + HPAGE_PMD_NR;
 	     _pte++, _address += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
 		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
 
@@ -1546,7 +1546,7 @@ int collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr,
 	for (i = 0, addr = haddr, pte = start_pte;
 	     i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE, pte++) {
 		struct page *page;
-		// my code
+		// modify for pt surgery 4
 		pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
 		/* empty pte, skip */
@@ -1575,9 +1575,10 @@ int collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr,
 	for (i = 0, addr = haddr, pte = start_pte;
 	     i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE, pte++) {
 		struct page *page;
-		// my code
+		// add for pt surgery 1	
 		pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+		// modify for pt surgery 2 
 		if (pte_none(entry))
 			continue;
 		page = vm_normal_page(vma, addr, entry);

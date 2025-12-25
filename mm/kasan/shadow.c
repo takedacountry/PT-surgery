@@ -26,7 +26,7 @@
 
 #include "kasan.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 bool __kasan_check_read(const volatile void *p, unsigned int size)
@@ -153,7 +153,7 @@ static bool shadow_mapped(unsigned long addr)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2 
 	pte_t entry;
 
 	if (pgd_none(*pgd))
@@ -179,7 +179,7 @@ static bool shadow_mapped(unsigned long addr)
 	if (pmd_bad(*pmd))
 		return true;
 	pte = pte_offset_kernel(pmd, addr);
-	// my code
+	// modify for pt surgery 1
 	entry = check_pte_is_broken_for_pte_read(pte);
 	return !pte_none(entry);
 }
@@ -271,9 +271,10 @@ static int kasan_populate_vmalloc_pte(pte_t *ptep, unsigned long addr,
 {
 	unsigned long page;
 	pte_t pte;
-	// my code
+	// add for pt surgery 1
 	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
+	// modify for pt surgery 2
 	if (likely(!pte_none(entry)))
 		return 0;
 
@@ -374,9 +375,10 @@ static int kasan_depopulate_vmalloc_pte(pte_t *ptep, unsigned long addr,
 					void *unused)
 {
 	unsigned long page;
-	// my code
+	// add for pt surgery 1
 	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
 
+	// modify for pt surgery 2
 	page = (unsigned long)__va(pte_pfn(entry) << PAGE_SHIFT);
 
 	spin_lock(&init_mm.page_table_lock);

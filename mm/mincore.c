@@ -22,8 +22,8 @@
 #include <linux/uaccess.h>
 #include "swap.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 static int mincore_hugetlb(pte_t *pte, unsigned long hmask, unsigned long addr,
 			unsigned long end, struct mm_walk *walk)
@@ -123,7 +123,7 @@ static int mincore_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 
 	ptep = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
-		// my code
+		// modify for pt surgery 1
 		// pte_t pte = *ptep;
 		pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 

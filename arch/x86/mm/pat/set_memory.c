@@ -35,8 +35,8 @@
 
 #include "../mm_internal.h"
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 /*
  * The current flushing context - we pass it instead of 5 arguments:
@@ -393,7 +393,7 @@ static void cpa_flush(struct cpa_data *data, int cache)
 		/*
 		 * Only flush present addresses:
 		 */
-		// my code
+		// modify for pt surgery 1
 		if (pte && (pte_val(check_pte_is_broken_for_pte_read(pte)) & _PAGE_PRESENT))
 			clflush_cache_range_opt((void *)fix_addr(addr), PAGE_SIZE);
 	}
@@ -758,7 +758,7 @@ phys_addr_t slow_virt_to_phys(void *__virt_addr)
 		offset = virt_addr & ~PMD_PAGE_MASK;
 		break;
 	default:
-		phys_addr = (phys_addr_t)pte_pfn(check_pte_is_broken_for_pte_read(pte)) << PAGE_SHIFT; // my code
+		phys_addr = (phys_addr_t)pte_pfn(check_pte_is_broken_for_pte_read(pte)) << PAGE_SHIFT; // modify for pt surgery 1
 		offset = virt_addr & ~PAGE_MASK;
 	}
 
@@ -1138,7 +1138,7 @@ static bool try_to_free_pte_page(pte_t *pte)
 	// 	if (!pte_none(pte[i]))
 	// 		return false;
 
-	// my code	
+	// modify for pt surgery 1
 	pte_t *my_pte = pte;
 	for (i = 0; i < PTRS_PER_PTE; i++, my_pte++)
 		if(!pte_none(check_pte_is_broken_for_pte_read(my_pte)))
@@ -1575,7 +1575,7 @@ repeat:
 	if (!kpte)
 		return __cpa_process_fault(cpa, address, primary);
 
-	// my code
+	// add for pt surgery 1
 	old_pte = check_pte_is_broken_for_pte_read(kpte);
 
 	if (pte_none(old_pte))

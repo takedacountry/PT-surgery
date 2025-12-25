@@ -37,7 +37,7 @@
 
 #include "mm_internal.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -257,7 +257,7 @@ static unsigned long pg_level_to_pfn(int level, pte_t *kpte, pgprot_t *ret_prot)
 	unsigned long pfn = 0;
 	pgprot_t prot;
 	
-	// my code
+	// modify for pt surgery 2
 	pte_t entry = check_pte_is_broken_for_pte_read(kpte);
 
 	switch (level) {
@@ -306,7 +306,7 @@ static void enc_dec_hypercall(unsigned long vaddr, int npages, bool enc)
 		pte_t *kpte;
 
 		kpte = lookup_address(vaddr, &level);
-		// my code
+		// modify for pt surgery 1
 		if (!kpte || pte_none(check_pte_is_broken_for_pte_read(kpte))) {
 			WARN_ONCE(1, "kpte lookup for vaddr\n");
 			return;
@@ -423,7 +423,7 @@ static int __init early_set_memory_enc_dec(unsigned long vaddr,
 	for (; vaddr < vaddr_end; vaddr = vaddr_next) {
 		kpte = lookup_address(vaddr, &level);
 
-		// my code
+		// modify for pt surgery 1
 		if (!kpte || pte_none(check_pte_is_broken_for_pte_read(kpte))) {
 			ret = 1;
 			goto out;

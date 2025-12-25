@@ -14,8 +14,8 @@
 #include <asm-generic/pgtable_uffd.h>
 #include <linux/page_table_check.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery
+#include <asm/pt_surgery.h>
 
 #if 5 - defined(__PAGETABLE_P4D_FOLDED) - defined(__PAGETABLE_PUD_FOLDED) - \
 	defined(__PAGETABLE_PMD_FOLDED) != CONFIG_PGTABLE_LEVELS
@@ -97,15 +97,22 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 #define pte_offset_kernel pte_offset_kernel
 #endif
 
-// my code
-static inline pte_t *pte_offset_map_alternative(pmd_t *pmd, unsigned long address)
+// add for pt surgery 5
+static inline pte_t *pte_offset_map_inc_page_ref_read(pmd_t *pmd, unsigned long address)
 {
-	inc_page_ref_count((pte_t *)pmd_page_vaddr(*pmd));
+	inc_page_ref_count_read((pte_t *)pmd_page_vaddr(*pmd));
 	return pte_offset_kernel(pmd, address);
 }
 
-// my code
-static inline void pte_unmap_alternative(pte_t *pte)
+// add for pt surgery 
+static inline pte_t *pte_offset_map_inc_page_ref_write(pmd_t *pmd, unsigned long address)
+{
+	inc_page_ref_count_write((pte_t *)pmd_page_vaddr(*pmd));
+	return pte_offset_kernel(pmd, address);
+}
+ 
+// add for pt surgery 4
+static inline void pte_unmap_dec_page_ref(pte_t *pte)
 {
 	dec_page_ref_count(pte);
 }
@@ -114,12 +121,19 @@ static inline void pte_unmap_alternative(pte_t *pte)
 #define pte_offset_map(dir, address)				\
 	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
 	 pte_index((address)))
+// add for pt surgery 1
+#define pte_offset_map_for_pte_write(dir, address) pte_offset_map(dir, address)
 #define pte_unmap(pte) kunmap_atomic((pte))
 #else
 // #define pte_offset_map(dir, address)	pte_offset_kernel((dir), (address))
-#define pte_offset_map(dir, address)	pte_offset_map_alternative((dir), (address)) // my code
 // #define pte_unmap(pte) ((void)(pte))	/* NOP */
-#define pte_unmap(pte) 					pte_unmap_alternative((pte)) // my code
+
+// modify for pt surgery 2
+#define pte_offset_map(dir, address)				pte_offset_map_inc_page_ref_read((dir), (address))
+#define pte_unmap(pte) 								pte_unmap_dec_page_ref((pte))
+
+// add for pt surgery 1
+#define pte_offset_map_for_pte_write(dir, address) 	pte_offset_map_inc_page_ref_write((dir), (address))
 #endif
 
 /* Find an entry in the second-level page table.. */
@@ -227,7 +241,7 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
 					    unsigned long address,
 					    pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 1
 	// pte_t pte = *ptep;
 	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 	int r = 1;
@@ -316,7 +330,7 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 				       unsigned long address,
 				       pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 1
 	// pte_t pte = *ptep;
 	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 
@@ -335,7 +349,7 @@ static inline void ptep_clear(struct mm_struct *mm, unsigned long addr,
 #ifndef __HAVE_ARCH_PTEP_GET
 static inline pte_t ptep_get(pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 2
 	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 	return pte;
 	// return READ_ONCE(*ptep);
@@ -508,7 +522,7 @@ extern pud_t pudp_huge_clear_flush(struct vm_area_struct *vma,
 struct mm_struct;
 static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long address, pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 1
 	// pte_t old_pte = *ptep;
 	pte_t old_pte = check_pte_is_broken_for_pte_read(ptep);
 	

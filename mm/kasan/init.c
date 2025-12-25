@@ -19,7 +19,7 @@
 
 #include "kasan.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -285,14 +285,14 @@ int __ref kasan_populate_early_shadow(const void *shadow_start,
 static void kasan_free_pte(pte_t *pte_start, pmd_t *pmd)
 {
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2 
 	pte_t entry;
 	int i;
 
 	for (i = 0; i < PTRS_PER_PTE; i++) {
 		pte = pte_start + i;
-		// my code
 		entry = check_pte_is_broken_for_pte_read(pte);
+		// modify for pt surgery 1
 		if (!pte_none(entry))
 			return;
 	}
@@ -350,7 +350,7 @@ static void kasan_remove_pte_table(pte_t *pte, unsigned long addr,
 				unsigned long end)
 {
 	unsigned long next;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	for (; addr < end; addr = next, pte++) {
@@ -358,9 +358,9 @@ static void kasan_remove_pte_table(pte_t *pte, unsigned long addr,
 		if (next > end)
 			next = end;
 
-		// my code
 		entry = check_pte_is_broken_for_pte_read(pte);
 
+		// modify for pt surgery 2
 		if (!pte_present(entry))
 			continue;
 

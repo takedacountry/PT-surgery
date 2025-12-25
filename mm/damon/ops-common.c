@@ -12,7 +12,7 @@
 
 #include "ops-common.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -39,7 +39,7 @@ struct page *damon_get_page(unsigned long pfn)
 void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 {
 	bool referenced = false;
-	// my code
+	// add for pt surgery 12
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
 	int ret;
 	struct page *page = damon_get_page(pte_pfn(entry));
@@ -47,9 +47,9 @@ void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 	if (!page)
 		return;
 
+	// modify for pt surgery 2
 	if (pte_young(entry)) {
 		referenced = true;
-		// my code
 		// *pte = pte_mkold(*pte);
 		entry = pte_mkold(entry);
 
@@ -64,7 +64,6 @@ void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 			// *pte = entry;
 			make_pte_ds_log_usr(pte, entry);
 		}
-		// fin
 	}
 
 #ifdef CONFIG_MMU_NOTIFIER

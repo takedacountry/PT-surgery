@@ -28,7 +28,7 @@
 
 #include "internal.h"
 
-// my code
+// add for pt surgery 
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 struct hmm_vma_walk {
@@ -231,7 +231,7 @@ static int hmm_vma_handle_pte(struct mm_walk *walk, unsigned long addr,
 	struct hmm_range *range = hmm_vma_walk->range;
 	unsigned int required_fault;
 	unsigned long cpu_flags;
-	// my code
+	// modify for pt surgery 1
 	// pte_t pte = *ptep;
 	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
 

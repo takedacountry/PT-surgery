@@ -35,7 +35,7 @@ static __init void *early_alloc(size_t size, int nid, bool should_panic)
 	return ptr;
 }
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static void __init kasan_populate_pmd(pmd_t *pmd, unsigned long addr,
@@ -64,7 +64,7 @@ static void __init kasan_populate_pmd(pmd_t *pmd, unsigned long addr,
 		pte_t entry;
 		void *p;
 
-		// my code
+		// modify for pt surgery 3
 		if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
 			continue;
 

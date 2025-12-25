@@ -31,7 +31,7 @@
 #include <asm/dma.h>
 #include <asm/pgalloc.h>
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -136,7 +136,7 @@ static void * __meminit altmap_alloc_block_buf(unsigned long size,
 void __meminit vmemmap_verify(pte_t *pte, int node,
 				unsigned long start, unsigned long end)
 {
-	// my code
+	// modify for pt surgery 1
 	unsigned long pfn = pte_pfn(check_pte_is_broken_for_pte_read(pte));
 	int actual_node = early_pfn_to_nid(pfn);
 
@@ -150,7 +150,7 @@ pte_t * __meminit vmemmap_pte_populate(pmd_t *pmd, unsigned long addr, int node,
 				       struct page *reuse)
 {
 	pte_t *pte = pte_offset_kernel(pmd, addr);
-	// my code
+	// modify for pt surgery 1
 	if (pte_none(check_pte_is_broken_for_pte_read(pte))) {
 		pte_t entry;
 		void *p;

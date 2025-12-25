@@ -25,7 +25,7 @@
 #include "internal.h"
 #include "swap.h"
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -769,7 +769,7 @@ static void swap_ra_info(struct vm_fault *vmf,
 #else
 	tpte = ra_info->ptes;
 	for (pfn = start; pfn != end; pfn++)
-		// my code
+		// modify for pt surgery 
 		// *tpte++ = *pte++;
 		*tpte++ = check_pte_is_broken_for_pte_read(pte++);
 #endif
@@ -812,7 +812,7 @@ static struct page *swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 	blk_start_plug(&plug);
 	for (i = 0, pte = ra_info.ptes; i < ra_info.nr_pte;
 	     i++, pte++) {
-		// my code
+		// modify for pt surgery 1
 		// pentry = *pte;
 		pentry = check_pte_is_broken_for_pte_read(pte);
 		if (!is_swap_pte(pentry))

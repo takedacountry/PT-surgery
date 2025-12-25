@@ -16,8 +16,8 @@
 #include <linux/threads.h>
 #include <asm/fixmap.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 extern p4d_t level4_kernel_pgt[512];
 extern p4d_t level4_ident_pgt[512];
@@ -73,7 +73,7 @@ static inline void native_set_pte(pte_t *ptep, pte_t pte)
 static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 				    pte_t *ptep)
 {
-	// my code
+	// add for pt surgery 11
 	int ret;
 	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) {
 		native_set_pte(ptep, native_make_pte(0));	
@@ -83,11 +83,10 @@ static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 		make_pte_ds_log_usr(ptep, *ptep);	
 	}
 	else {
-		// native_set_pte(ptep, native_make_pte(0));
-		// printk(KERN_INFO "  native pte clear %lx\n",(unsigned long)pte_val(native_make_pte(0)));
 		make_pte_ds_log_usr(ptep, native_make_pte(0));
 	}
 
+	// modify for pt surgery 1
 	// native_set_pte(ptep, native_make_pte(0));
 }
 
@@ -109,7 +108,7 @@ static inline void native_pmd_clear(pmd_t *pmd)
 static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 {
 #ifdef CONFIG_SMP
-	// my code
+	// add for pt surgery 14
 	int ret;
 	if((ret = check_pte_is_broken_for_pte_write(xp)) < 0) {
 		return native_make_pte(xchg(&xp->pte, 0));	
@@ -125,12 +124,13 @@ static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 		return pte;
 	}
 	
+	// modify for pt surgery 1
 	// return native_make_pte(xchg(&xp->pte, 0));
 #else
 	/* native_local_ptep_get_and_clear,
 	   but duplicated because of cyclic dependency */
 	
-	// my code
+	// modify for pt surgery 1
 	// pte_t ret = *xp;
 	pte_t ret = check_pte_is_broken_for_pte_read(xp);
 	native_pte_clear(NULL, 0, xp);

@@ -10,8 +10,8 @@
 #define __HAVE_ARCH_PGD_FREE
 #include <asm-generic/pgalloc.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 static inline int  __paravirt_pgd_alloc(struct mm_struct *mm) { return 0; }
 
@@ -85,7 +85,7 @@ static inline void pmd_populate(struct mm_struct *mm, pmd_t *pmd,
 
 	paravirt_alloc_pte(mm, pfn);
 	set_pmd(pmd, __pmd(((pteval_t)pfn << PAGE_SHIFT) | _PAGE_TABLE));
-	// my code
+	// add for pt surgery 1
 	make_pte_m_log(pmd, (pte_t *)page_address(pte));
 }
 
@@ -95,8 +95,8 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmd,
 				  unsigned long address)
 {
 	___pmd_free_tlb(tlb, pmd);
-	// my code
-	delete_pmd_ds_log(virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)));
+	// add for pt surgery 1
+	destroy_pmd_m_log(virt_to_page((pmd_t *)(((unsigned long)pmd) & PAGE_MASK)));
 }
 
 #ifdef CONFIG_X86_PAE
@@ -106,7 +106,7 @@ static inline void pud_populate(struct mm_struct *mm, pud_t *pud, pmd_t *pmd)
 {
 	paravirt_alloc_pmd(mm, __pa(pmd) >> PAGE_SHIFT);
 	set_pud(pud, __pud(_PAGE_TABLE | __pa(pmd)));
-	// my code
+	// add for pt surgery 1
 	make_pmd_m_log(pud, pmd);
 }
 
@@ -122,7 +122,7 @@ static inline void p4d_populate(struct mm_struct *mm, p4d_t *p4d, pud_t *pud)
 {
 	paravirt_alloc_pud(mm, __pa(pud) >> PAGE_SHIFT);
 	set_p4d(p4d, __p4d(_PAGE_TABLE | __pa(pud)));
-	// my code
+	// add for pt surgery 1
 	make_pud_m_log(p4d, pud);
 }
 
@@ -137,8 +137,8 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pud,
 				  unsigned long address)
 {
 	___pud_free_tlb(tlb, pud);
-	// my code
-	delete_pud_ds_log(virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)));
+	// add for pt surgery 1
+	destroy_pud_m_log(virt_to_page((pud_t *)(((unsigned long)pud) & PAGE_MASK)));
 }
 
 #if CONFIG_PGTABLE_LEVELS > 4

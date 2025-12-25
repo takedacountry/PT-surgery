@@ -60,7 +60,7 @@ unsigned long highstart_pfn, highend_pfn;
 
 bool __read_mostly __vmalloc_start_set = false;
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -479,7 +479,7 @@ void __init native_pagetable_init(void)
 
 		pte = pte_offset_kernel(pmd, va);
 
-		// my code
+		// modify for pt surgery 1
 		if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
 			break;
 

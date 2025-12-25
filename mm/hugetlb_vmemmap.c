@@ -17,7 +17,7 @@
 #include <asm/tlbflush.h>
 #include "hugetlb_vmemmap.h"
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /**
@@ -108,7 +108,7 @@ static void vmemmap_pte_range(pmd_t *pmd, unsigned long addr,
 	 * remapping (which is calling @walk->remap_pte).
 	 */
 	if (!walk->reuse_page) {
-		// my code
+		// modify for pt surgery 1
 		walk->reuse_page = pte_page(check_pte_is_broken_for_pte_read(pte));
 		/*
 		 * Because the reuse address is part of the range that we are
@@ -251,7 +251,7 @@ static void vmemmap_remap_pte(pte_t *pte, unsigned long addr,
 	 */
 	pgprot_t pgprot = PAGE_KERNEL_RO;
 	pte_t entry = mk_pte(walk->reuse_page, pgprot);
-	// my code
+	// modify for pt surgery  1
 	struct page *page = pte_page(check_pte_is_broken_for_pte_read(pte));
 
 	list_add_tail(&page->lru, walk->vmemmap_pages);
@@ -284,7 +284,7 @@ static void vmemmap_restore_pte(pte_t *pte, unsigned long addr,
 	struct page *page;
 	void *to;
 
-	// my code
+	// modify for pt surgery 1
 	BUG_ON(pte_page(check_pte_is_broken_for_pte_read(pte)) != walk->reuse_page);
 
 	page = list_first_entry(walk->vmemmap_pages, struct page, lru);

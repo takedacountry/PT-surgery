@@ -289,6 +289,9 @@ static inline bool userfaultfd_huge_must_wait(struct userfaultfd_ctx *ctx,
 }
 #endif /* CONFIG_HUGETLB_PAGE */
 
+// add for pt surgery
+extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+
 /*
  * Verify the pagetables are still not ok after having reigstered into
  * the fault_pending_wqh to avoid userland having to UFFDIO_WAKE any
@@ -308,7 +311,7 @@ static inline bool userfaultfd_must_wait(struct userfaultfd_ctx *ctx,
 	pmd_t *pmd, _pmd;
 	pte_t *pte;
 
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 	bool ret = true;
@@ -358,7 +361,7 @@ static inline bool userfaultfd_must_wait(struct userfaultfd_ctx *ctx,
 	 * ptes here.
 	 */
 	
-	// my code
+	// modify for pt surgery 2
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	if (pte_none_mostly(entry))

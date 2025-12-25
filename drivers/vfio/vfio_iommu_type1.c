@@ -514,7 +514,7 @@ static void vfio_batch_fini(struct vfio_batch *batch)
 		free_page((unsigned long)batch->pages);
 }
 
-// my code
+// add for pt surgery 2
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static int follow_fault_pfn(struct vm_area_struct *vma, struct mm_struct *mm,
@@ -545,7 +545,7 @@ static int follow_fault_pfn(struct vm_area_struct *vma, struct mm_struct *mm,
 			return ret;
 	}
 
-	// my code
+	// modify for pt surgery 2
 	entry = check_pte_is_broken_for_pte_read(ptep);
 
 	if (write_fault && !pte_write(entry))

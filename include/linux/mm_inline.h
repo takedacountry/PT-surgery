@@ -9,7 +9,7 @@
 #include <linux/userfaultfd_k.h>
 #include <linux/swapops.h>
 
-// my code
+// add for pt surgery
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /**
@@ -559,9 +559,10 @@ pte_install_uffd_wp_if_needed(struct vm_area_struct *vma, unsigned long addr,
 	bool arm_uffd_pte = false;
 
 	/* The current status of the pte should be "cleared" before calling */
-	// my code
+	// add for pt surgery 1
 	// WARN_ON_ONCE(!pte_none(*pte));
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	// modify for pt surgery 1
 	WARN_ON_ONCE(!pte_none(entry));
 
 	if (vma_is_anonymous(vma) || !userfaultfd_wp(vma))

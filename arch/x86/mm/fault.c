@@ -37,7 +37,7 @@
 #define CREATE_TRACE_POINTS
 #include <asm/trace/exceptions.h>
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 /*
@@ -258,7 +258,7 @@ static noinline int vmalloc_fault(unsigned long address)
 
 	pte_k = pte_offset_kernel(pmd_k, address);
 	
-	// my code
+	// modify for pt surgery 1
 	if (!pte_present(check_pte_is_broken_for_pte_read(pte_k)))
 		return -1;
 
@@ -324,7 +324,7 @@ static void dump_pagetable(unsigned long address)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
-	// my code
+	// add for pt surgery 2
 	pte_t entry;
 
 #ifdef CONFIG_X86_PAE
@@ -352,7 +352,6 @@ static void dump_pagetable(unsigned long address)
 
 	pte = pte_offset_kernel(pmd, address);
 	
-	// my code
 	entry = check_pte_is_broken_for_pte_read(pte);
 
 	pr_cont("*pte = %0*Lx ", sizeof(entry) * 2, (u64)pte_val(entry));
@@ -423,7 +422,7 @@ static void dump_pagetable(unsigned long address)
 	if (bad_address(pte))
 		goto bad;
 
-	// my code
+	// modify for pt surgery 1
 	pr_cont("PTE %lx", pte_val(check_pte_is_broken_for_pte_read(pte)));
 out:
 	pr_cont("\n");
@@ -547,7 +546,7 @@ show_fault_oops(struct pt_regs *regs, unsigned long error_code, unsigned long ad
 		unsigned int level;
 		pgd_t *pgd;
 		pte_t *pte;
-		// my code 
+		// add for pt surgery 2
 		pte_t entry;
 
 		pgd = __va(read_cr3_pa());
@@ -555,7 +554,7 @@ show_fault_oops(struct pt_regs *regs, unsigned long error_code, unsigned long ad
 
 		pte = lookup_address_in_pgd(pgd, address, &level);
 		
-		// my code
+		// modify for pt surgery 2
 		entry = check_pte_is_broken_for_pte_read(pte);
 
 		if (pte && pte_present(entry) && !pte_exec(entry))
@@ -1022,9 +1021,10 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
 
 static int spurious_kernel_fault_check(unsigned long error_code, pte_t *pte)
 {
-	// my code
+	// add for pt surgery 1 
 	pte_t entry = check_pte_is_broken_for_pte_read(pte);
 
+	// modify for pt surgery 2
 	if ((error_code & X86_PF_WRITE) && !pte_write(entry))
 		return 0;
 
@@ -1105,7 +1105,7 @@ spurious_kernel_fault(unsigned long error_code, unsigned long address)
 
 	pte = pte_offset_kernel(pmd, address);
 
-	// my code
+	// modify for pt surgery 1
 	if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
 		return 0;
 

@@ -2627,9 +2627,9 @@ struct task_struct *create_io_thread(int (*fn)(void *), void *arg, int node)
 	return copy_process(NULL, 0, node, &args);
 }
 
-// my code
-extern bool check_parent_is_target(pid_t ppid, pid_t pid);
-extern void register_child(struct task_struct *p);
+// add for pt surgery 2
+extern bool is_parent_valid_pt_surgery(pid_t ppid, pid_t pid);
+extern void pt_surgery_register_child(struct task_struct *p);
 /*
  *  Ok, this is the main fork-routine.
  *
@@ -2710,9 +2710,9 @@ pid_t kernel_clone(struct kernel_clone_args *args)
 		task_unlock(p);
 	}
 	
-	// my code
-	if(check_parent_is_target(p->real_parent->tgid, p->pid))
-		register_child(p);
+	// add for pt surgery 2
+	if(is_parent_valid_pt_surgery(p->real_parent->tgid, p->pid))
+		pt_surgery_register_child(p);
 	
 	wake_up_new_task(p);
 

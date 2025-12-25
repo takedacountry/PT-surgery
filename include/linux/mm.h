@@ -2401,10 +2401,11 @@ static inline void pgtable_pte_page_dtor(struct page *page)
 	dec_lruvec_page_state(page, NR_PAGETABLE);
 }
 
+// modify for pt surgery 1
 #define pte_offset_map_lock(mm, pmd, address, ptlp)	\
 ({							\
 	spinlock_t *__ptl = pte_lockptr(mm, pmd);	\
-	pte_t *__pte = pte_offset_map(pmd, address);	\
+	pte_t *__pte = pte_offset_map_for_pte_write(pmd, address);	\
 	*(ptlp) = __ptl;				\
 	spin_lock(__ptl);				\
 	__pte;						\

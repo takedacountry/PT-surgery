@@ -24,8 +24,8 @@
 #include <asm-generic/pgtable_uffd.h>
 #include <linux/page_table_check.h>
 
-// my code
-#include <asm/ds.h>
+// add for pt surgery 1
+#include <asm/pt_surgery.h>
 
 extern pgd_t early_top_pgt[PTRS_PER_PGD];
 bool __init __early_make_pgtable(unsigned long address, pmdval_t pmd);
@@ -983,7 +983,7 @@ extern pgd_t trampoline_pgd_entry;
 /* local pte updates need not use xchg for locking */
 static inline pte_t native_local_ptep_get_and_clear(pte_t *ptep)
 {
-	// my code
+	// modify for pt surgery 1
 	// pte_t res = *ptep;
 	pte_t res = check_pte_is_broken_for_pte_read(ptep);
 
@@ -1083,7 +1083,7 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
 static inline void ptep_set_wrprotect(struct mm_struct *mm,
 				      unsigned long addr, pte_t *ptep)
 {
-	// my code
+	// add for pt surgery 11
 	int ret;
 	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) {
 		clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);	
@@ -1093,11 +1093,10 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm,
 		make_pte_ds_log_usr(ptep, *ptep);
 	}
 	else {
-		// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-		// printk(KERN_INFO "  wrprotect %lx\n",(unsigned long)pte_val(*ptep));
 		clear_wrbit_ds_log(ptep);
 	}
 
+	// modify for pt surgery 1
 	// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
 }
 

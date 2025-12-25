@@ -138,12 +138,12 @@ static void clear_pmd_presence(pmd_t *pmd, bool clear, pmdval_t *old)
 	set_pmd(pmd, new_pmd);
 }
 
-// my code
+// add for pt surgery 1
 extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 
 static void clear_pte_presence(pte_t *pte, bool clear, pteval_t *old)
 {
-	// my code
+	// modify for pt surgery 1
 	pteval_t v = pte_val(check_pte_is_broken_for_pte_read(pte));
 	if (clear) {
 		*old = v;
