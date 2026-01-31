@@ -87,7 +87,7 @@
 #include "debugfs.h"
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+#include <asm/pt_surgery.h>
 
 #ifdef CONFIG_X86_VSYSCALL_EMULATION
 /* l3 pud for userspace vsyscall mapping */
@@ -138,7 +138,7 @@ void make_lowmem_page_readonly(void *vaddr)
 		return;		/* vaddr missing */
 
 	// modify for pt surgery 
-	ptev = pte_wrprotect(check_pte_is_broken_for_pte_read(pte));
+	ptev = pte_wrprotect(ensure_pte_read_safe(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
 		BUG();
@@ -155,7 +155,7 @@ void make_lowmem_page_readwrite(void *vaddr)
 		return;		/* vaddr missing */
 	
 	// modify for pt surgery 
-	ptev = pte_mkwrite(check_pte_is_broken_for_pte_read(pte));
+	ptev = pte_mkwrite(ensure_pte_read_safe(pte));
 
 	if (HYPERVISOR_update_va_mapping(address, ptev, 0))
 		BUG();
@@ -299,8 +299,8 @@ pte_t xen_ptep_modify_prot_start(struct vm_area_struct *vma,
 {
 	// modify for pt surgery 
 	/* Just return the pte as-is.  We preserve the bits on commit */
-	trace_xen_mmu_ptep_modify_prot_start(vma->vm_mm, addr, ptep, check_pte_is_broken_for_pte_read(ptep));
-	return check_pte_is_broken_for_pte_read(ptep);
+	trace_xen_mmu_ptep_modify_prot_start(vma->vm_mm, addr, ptep, ensure_pte_read_safe(ptep));
+	return ensure_pte_read_safe(ptep);
 }
 
 void xen_ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned long addr,
@@ -1449,7 +1449,7 @@ static void __init xen_set_pte_init(pte_t *ptep, pte_t pte)
 	if (unlikely(is_early_ioremap_ptep(ptep)))
 		__xen_set_pte(ptep, pte);
 	else
-		native_set_pte(ptep, pte);
+		ensure_native_set_pte(ptep, pte); /* modify for pt surgery 1*/
 }
 
 __visible pte_t xen_make_pte_init(pteval_t pte)

@@ -150,14 +150,14 @@ static long print_ds_log_usr(struct task_struct *p)
 							kernel_write(file, buf, size, &pos);
 							vfs_fsync_range(file, 0, size, 1);
 
-							spin_lock(&pte_page->ds_lock);
+							// spin_lock(&pte_page->ds_lock);
 							list_for_each_entry(dnode, &pte_page->ds_head, list) {
 								size = sprintf(buf, "        %lx %lx %lx %lx\n", dnode->base, dnode->limit, dnode->offset, dnode->flag);
 								kernel_write(file, buf, size, &pos);
 								vfs_fsync_range(file, 0, size, 1);
 								ds_count++;
 							}
-							spin_unlock(&pte_page->ds_lock);
+							// spin_unlock(&pte_page->ds_lock);
 						}
 		        	}
 				}
@@ -203,11 +203,11 @@ static long count_ds_log_usr(void)
 								pte_page = virt_to_page(pte_offset_index(pmdp, 0));
 								m_num++;
 								pte_num++;
-								spin_lock(&pte_page->ds_lock);
+								// spin_lock(&pte_page->ds_lock);
 								list_for_each_entry(dnode, &pte_page->ds_head, list) {
 									ds_num++;
 								}
-								spin_unlock(&pte_page->ds_lock);
+								// spin_unlock(&pte_page->ds_lock);
 							}
 						}
 					}

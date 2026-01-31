@@ -38,7 +38,7 @@ static inline bool arch_kfence_init_pool(void)
 }
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /* Protect the given page and flush TLB. */
 static inline bool kfence_protect_page(unsigned long addr, bool protect)
@@ -58,9 +58,9 @@ static inline bool kfence_protect_page(unsigned long addr, bool protect)
 
 	// modify for pt surgery 2
 	if (protect)
-		set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) & ~_PAGE_PRESENT));
+		set_pte(pte, __pte(pte_val(ensure_pte_read_safe(pte)) & ~_PAGE_PRESENT));
 	else
-		set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) | _PAGE_PRESENT));
+		set_pte(pte, __pte(pte_val(ensure_pte_read_safe(pte)) | _PAGE_PRESENT));
 
 	/*
 	 * Flush this CPU's TLB, assuming whoever did the allocation/free is

@@ -29,7 +29,7 @@
 #include "internal.h"
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 struct hmm_vma_walk {
 	struct hmm_range	*range;
@@ -233,7 +233,7 @@ static int hmm_vma_handle_pte(struct mm_walk *walk, unsigned long addr,
 	unsigned long cpu_flags;
 	// modify for pt surgery 1
 	// pte_t pte = *ptep;
-	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+	pte_t pte = ensure_pte_read_safe(ptep);
 
 	uint64_t pfn_req_flags = *hmm_pfn;
 

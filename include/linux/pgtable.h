@@ -98,42 +98,44 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 #endif
 
 // add for pt surgery 5
-static inline pte_t *pte_offset_map_inc_page_ref_read(pmd_t *pmd, unsigned long address)
+static inline pte_t *pte_offset_map_block(pmd_t *pmd, unsigned long address)
 {
-	inc_page_ref_count_read((pte_t *)pmd_page_vaddr(*pmd));
+	// block_pt_acquire_under_recovery((pte_t *)pmd_page_vaddr(*pmd));
 	return pte_offset_kernel(pmd, address);
 }
 
-// add for pt surgery 
-static inline pte_t *pte_offset_map_inc_page_ref_write(pmd_t *pmd, unsigned long address)
+// add for pt surgery 6
+static inline pte_t *pte_offset_map_block_inc_ref(pmd_t *pmd, unsigned long address)
 {
-	inc_page_ref_count_write((pte_t *)pmd_page_vaddr(*pmd));
+	// block_pt_acquire_under_recovery((pte_t *)pmd_page_vaddr(*pmd));
+	// inc_writer_ref_count((pte_t *)pmd_page_vaddr(*pmd));
 	return pte_offset_kernel(pmd, address);
 }
  
 // add for pt surgery 4
-static inline void pte_unmap_dec_page_ref(pte_t *pte)
+static inline void pte_unmap_dec_ref(pte_t *pte)
 {
-	dec_page_ref_count(pte);
+	// dec_writer_ref_count(pte);
 }
 
 #if defined(CONFIG_HIGHPTE)
 #define pte_offset_map(dir, address)				\
 	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
 	 pte_index((address)))
-// add for pt surgery 1
-#define pte_offset_map_for_pte_write(dir, address) pte_offset_map(dir, address)
 #define pte_unmap(pte) kunmap_atomic((pte))
+// add for pt surgery 4
+#define pte_offset_map_for_write(dir, address)		\
+	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
+	 pte_index((address)))
+#define pte_unmap_for_write(pte) kunmap_atomic((pte))
 #else
 // #define pte_offset_map(dir, address)	pte_offset_kernel((dir), (address))
-// #define pte_unmap(pte) ((void)(pte))	/* NOP */
+#define pte_unmap(pte) ((void)(pte))	/* NOP */
 
-// modify for pt surgery 2
-#define pte_offset_map(dir, address)				pte_offset_map_inc_page_ref_read((dir), (address))
-#define pte_unmap(pte) 								pte_unmap_dec_page_ref((pte))
-
-// add for pt surgery 1
-#define pte_offset_map_for_pte_write(dir, address) 	pte_offset_map_inc_page_ref_write((dir), (address))
+// add for pt surgery 3
+#define pte_offset_map(dir, address)				pte_offset_map_block((dir), (address))
+#define pte_offset_map_for_write(dir, address) 		pte_offset_map_block_inc_ref((dir), (address))
+#define pte_unmap_for_write(pte)					pte_unmap_dec_ref((pte))
 #endif
 
 /* Find an entry in the second-level page table.. */
@@ -243,7 +245,7 @@ static inline int ptep_test_and_clear_young(struct vm_area_struct *vma,
 {
 	// modify for pt surgery 1
 	// pte_t pte = *ptep;
-	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+	pte_t pte = ensure_pte_read_safe(ptep);
 	int r = 1;
 	if (!pte_young(pte))
 		r = 0;
@@ -332,7 +334,7 @@ static inline pte_t ptep_get_and_clear(struct mm_struct *mm,
 {
 	// modify for pt surgery 1
 	// pte_t pte = *ptep;
-	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+	pte_t pte = ensure_pte_read_safe(ptep);
 
 	pte_clear(mm, address, ptep);
 	page_table_check_pte_clear(mm, address, pte);
@@ -350,7 +352,7 @@ static inline void ptep_clear(struct mm_struct *mm, unsigned long addr,
 static inline pte_t ptep_get(pte_t *ptep)
 {
 	// modify for pt surgery 2
-	pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+	pte_t pte = ensure_pte_read_safe(ptep);
 	return pte;
 	// return READ_ONCE(*ptep);
 }
@@ -524,7 +526,7 @@ static inline void ptep_set_wrprotect(struct mm_struct *mm, unsigned long addres
 {
 	// modify for pt surgery 1
 	// pte_t old_pte = *ptep;
-	pte_t old_pte = check_pte_is_broken_for_pte_read(ptep);
+	pte_t old_pte = ensure_pte_read_safe(ptep);
 	
 	set_pte_at(mm, address, ptep, pte_wrprotect(old_pte));
 }

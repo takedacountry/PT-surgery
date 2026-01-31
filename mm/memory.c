@@ -738,7 +738,7 @@ static void restore_exclusive_pte(struct vm_area_struct *vma,
 
 	pte = pte_mkold(mk_pte(page, READ_ONCE(vma->vm_page_prot)));
 	// modify for pt surgery 3
-	my_pte = check_pte_is_broken_for_pte_read(ptep);
+	my_pte = ensure_pte_read_safe(ptep);
 
 	if (pte_swp_soft_dirty(my_pte))
 		pte = pte_mksoft_dirty(pte);
@@ -782,7 +782,7 @@ try_restore_exclusive_pte(pte_t *src_pte, struct vm_area_struct *vma,
 			unsigned long addr)
 {
 	// modify for pt surgery 1
-	swp_entry_t entry = pte_to_swp_entry(check_pte_is_broken_for_pte_read(src_pte));
+	swp_entry_t entry = pte_to_swp_entry(ensure_pte_read_safe(src_pte));
 	struct page *page = pfn_swap_entry_to_page(entry);
 
 	if (trylock_page(page)) {
@@ -807,7 +807,7 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 {
 	unsigned long vm_flags = dst_vma->vm_flags;
 	// modify for pt surgery 1 
-	pte_t pte = check_pte_is_broken_for_pte_read(src_pte);
+	pte_t pte = ensure_pte_read_safe(src_pte);
 	// add for pt surgery 1
 	pte_t my_pte;
 	struct page *page;
@@ -827,7 +827,7 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 		}
 		/* Mark the swap entry as shared. */
 		// add for pt surgery 1 
-		my_pte = check_pte_is_broken_for_pte_read(src_pte);
+		my_pte = ensure_pte_read_safe(src_pte);
 		// modify for pt surgery 2
 		if (pte_swp_exclusive(my_pte)) {
 			pte = pte_swp_clear_exclusive(my_pte);
@@ -850,7 +850,7 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 							swp_offset(entry));
 			pte = swp_entry_to_pte(entry);
 			// add for pt surgery 1
-			my_pte = check_pte_is_broken_for_pte_read(src_pte);
+			my_pte = ensure_pte_read_safe(src_pte);
 			// modify for pt surgery 2
 			if (pte_swp_soft_dirty(my_pte))
 				pte = pte_swp_mksoft_dirty(pte);
@@ -888,7 +888,7 @@ copy_nonpresent_pte(struct mm_struct *dst_mm, struct mm_struct *src_mm,
 							swp_offset(entry));
 			pte = swp_entry_to_pte(entry);
 			// add for pt surgery 1
-			my_pte = check_pte_is_broken_for_pte_read(src_pte);
+			my_pte = ensure_pte_read_safe(src_pte);
 			// modify for pt surgery 1
 			if (pte_swp_uffd_wp(my_pte))
 				pte = pte_swp_mkuffd_wp(pte);
@@ -958,7 +958,7 @@ copy_present_page(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma
 	pte = maybe_mkwrite(pte_mkdirty(pte), dst_vma);
 	
 	// add for pt surgery 1
-	my_pte = check_pte_is_broken_for_pte_read(src_pte);
+	my_pte = ensure_pte_read_safe(src_pte);
 	// modify for pt surgery 1
 	if (userfaultfd_pte_wp(dst_vma, my_pte))
 		/* Uffd-wp needs to be delivered to dest pte as well */
@@ -980,7 +980,7 @@ copy_present_pte(struct vm_area_struct *dst_vma, struct vm_area_struct *src_vma,
 	unsigned long vm_flags = src_vma->vm_flags;
 	// modify for pt surgery 1
 	// pte_t pte = *src_pte;
-	pte_t pte = check_pte_is_broken_for_pte_read(src_pte);
+	pte_t pte = ensure_pte_read_safe(src_pte);
 	struct page *page;
 
 	page = vm_normal_page(src_vma, addr, pte);
@@ -1095,7 +1095,7 @@ again:
 		}
 		
 		// add for pt surgery 1
-		my_pte = check_pte_is_broken_for_pte_read(src_pte);
+		my_pte = ensure_pte_read_safe(src_pte);
 
 		// modify for pt surgery 4
 		if (pte_none(my_pte)) {
@@ -1108,7 +1108,7 @@ again:
 						  dst_vma, src_vma,
 						  addr, rss);
 			if (ret == -EIO) {
-				my_pte = check_pte_is_broken_for_pte_read(src_pte);
+				my_pte = ensure_pte_read_safe(src_pte);
 				entry = pte_to_swp_entry(my_pte);
 				break;
 			} else if (ret == -EBUSY) {
@@ -1458,7 +1458,7 @@ again:
 	do {
 		// modify for pt surgery 1
 		// pte_t ptent = *pte;
-		pte_t ptent = check_pte_is_broken_for_pte_read(pte);
+		pte_t ptent = ensure_pte_read_safe(pte);
 		struct page *page;
 
 		if (pte_none(ptent))
@@ -1901,7 +1901,7 @@ static int insert_page_into_pte_locked(struct vm_area_struct *vma, pte_t *pte,
 			unsigned long addr, struct page *page, pgprot_t prot)
 {
 	// modify for pt surgery 1
-	if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
+	if (!pte_none(ensure_pte_read_safe(pte)))
 		return -EBUSY;
 	/* Ok, finally just insert the thing.. */
 	get_page(page);
@@ -2194,7 +2194,7 @@ static vm_fault_t insert_pfn(struct vm_area_struct *vma, unsigned long addr,
 	if (!pte)
 		return VM_FAULT_OOM;
 	// modify for pt surgery 4
-	my_pte = check_pte_is_broken_for_pte_read(pte);
+	my_pte = ensure_pte_read_safe(pte);
 	if (!pte_none(my_pte)) {
 		if (mkwrite) {
 			/*
@@ -2445,7 +2445,7 @@ static int remap_pte_range(struct mm_struct *mm, pmd_t *pmd,
 	arch_enter_lazy_mmu_mode();
 	do {
 		// modify for pt surgery 1
-		BUG_ON(!pte_none(check_pte_is_broken_for_pte_read(pte)));
+		BUG_ON(!pte_none(ensure_pte_read_safe(pte)));
 		if (!pfn_modify_allowed(pfn, prot)) {
 			err = -EACCES;
 			break;
@@ -2687,7 +2687,7 @@ static int apply_to_pte_range(struct mm_struct *mm, pmd_t *pmd,
 	if (fn) {
 		do {
 			// modify for pt surgery 1
-			if (create || !pte_none(check_pte_is_broken_for_pte_read(pte))) {
+			if (create || !pte_none(ensure_pte_read_safe(pte))) {
 				err = fn(pte++, addr, data);
 				if (err)
 					break;
@@ -5427,7 +5427,7 @@ int follow_pte(struct mm_struct *mm, unsigned long address,
 
 	ptep = pte_offset_map_lock(mm, pmd, address, ptlp);
 	// modify for pt surgery 1
-	if (!pte_present(check_pte_is_broken_for_pte_read(ptep)))
+	if (!pte_present(ensure_pte_read_safe(ptep)))
 		goto unlock;
 	*ptepp = ptep;
 	return 0;
@@ -5465,7 +5465,7 @@ int follow_pfn(struct vm_area_struct *vma, unsigned long address,
 	if (ret)
 		return ret;
 	// modify for pt surgery 1
-	*pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
+	*pfn = pte_pfn(ensure_pte_read_safe(ptep));
 	pte_unmap_unlock(ptep, ptl);
 	return 0;
 }
@@ -5487,7 +5487,7 @@ int follow_phys(struct vm_area_struct *vma,
 		goto out;
 	// modify for pt surgery 1
 	// pte = *ptep;
-	pte = check_pte_is_broken_for_pte_read(ptep);
+	pte = ensure_pte_read_safe(ptep);
 
 	if ((flags & FOLL_WRITE) && !pte_write(pte))
 		goto unlock;
@@ -5535,7 +5535,7 @@ retry:
 		return -EINVAL;
 	// modify for pt surgery 1
 	// pte = *ptep;
-	pte = check_pte_is_broken_for_pte_read(ptep);
+	pte = ensure_pte_read_safe(ptep);
 
 	pte_unmap_unlock(ptep, ptl);
 
@@ -5553,7 +5553,7 @@ retry:
 		goto out_unmap;
 
 	// add for pt surgery 1
-	my_pte = check_pte_is_broken_for_pte_read(ptep);
+	my_pte = ensure_pte_read_safe(ptep);
 	// modify for pt surgery 1 
 	if (!pte_same(pte, my_pte)) {
 		pte_unmap_unlock(ptep, ptl);

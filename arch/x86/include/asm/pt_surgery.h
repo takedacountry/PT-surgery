@@ -10,19 +10,16 @@ extern void destroy_pud_m_log(struct page *pud_page);
 extern void destroy_pmd_m_log(struct page *pmd_page);
 extern void destroy_pte_m_log(struct page *pte_page);
 
-/* for synchronization between pte and ds log */
-extern int make_pte_ds_log_usr(pte_t *ptep, pte_t pte);
-extern int make_pte_ds_log_usr_pid(pte_t *ptep, pte_t pte, pid_t pid);
-extern int clear_wrbit_ds_log(pte_t *ptep);
+/* for safe pte read/write/wrprotect */
+extern void ensure_pte_wrprotect_safe(pte_t *ptep);
+extern void ensure_pte_write_safe(pte_t *ptep, pte_t pte);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
-/* for continuous pte read/write */
-extern int check_pte_is_broken_for_pte_write(pte_t *ptep);
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern void block_pt_acquire_under_recovery(pte_t *ptep);
 
 /* for reference counter */
-extern void inc_page_ref_count_read(pte_t *ptep);
-extern void inc_page_ref_count_write(pte_t *ptep);
-extern void dec_page_ref_count(pte_t *ptep);
+extern void inc_writer_ref_count(pte_t *ptep);
+extern void dec_writer_ref_count(pte_t *ptep);
 
 /* for fork() */
 extern bool is_parent_valid_pt_surgery(pid_t ppid, pid_t pid);

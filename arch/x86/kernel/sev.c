@@ -478,7 +478,7 @@ fault:
 }
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt *ctxt,
 					   unsigned long vaddr, phys_addr_t *paddr)
@@ -505,7 +505,7 @@ static enum es_result vc_slow_virt_to_phys(struct ghcb *ghcb, struct es_em_ctxt 
 		return ES_EXCEPTION;
 	}
 
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	// modify for pt surgery 2
 	if (WARN_ON_ONCE(pte_val(entry) & _PAGE_ENC))

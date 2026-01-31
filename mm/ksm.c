@@ -1155,7 +1155,7 @@ static int replace_page(struct vm_area_struct *vma, struct page *page,
 
 	ptep = pte_offset_map_lock(mm, pmd, addr, &ptl);
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(ptep);
+	entry = ensure_pte_read_safe(ptep);
 
 	if (!pte_same(entry, orig_pte)) {
 		pte_unmap_unlock(ptep, ptl);

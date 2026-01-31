@@ -524,7 +524,7 @@ static void smaps_pte_hole_lookup(unsigned long addr, struct mm_walk *walk)
 }
 
 // add for pt surgery 2
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static void smaps_pte_entry(pte_t *pte, unsigned long addr,
 		struct mm_walk *walk)
@@ -536,7 +536,7 @@ static void smaps_pte_entry(pte_t *pte, unsigned long addr,
 	bool migration = false, young = false, dirty = false;
 
 	// add for pt surgery 1
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 
 	// modify for pt surgery 6
 	if (pte_present(entry)) {
@@ -736,7 +736,7 @@ static int smaps_hugetlb_range(pte_t *pte, unsigned long hmask,
 	struct page *page = NULL;
 
 	// add for pt surgery 1
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 
 	// modify for pt surgery 4 
 	if (pte_present(entry)) {
@@ -1116,7 +1116,7 @@ static inline void clear_soft_dirty(struct vm_area_struct *vma,
 
 	// modify for pt surgery 1 
 	// pte_t ptent = *pte;
-	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
+	pte_t ptent = ensure_pte_read_safe(pte);
 
 	if (pte_present(ptent)) {
 		pte_t old_pte;
@@ -1206,7 +1206,7 @@ out:
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// ptent = *pte;
-		ptent = check_pte_is_broken_for_pte_read(pte);
+		ptent = ensure_pte_read_safe(pte);
 
 		if (cp->type == CLEAR_REFS_SOFT_DIRTY) {
 			clear_soft_dirty(vma, addr, pte);
@@ -1562,7 +1562,7 @@ static int pagemap_pmd_range(pmd_t *pmdp, unsigned long addr, unsigned long end,
 		pagemap_entry_t pme;
 
 		// add for pt surgery 1
-		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		pte_t entry = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 2 
 		pme = pte_to_pagemap_entry(pm, vma, addr, entry);
@@ -1903,7 +1903,7 @@ static int gather_pte_stats(pmd_t *pmd, unsigned long addr,
 	orig_pte = pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	do {
 		// add for pt surgery 1
-		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		pte_t entry = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 2 
 		struct page *page = can_gather_numa_stats(entry, vma, addr);

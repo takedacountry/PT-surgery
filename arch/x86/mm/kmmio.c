@@ -139,12 +139,12 @@ static void clear_pmd_presence(pmd_t *pmd, bool clear, pmdval_t *old)
 }
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static void clear_pte_presence(pte_t *pte, bool clear, pteval_t *old)
 {
 	// modify for pt surgery 1
-	pteval_t v = pte_val(check_pte_is_broken_for_pte_read(pte));
+	pteval_t v = pte_val(ensure_pte_read_safe(pte));
 	if (clear) {
 		*old = v;
 		/* Nothing should care about address */

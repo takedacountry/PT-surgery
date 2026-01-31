@@ -10,7 +10,7 @@
 #include <linux/swapops.h>
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /**
  * folio_is_file_lru - Should the folio be on a file LRU or anon LRU?
@@ -561,7 +561,7 @@ pte_install_uffd_wp_if_needed(struct vm_area_struct *vma, unsigned long addr,
 	/* The current status of the pte should be "cleared" before calling */
 	// add for pt surgery 1
 	// WARN_ON_ONCE(!pte_none(*pte));
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 	// modify for pt surgery 1
 	WARN_ON_ONCE(!pte_none(entry));
 

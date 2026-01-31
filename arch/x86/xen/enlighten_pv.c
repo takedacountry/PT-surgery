@@ -92,7 +92,7 @@
 #include "../kernel/cpu/cpu.h" /* get_cpu_cap() */
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 void *xen_initial_gdt;
 
@@ -340,7 +340,7 @@ static void set_aliased_prot(void *v, pgprot_t prot)
 	BUG_ON(ptep == NULL);
 
 	// modify for pt surgery 
-	pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
+	pfn = pte_pfn(ensure_pte_read_safe(ptep));
 	pte = pfn_pte(pfn, prot);
 
 	/*
@@ -448,7 +448,7 @@ static void xen_load_gdt(const struct desc_ptr *dtr)
 	BUG_ON(ptep == NULL);
 
 	// modify for pt surgery 
-	pfn = pte_pfn(check_pte_is_broken_for_pte_read(ptep));
+	pfn = pte_pfn(ensure_pte_read_safe(ptep));
 	mfn = pfn_to_mfn(pfn);
 	virt = __va(PFN_PHYS(pfn));
 

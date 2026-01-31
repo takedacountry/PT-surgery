@@ -340,7 +340,7 @@ struct paravirt_patch_template pv_ops = {
 	.mmu.release_pud	= paravirt_nop,
 	.mmu.release_p4d	= paravirt_nop,
 
-	.mmu.set_pte		= native_set_pte,
+	.mmu.set_pte		= ensure_native_set_pte, /* modify for pt surgery 1*/
 	.mmu.set_pmd		= native_set_pmd,
 
 	.mmu.ptep_modify_prot_start	= __ptep_modify_prot_start,

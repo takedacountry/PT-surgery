@@ -38,7 +38,7 @@
 #include "mm_internal.h"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * Since SME related variables are set early in the boot process they must
@@ -258,7 +258,7 @@ static unsigned long pg_level_to_pfn(int level, pte_t *kpte, pgprot_t *ret_prot)
 	pgprot_t prot;
 	
 	// modify for pt surgery 2
-	pte_t entry = check_pte_is_broken_for_pte_read(kpte);
+	pte_t entry = ensure_pte_read_safe(kpte);
 
 	switch (level) {
 	case PG_LEVEL_4K:
@@ -307,7 +307,7 @@ static void enc_dec_hypercall(unsigned long vaddr, int npages, bool enc)
 
 		kpte = lookup_address(vaddr, &level);
 		// modify for pt surgery 1
-		if (!kpte || pte_none(check_pte_is_broken_for_pte_read(kpte))) {
+		if (!kpte || pte_none(ensure_pte_read_safe(kpte))) {
 			WARN_ONCE(1, "kpte lookup for vaddr\n");
 			return;
 		}
@@ -424,7 +424,7 @@ static int __init early_set_memory_enc_dec(unsigned long vaddr,
 		kpte = lookup_address(vaddr, &level);
 
 		// modify for pt surgery 1
-		if (!kpte || pte_none(check_pte_is_broken_for_pte_read(kpte))) {
+		if (!kpte || pte_none(ensure_pte_read_safe(kpte))) {
 			ret = 1;
 			goto out;
 		}

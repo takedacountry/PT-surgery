@@ -38,7 +38,7 @@
 #include <asm/trace/exceptions.h>
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * Returns 0 if mmiotrace is disabled, or if the fault is not
@@ -259,7 +259,7 @@ static noinline int vmalloc_fault(unsigned long address)
 	pte_k = pte_offset_kernel(pmd_k, address);
 	
 	// modify for pt surgery 1
-	if (!pte_present(check_pte_is_broken_for_pte_read(pte_k)))
+	if (!pte_present(ensure_pte_read_safe(pte_k)))
 		return -1;
 
 	return 0;
@@ -352,7 +352,7 @@ static void dump_pagetable(unsigned long address)
 
 	pte = pte_offset_kernel(pmd, address);
 	
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	pr_cont("*pte = %0*Lx ", sizeof(entry) * 2, (u64)pte_val(entry));
 out:
@@ -423,7 +423,7 @@ static void dump_pagetable(unsigned long address)
 		goto bad;
 
 	// modify for pt surgery 1
-	pr_cont("PTE %lx", pte_val(check_pte_is_broken_for_pte_read(pte)));
+	pr_cont("PTE %lx", pte_val(ensure_pte_read_safe(pte)));
 out:
 	pr_cont("\n");
 	return;
@@ -555,7 +555,7 @@ show_fault_oops(struct pt_regs *regs, unsigned long error_code, unsigned long ad
 		pte = lookup_address_in_pgd(pgd, address, &level);
 		
 		// modify for pt surgery 2
-		entry = check_pte_is_broken_for_pte_read(pte);
+		entry = ensure_pte_read_safe(pte);
 
 		if (pte && pte_present(entry) && !pte_exec(entry))
 			pr_crit("kernel tried to execute NX-protected page - exploit attempt? (uid: %d)\n",
@@ -1022,7 +1022,7 @@ do_sigbus(struct pt_regs *regs, unsigned long error_code, unsigned long address,
 static int spurious_kernel_fault_check(unsigned long error_code, pte_t *pte)
 {
 	// add for pt surgery 1 
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 
 	// modify for pt surgery 2
 	if ((error_code & X86_PF_WRITE) && !pte_write(entry))
@@ -1106,7 +1106,7 @@ spurious_kernel_fault(unsigned long error_code, unsigned long address)
 	pte = pte_offset_kernel(pmd, address);
 
 	// modify for pt surgery 1
-	if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
+	if (!pte_present(ensure_pte_read_safe(pte)))
 		return 0;
 
 	ret = spurious_kernel_fault_check(error_code, pte);

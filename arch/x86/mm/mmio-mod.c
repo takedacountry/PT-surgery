@@ -77,7 +77,7 @@ static bool is_enabled(void)
 }
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static void print_pte(unsigned long address)
 {
@@ -93,7 +93,7 @@ static void print_pte(unsigned long address)
 	}
 
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (level == PG_LEVEL_2M) {
 		pr_emerg("4MB pages are not currently supported: 0x%08lx\n",

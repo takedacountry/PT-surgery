@@ -23,7 +23,7 @@
 #endif
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * 't->pid' should be the pointer to the relevant 'struct pid' having reference
@@ -327,7 +327,7 @@ static int damon_mkold_pmd_entry(pmd_t *pmd, unsigned long addr,
 		return 0;
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	// modify for pt surgery 1
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (!pte_present(entry))
 		goto out;
@@ -479,7 +479,7 @@ regular_page:
 	pte = pte_offset_map_lock(walk->mm, pmd, addr, &ptl);
 	
 	// modify for pt surgery 3
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (!pte_present(entry))
 		goto out;

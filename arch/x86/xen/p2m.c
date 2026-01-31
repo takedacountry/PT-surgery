@@ -105,7 +105,7 @@ EXPORT_SYMBOL_GPL(xen_max_p2m_pfn);
 #endif
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static DEFINE_SPINLOCK(p2m_update_lock);
 
@@ -253,7 +253,7 @@ void __ref xen_build_mfn_list_list(void)
 		BUG_ON(!ptep || level != PG_LEVEL_4K);
 
 		// modify for pt surgery
-		mfn = pte_mfn(check_pte_is_broken_for_pte_read(ptep));
+		mfn = pte_mfn(ensure_pte_read_safe(ptep));
 		ptep = (pte_t *)((unsigned long)ptep & ~(PAGE_SIZE - 1));
 
 		/* Don't bother allocating any mfn mid levels if
@@ -458,7 +458,7 @@ unsigned long get_phys_to_machine(unsigned long pfn)
 	 * would be wrong.
 	 */
 	// modify for pt surgery
-	if (pte_pfn(check_pte_is_broken_for_pte_read(ptep)) == PFN_DOWN(__pa(p2m_identity)))
+	if (pte_pfn(ensure_pte_read_safe(ptep)) == PFN_DOWN(__pa(p2m_identity)))
 		return IDENTITY_FRAME(pfn);
 
 	return xen_p2m_addr[pfn];
@@ -591,7 +591,7 @@ int xen_alloc_p2m_entry(unsigned long pfn)
 	}
 
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(ptep);
+	entry = ensure_pte_read_safe(ptep);
 
 	p2m_pfn = pte_pfn(READ_ONCE(entry));
 	if (p2m_pfn == PFN_DOWN(__pa(p2m_identity)) ||
@@ -680,7 +680,7 @@ bool __set_phys_to_machine(unsigned long pfn, unsigned long mfn)
 	BUG_ON(!ptep || level != PG_LEVEL_4K);
 
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(ptep);
+	entry = ensure_pte_read_safe(ptep);
 
 	if (pte_pfn(entry) == PFN_DOWN(__pa(p2m_missing)))
 		return mfn == INVALID_P2M_ENTRY;
@@ -737,7 +737,7 @@ int set_foreign_p2m_mapping(struct gnttab_map_grant_ref *map_ops,
 			pte = (pte_t *)(mfn_to_virt(PFN_DOWN(map_ops[i].host_addr)) +
 				(map_ops[i].host_addr & ~PAGE_MASK));
 			// modify for pt surgery 1
-			mfn = pte_mfn(check_pte_is_broken_for_pte_read(pte));
+			mfn = pte_mfn(ensure_pte_read_safe(pte));
 		} else {
 			mfn = PFN_DOWN(map_ops[i].dev_bus_addr);
 		}

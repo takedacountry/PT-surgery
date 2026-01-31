@@ -40,7 +40,7 @@ static int wp_pte(pte_t *pte, unsigned long addr, unsigned long end,
 	struct wp_walk *wpwalk = walk->private;
 	// modify for pt surgery
 	// pte_t ptent = *pte;
-	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
+	pte_t ptent = ensure_pte_read_safe(pte);
 
 	if (pte_write(ptent)) {
 		pte_t old_pte = ptep_modify_prot_start(walk->vma, addr, pte);
@@ -98,7 +98,7 @@ static int clean_record_pte(pte_t *pte, unsigned long addr,
 	struct clean_walk *cwalk = to_clean_walk(wpwalk);
 	// modify for pt surgery 1
 	// pte_t ptent = *pte;
-	pte_t ptent = check_pte_is_broken_for_pte_read(pte);
+	pte_t ptent = ensure_pte_read_safe(pte);
 
 	if (pte_dirty(ptent)) {
 		pgoff_t pgoff = ((addr - walk->vma->vm_start) >> PAGE_SHIFT) +

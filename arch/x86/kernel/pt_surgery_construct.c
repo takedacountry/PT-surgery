@@ -186,12 +186,7 @@ void destroy_pgd_m_log(struct page *pgd_page)
 				exit_m_log(pgd_page->m_log);
 				exit_page_for_pt_surgery(pgd_page);
 
-				mhead->pid = 0;
-				mhead->mm = NULL;
-				spin_lock(&user_head_lock);
-				list_del(&mhead->list);
-				spin_unlock(&user_head_lock);
-				kfree(mhead);
+				delete_m_head_struct_node(mhead);
 				printk(KERN_INFO "exit pt surgery %d\n", current->tgid);
 			}
 			break;
@@ -262,6 +257,7 @@ static long init_pt_surgery(struct task_struct *p)
 {
 	struct m_head_struct *mhead;
 	struct mm_struct *mm = p->mm;
+	struct page *pte_page;
 	pid_t pid = p->tgid;
 	p4d_t *p4dp;
 	pud_t *pudp;
@@ -289,7 +285,8 @@ static long init_pt_surgery(struct task_struct *p)
 						if(get_pmdp_and_make_pte_m_log(pudp, pid, pmd, &pmdp) == 0) {
 							for(unsigned long pte=0; pte < PGD_KERN_MAX; pte++) {
 			                	if(get_ptep(pmdp, pte, &ptep) == 0) {
-									if(make_pte_ds_log_usr_pid(ptep, *ptep, pid) < 0) {
+									pte_page = virt_to_page((pte_t *)(((unsigned long)ptep) & PAGE_MASK));
+									if(make_pte_ds_log_usr(pte_page, ptep, *ptep) < 0) {
 										printk(KERN_INFO "PT SURGERY INIT ERROR: make pte ds log usr failure\n");
 										goto err;
 									}

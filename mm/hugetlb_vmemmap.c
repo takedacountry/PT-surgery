@@ -18,7 +18,7 @@
 #include "hugetlb_vmemmap.h"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /**
  * struct vmemmap_remap_walk - walk vmemmap page table
@@ -109,7 +109,7 @@ static void vmemmap_pte_range(pmd_t *pmd, unsigned long addr,
 	 */
 	if (!walk->reuse_page) {
 		// modify for pt surgery 1
-		walk->reuse_page = pte_page(check_pte_is_broken_for_pte_read(pte));
+		walk->reuse_page = pte_page(ensure_pte_read_safe(pte));
 		/*
 		 * Because the reuse address is part of the range that we are
 		 * walking, skip the reuse address range.
@@ -252,7 +252,7 @@ static void vmemmap_remap_pte(pte_t *pte, unsigned long addr,
 	pgprot_t pgprot = PAGE_KERNEL_RO;
 	pte_t entry = mk_pte(walk->reuse_page, pgprot);
 	// modify for pt surgery  1
-	struct page *page = pte_page(check_pte_is_broken_for_pte_read(pte));
+	struct page *page = pte_page(ensure_pte_read_safe(pte));
 
 	list_add_tail(&page->lru, walk->vmemmap_pages);
 	set_pte_at(&init_mm, addr, pte, entry);
@@ -285,7 +285,7 @@ static void vmemmap_restore_pte(pte_t *pte, unsigned long addr,
 	void *to;
 
 	// modify for pt surgery 1
-	BUG_ON(pte_page(check_pte_is_broken_for_pte_read(pte)) != walk->reuse_page);
+	BUG_ON(pte_page(ensure_pte_read_safe(pte)) != walk->reuse_page);
 
 	page = list_first_entry(walk->vmemmap_pages, struct page, lru);
 	list_del(&page->lru);

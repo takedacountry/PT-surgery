@@ -290,7 +290,7 @@ static inline bool userfaultfd_huge_must_wait(struct userfaultfd_ctx *ctx,
 #endif /* CONFIG_HUGETLB_PAGE */
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * Verify the pagetables are still not ok after having reigstered into
@@ -362,7 +362,7 @@ static inline bool userfaultfd_must_wait(struct userfaultfd_ctx *ctx,
 	 */
 	
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (pte_none_mostly(entry))
 		ret = true;

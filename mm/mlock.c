@@ -334,7 +334,7 @@ static int mlock_pte_range(pmd_t *pmd, unsigned long addr,
 	start_pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	for (pte = start_pte; addr != end; pte++, addr += PAGE_SIZE) {
 		// add for pt surgery 1
-		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		pte_t entry = ensure_pte_read_safe(pte);
 		// modify for pt surgery 2
 		if (!pte_present(entry))
 			continue;

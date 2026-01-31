@@ -1682,12 +1682,12 @@ static int igt_mmap_gpu(void *arg)
 }
 
 // add for pt surgery 2
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static int check_present_pte(pte_t *pte, unsigned long addr, void *data)
 {
 	// modify for pt surgery 1
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 	if (!pte_present(entry) || pte_none(entry)) {
 		pr_err("missing PTE:%lx\n",
 		       (addr - (unsigned long)data) >> PAGE_SHIFT);
@@ -1699,7 +1699,7 @@ static int check_present_pte(pte_t *pte, unsigned long addr, void *data)
 
 static int check_absent_pte(pte_t *pte, unsigned long addr, void *data)
 {
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
+	pte_t entry = ensure_pte_read_safe(pte);
 	if (pte_present(entry) && !pte_none(entry)) {
 		pr_err("present PTE:%lx; expected to be revoked\n",
 		       (addr - (unsigned long)data) >> PAGE_SHIFT);

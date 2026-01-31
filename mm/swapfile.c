@@ -48,7 +48,7 @@
 #include "swap.h"
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static bool swap_count_continued(struct swap_info_struct *, pgoff_t,
 				 unsigned char);
@@ -1780,7 +1780,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 
 	pte = pte_offset_map_lock(vma->vm_mm, pmd, addr, &ptl);
 	// modify for pt surgery 1
-	if (unlikely(!pte_same_as_swp(check_pte_is_broken_for_pte_read(pte), swp_entry_to_pte(entry)))) {
+	if (unlikely(!pte_same_as_swp(ensure_pte_read_safe(pte), swp_entry_to_pte(entry)))) {
 		ret = 0;
 		goto out;
 	}
@@ -1813,7 +1813,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 		 */
 		VM_BUG_ON_PAGE(PageWriteback(page), page);
 		// modify for pt surgery 1
-		if (pte_swp_exclusive(check_pte_is_broken_for_pte_read(pte)))
+		if (pte_swp_exclusive(ensure_pte_read_safe(pte)))
 			rmap_flags |= RMAP_EXCLUSIVE;
 
 		page_add_anon_rmap(page, vma, addr, rmap_flags);
@@ -1823,7 +1823,7 @@ static int unuse_pte(struct vm_area_struct *vma, pmd_t *pmd,
 	}
 	new_pte = pte_mkold(mk_pte(page, vma->vm_page_prot));
 	// modify for pt surgery 2
-	my_pte = check_pte_is_broken_for_pte_read(pte);
+	my_pte = ensure_pte_read_safe(pte);
 	if (pte_swp_soft_dirty(my_pte))
 		new_pte = pte_mksoft_dirty(new_pte);
 	if (pte_swp_uffd_wp(my_pte))
@@ -1855,7 +1855,7 @@ static int unuse_pte_range(struct vm_area_struct *vma, pmd_t *pmd,
 		struct folio *folio;
 		unsigned long offset;
 		// add for pt surgery 1
-		pte_t my_pte = check_pte_is_broken_for_pte_read(pte);
+		pte_t my_pte = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 2
 		if (!is_swap_pte(my_pte))

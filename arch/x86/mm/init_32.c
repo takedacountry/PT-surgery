@@ -61,7 +61,7 @@ unsigned long highstart_pfn, highend_pfn;
 bool __read_mostly __vmalloc_start_set = false;
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * Creates a middle page table and puts a pointer to it in the
@@ -480,7 +480,7 @@ void __init native_pagetable_init(void)
 		pte = pte_offset_kernel(pmd, va);
 
 		// modify for pt surgery 1
-		if (!pte_present(check_pte_is_broken_for_pte_read(pte)))
+		if (!pte_present(ensure_pte_read_safe(pte)))
 			break;
 
 		printk(KERN_DEBUG "clearing pte for ram above max_low_pfn: pfn: %lx pmd: %p pmd phys: %lx pte: %p pte phys: %lx\n",

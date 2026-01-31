@@ -8,7 +8,7 @@
 #include <linux/page_table_check.h>
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 #undef pr_fmt
 #define pr_fmt(fmt)	"page_table_check: " fmt
@@ -198,7 +198,7 @@ void __page_table_check_pte_set(struct mm_struct *mm, unsigned long addr,
 		return;
 
 	// modify for pt surgery 1
-	__page_table_check_pte_clear(mm, addr, check_pte_is_broken_for_pte_read(ptep));
+	__page_table_check_pte_clear(mm, addr, ensure_pte_read_safe(ptep));
 	if (pte_user_accessible_page(pte)) {
 		page_table_check_set(mm, addr, pte_pfn(pte),
 				     PAGE_SIZE >> PAGE_SHIFT,
@@ -250,7 +250,7 @@ void __page_table_check_pte_clear_range(struct mm_struct *mm,
 
 		// modify for pt surgery 1
 		for (i = 0; i < PTRS_PER_PTE; i++) {
-			__page_table_check_pte_clear(mm, addr, check_pte_is_broken_for_pte_read(ptep));
+			__page_table_check_pte_clear(mm, addr, ensure_pte_read_safe(ptep));
 			addr += PAGE_SIZE;
 			ptep++;
 		}

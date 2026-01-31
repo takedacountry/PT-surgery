@@ -13,7 +13,7 @@
 #include "ops-common.h"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+#include <asm/pt_surgery.h>
 
 /*
  * Get an online page for a pfn if it's in the LRU list.  Otherwise, returns
@@ -39,9 +39,8 @@ struct page *damon_get_page(unsigned long pfn)
 void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 {
 	bool referenced = false;
-	// add for pt surgery 12
-	pte_t entry = check_pte_is_broken_for_pte_read(pte);
-	int ret;
+	// add for pt surgery 1
+	pte_t entry = ensure_pte_read_safe(pte);
 	struct page *page = damon_get_page(pte_pfn(entry));
 
 	if (!page)
@@ -51,19 +50,7 @@ void damon_ptep_mkold(pte_t *pte, struct mm_struct *mm, unsigned long addr)
 	if (pte_young(entry)) {
 		referenced = true;
 		// *pte = pte_mkold(*pte);
-		entry = pte_mkold(entry);
-
-		if((ret = check_pte_is_broken_for_pte_write(pte)) < 0) {
-			*pte = entry;
-		}
-		else if(ret == 0) {
-			*pte = entry;
-			make_pte_ds_log_usr(pte, *pte);	
-		}
-		else {
-			// *pte = entry;
-			make_pte_ds_log_usr(pte, entry);
-		}
+		ensure_native_set_pte(pte, pte_mkold(entry));
 	}
 
 #ifdef CONFIG_MMU_NOTIFIER

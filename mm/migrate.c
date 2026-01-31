@@ -304,7 +304,7 @@ void __migration_entry_wait(struct mm_struct *mm, pte_t *ptep,
 	spin_lock(ptl);
 	// modify for pt surgery 1
 	// pte = *ptep;
-	pte = check_pte_is_broken_for_pte_read(ptep);
+	pte = ensure_pte_read_safe(ptep);
 	if (!is_swap_pte(pte))
 		goto out;
 

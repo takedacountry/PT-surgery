@@ -943,7 +943,7 @@ static int privcmd_mmap(struct file *file, struct vm_area_struct *vma)
 }
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 /*
  * For MMAPBATCH*. This allows asserting the singleshot mapping
  * on a per pfn/pte basis. Mapping calls that fail with ENOENT
@@ -952,7 +952,7 @@ extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
 static int is_mapped_fn(pte_t *pte, unsigned long addr, void *data)
 {
 	// modify for pt surgery 1
-	return pte_none(check_pte_is_broken_for_pte_read(pte)) ? 0 : -EBUSY;
+	return pte_none(ensure_pte_read_safe(pte)) ? 0 : -EBUSY;
 	// return pte_none(*pte) ? 0 : -EBUSY;
 }
 

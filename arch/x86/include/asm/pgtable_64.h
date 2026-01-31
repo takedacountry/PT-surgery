@@ -65,34 +65,28 @@ static inline bool mm_p4d_folded(struct mm_struct *mm)
 void set_pte_vaddr_p4d(p4d_t *p4d_page, unsigned long vaddr, pte_t new_pte);
 void set_pte_vaddr_pud(pud_t *pud_page, unsigned long vaddr, pte_t new_pte);
 
+// add for pt surgery 4
+static inline void ensure_native_set_pte(pte_t *ptep, pte_t pte)
+{
+	ensure_pte_write_safe(ptep, pte);
+}
+
 static inline void native_set_pte(pte_t *ptep, pte_t pte)
 {
 	WRITE_ONCE(*ptep, pte);
 }
 
+// modify for pt surgery 1
 static inline void native_pte_clear(struct mm_struct *mm, unsigned long addr,
 				    pte_t *ptep)
 {
-	// add for pt surgery 11
-	int ret;
-	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) {
-		native_set_pte(ptep, native_make_pte(0));	
-	}
-	else if(ret == 0) {
-		native_set_pte(ptep, native_make_pte(0));
-		make_pte_ds_log_usr(ptep, *ptep);	
-	}
-	else {
-		make_pte_ds_log_usr(ptep, native_make_pte(0));
-	}
-
-	// modify for pt surgery 1
-	// native_set_pte(ptep, native_make_pte(0));
+	ensure_native_set_pte(ptep, native_make_pte(0));
 }
 
+// modify for pt surgery 1
 static inline void native_set_pte_atomic(pte_t *ptep, pte_t pte)
 {
-	native_set_pte(ptep, pte);
+	ensure_native_set_pte(ptep, pte);
 }
 
 static inline void native_set_pmd(pmd_t *pmdp, pmd_t pmd)
@@ -108,23 +102,10 @@ static inline void native_pmd_clear(pmd_t *pmd)
 static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 {
 #ifdef CONFIG_SMP
-	// add for pt surgery 14
-	int ret;
-	if((ret = check_pte_is_broken_for_pte_write(xp)) < 0) {
-		return native_make_pte(xchg(&xp->pte, 0));	
-	}
-	else if(ret == 0) {
-		pte_t pte = native_make_pte(xchg(&xp->pte, 0));
-		make_pte_ds_log_usr(xp, *xp);
-		return pte;
-	}
-	else {
-		pte_t pte = *xp;
-		make_pte_ds_log_usr(xp, native_make_pte(0));
-		return pte;
-	}
-	
-	// modify for pt surgery 1
+	// add for pt surgery 3
+	pte_t pte = *xp;
+	ensure_native_set_pte(xp, native_make_pte(0));
+	return pte;
 	// return native_make_pte(xchg(&xp->pte, 0));
 #else
 	/* native_local_ptep_get_and_clear,
@@ -132,7 +113,7 @@ static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 	
 	// modify for pt surgery 1
 	// pte_t ret = *xp;
-	pte_t ret = check_pte_is_broken_for_pte_read(xp);
+	pte_t ret = ensure_pte_read_safe(xp);
 	native_pte_clear(NULL, 0, xp);
 	return ret;
 #endif

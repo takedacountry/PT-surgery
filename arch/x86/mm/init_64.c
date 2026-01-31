@@ -61,7 +61,7 @@
 #include "ident_map.c"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 #define DEFINE_POPULATE(fname, type1, type2, init)		\
 static inline void fname##_init(struct mm_struct *mm,		\
@@ -485,7 +485,7 @@ phys_pte_init(pte_t *pte_page, unsigned long paddr, unsigned long paddr_end,
 		 * these mappings are more intelligent.
 		 */
 		// modify for pt surgery 1
-		if (!pte_none(check_pte_is_broken_for_pte_read(pte))) {
+		if (!pte_none(ensure_pte_read_safe(pte))) {
 			if (!after_bootmem)
 				pages++;
 			continue;
@@ -1015,7 +1015,7 @@ static void __meminit free_pte_table(pte_t *pte_start, pmd_t *pmd)
 	for (i = 0; i < PTRS_PER_PTE; i++) {
 		pte = pte_start + i;
 		// modify for pt surgery 1
-		if (!pte_none(check_pte_is_broken_for_pte_read(pte)))
+		if (!pte_none(ensure_pte_read_safe(pte)))
 			return;
 	}
 
@@ -1078,7 +1078,7 @@ remove_pte_table(pte_t *pte_start, unsigned long addr, unsigned long end,
 		if (next > end)
 			next = end;
 		
-		entry = check_pte_is_broken_for_pte_read(pte);
+		entry = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 3
 		if (!pte_present(entry))
@@ -1466,7 +1466,7 @@ int kern_addr_valid(unsigned long addr)
 	pte = pte_offset_kernel(pmd, addr);
 
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (pte_none(entry))
 		return 0;
@@ -1692,7 +1692,7 @@ void register_page_bootmem_memmap(unsigned long section_nr,
 			pte = pte_offset_kernel(pmd, addr);
 			
 			// modify for pt surgery 2
-			entry = check_pte_is_broken_for_pte_read(pte);
+			entry = ensure_pte_read_safe(pte);
 
 			if (pte_none(entry))
 				continue;

@@ -148,7 +148,7 @@ int arch_hibernation_header_restore(void *addr)
 }
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 int relocate_restore_code(void)
 {
@@ -184,7 +184,7 @@ int relocate_restore_code(void)
 	}
 	pte = pte_offset_kernel(pmd, relocated_restore_code);
 	// modify for pt surgery 
-	set_pte(pte, __pte(pte_val(check_pte_is_broken_for_pte_read(pte)) & ~_PAGE_NX));
+	set_pte(pte, __pte(pte_val(ensure_pte_read_safe(pte)) & ~_PAGE_NX));
 out:
 	__flush_tlb_all();
 	return 0;

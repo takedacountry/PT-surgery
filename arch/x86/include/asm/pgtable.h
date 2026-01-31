@@ -985,7 +985,7 @@ static inline pte_t native_local_ptep_get_and_clear(pte_t *ptep)
 {
 	// modify for pt surgery 1
 	// pte_t res = *ptep;
-	pte_t res = check_pte_is_broken_for_pte_read(ptep);
+	pte_t res = ensure_pte_read_safe(ptep);
 
 	/* Pure native function needs no input for mm, addr */
 	native_pte_clear(NULL, 0, ptep);
@@ -1083,21 +1083,9 @@ static inline pte_t ptep_get_and_clear_full(struct mm_struct *mm,
 static inline void ptep_set_wrprotect(struct mm_struct *mm,
 				      unsigned long addr, pte_t *ptep)
 {
-	// add for pt surgery 11
-	int ret;
-	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) {
-		clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);	
-	}
-	else if(ret == 0) {
-		clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
-		make_pte_ds_log_usr(ptep, *ptep);
-	}
-	else {
-		clear_wrbit_ds_log(ptep);
-	}
-
 	// modify for pt surgery 1
 	// clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte);
+	ensure_pte_wrprotect_safe(ptep);
 }
 
 #define flush_tlb_fix_spurious_fault(vma, address) do { } while (0)

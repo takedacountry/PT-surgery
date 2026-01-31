@@ -26,7 +26,7 @@
 #include "swap.h"
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * swapper_space is a fiction, retained to simplify the path through
@@ -771,7 +771,7 @@ static void swap_ra_info(struct vm_fault *vmf,
 	for (pfn = start; pfn != end; pfn++)
 		// modify for pt surgery 
 		// *tpte++ = *pte++;
-		*tpte++ = check_pte_is_broken_for_pte_read(pte++);
+		*tpte++ = ensure_pte_read_safe(pte++);
 #endif
 	pte_unmap(orig_pte);
 }
@@ -814,7 +814,7 @@ static struct page *swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 	     i++, pte++) {
 		// modify for pt surgery 1
 		// pentry = *pte;
-		pentry = check_pte_is_broken_for_pte_read(pte);
+		pentry = ensure_pte_read_safe(pte);
 		if (!is_swap_pte(pentry))
 			continue;
 		entry = pte_to_swp_entry(pentry);

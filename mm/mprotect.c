@@ -115,7 +115,7 @@ static unsigned long change_pte_range(struct mmu_gather *tlb,
 	do {
 		// modify for pt surgery 1
 		// oldpte = *pte;
-		oldpte = check_pte_is_broken_for_pte_read(pte);
+		oldpte = ensure_pte_read_safe(pte);
 
 		if (pte_present(oldpte)) {
 			pte_t ptent;
@@ -527,7 +527,7 @@ static int prot_none_pte_entry(pte_t *pte, unsigned long addr,
 			       unsigned long next, struct mm_walk *walk)
 {
 	// modify for pt surgery 1
-	return pfn_modify_allowed(pte_pfn(check_pte_is_broken_for_pte_read(pte)), *(pgprot_t *)(walk->private)) ?
+	return pfn_modify_allowed(pte_pfn(ensure_pte_read_safe(pte)), *(pgprot_t *)(walk->private)) ?
 		0 : -EACCES;
 }
 
@@ -536,7 +536,7 @@ static int prot_none_hugetlb_entry(pte_t *pte, unsigned long hmask,
 				   struct mm_walk *walk)
 {
 	// modify for pt surgery 1
-	return pfn_modify_allowed(pte_pfn(check_pte_is_broken_for_pte_read(pte)), *(pgprot_t *)(walk->private)) ?
+	return pfn_modify_allowed(pte_pfn(ensure_pte_read_safe(pte)), *(pgprot_t *)(walk->private)) ?
 		0 : -EACCES;
 }
 

@@ -1086,7 +1086,7 @@ void sgx_encl_put_backing(struct sgx_backing *backing)
 }
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static int sgx_encl_test_and_clear_young_cb(pte_t *ptep, unsigned long addr,
 					    void *data)
@@ -1094,7 +1094,7 @@ static int sgx_encl_test_and_clear_young_cb(pte_t *ptep, unsigned long addr,
 	pte_t pte;
 	int ret;
 	// add for pt surgery 1
-	pte_t entry = check_pte_is_broken_for_pte_read(ptep);
+	pte_t entry = ensure_pte_read_safe(ptep);
 
 	// modify for pt surgery 2
 	ret = pte_young(entry);

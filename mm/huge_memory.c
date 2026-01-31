@@ -47,7 +47,7 @@
 #include <trace/events/thp.h>
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * By default, transparent hugepage support is disabled in order to avoid
@@ -2042,7 +2042,7 @@ static void __split_huge_zero_page_pmd(struct vm_area_struct *vma,
 			entry = pte_mkuffd_wp(entry);
 		pte = pte_offset_map(&_pmd, haddr);
 		// modify for pt surgery 1
-		_entry = check_pte_is_broken_for_pte_read(pte);
+		_entry = ensure_pte_read_safe(pte);
 
 		VM_BUG_ON(!pte_none(_entry));
 		set_pte_at(mm, haddr, pte, entry);

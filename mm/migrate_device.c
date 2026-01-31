@@ -123,7 +123,7 @@ again:
 
 		// modify for pt surgery 1
 		// pte = *ptep;
-		pte = check_pte_is_broken_for_pte_read(ptep);
+		pte = ensure_pte_read_safe(ptep);
 
 		if (pte_none(pte)) {
 			if (vma_is_anonymous(vma)) {
@@ -207,7 +207,7 @@ again:
 			pte_t swp_pte;
 
 			// modify for pt surgery 1
-			flush_cache_page(vma, addr, pte_pfn(check_pte_is_broken_for_pte_read(ptep)));
+			flush_cache_page(vma, addr, pte_pfn(ensure_pte_read_safe(ptep)));
 			anon_exclusive = PageAnon(page) && PageAnonExclusive(page);
 			if (anon_exclusive) {
 				pte = ptep_clear_flush(vma, addr, ptep);
@@ -663,7 +663,7 @@ static void migrate_vma_insert_page(struct migrate_vma *migrate,
 		goto unlock_abort;
 
 	// modify for pt surgery 4
-	my_pte = check_pte_is_broken_for_pte_read(ptep);
+	my_pte = ensure_pte_read_safe(ptep);
 
 	if (pte_present(my_pte)) {
 		unsigned long pfn = pte_pfn(my_pte);

@@ -339,7 +339,7 @@ static unsigned long dev_pagemap_mapping_shift(struct vm_area_struct *vma,
 	if (pmd_devmap(*pmd))
 		return PMD_SHIFT;
 	pte = pte_offset_map(pmd, address);
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 	
 	// modify for pt surgery 1
 	if (pte_present(entry) && pte_devmap(entry))
@@ -701,7 +701,7 @@ static int hwpoison_pte_range(pmd_t *pmdp, unsigned long addr,
 						addr, &ptl);
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
 		// modify for pt surgery 1 add 1
-		pte_t entry = check_pte_is_broken_for_pte_read(ptep);
+		pte_t entry = ensure_pte_read_safe(ptep);
 
 		ret = check_hwpoisoned_entry(entry, addr, PAGE_SHIFT,
 					     hwp->pfn, &hwp->tk);

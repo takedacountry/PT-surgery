@@ -20,7 +20,7 @@
 #include "kasan.h"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * This page serves two purposes:
@@ -291,7 +291,7 @@ static void kasan_free_pte(pte_t *pte_start, pmd_t *pmd)
 
 	for (i = 0; i < PTRS_PER_PTE; i++) {
 		pte = pte_start + i;
-		entry = check_pte_is_broken_for_pte_read(pte);
+		entry = ensure_pte_read_safe(pte);
 		// modify for pt surgery 1
 		if (!pte_none(entry))
 			return;
@@ -358,7 +358,7 @@ static void kasan_remove_pte_table(pte_t *pte, unsigned long addr,
 		if (next > end)
 			next = end;
 
-		entry = check_pte_is_broken_for_pte_read(pte);
+		entry = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 2
 		if (!pte_present(entry))

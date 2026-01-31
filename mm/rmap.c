@@ -84,7 +84,7 @@
 #include "internal.h"
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static struct kmem_cache *anon_vma_cachep;
 static struct kmem_cache *anon_vma_chain_cachep;
@@ -966,7 +966,7 @@ static int page_vma_mkclean_one(struct page_vma_mapped_walk *pvmw)
 			pte_t entry;
 			pte_t *pte = pvmw->pte;
 			// add for pt surgery 1
-			pte_t my_pte = check_pte_is_broken_for_pte_read(pte);
+			pte_t my_pte = ensure_pte_read_safe(pte);
 
 			// modify for pt surgery 2
 			if (!pte_dirty(my_pte) && !pte_write(my_pte))

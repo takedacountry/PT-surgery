@@ -40,7 +40,7 @@
 #include <asm/set_memory.h>
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 #undef pr_fmt
 #define pr_fmt(fmt)     "Kernel/User page tables isolation: " fmt
@@ -270,7 +270,7 @@ static pte_t *pti_user_pagetable_walk_pte(unsigned long address)
 
 	pte = pte_offset_kernel(pmd, address);
 	// modify for pt surgery 1
-	if (pte_flags(check_pte_is_broken_for_pte_read(pte)) & _PAGE_USER) {
+	if (pte_flags(ensure_pte_read_safe(pte)) & _PAGE_USER) {
 		WARN_ONCE(1, "attempt to walk to user pte\n");
 		return NULL;
 	}
@@ -287,7 +287,7 @@ static void __init pti_setup_vsyscall(void)
 
 	pte = lookup_address(VSYSCALL_ADDR, &level);
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (!pte || WARN_ON(level != PG_LEVEL_4K) || pte_none(entry))
 		return;
@@ -393,7 +393,7 @@ pti_clone_pgtable(unsigned long start, unsigned long end,
 			pte = pte_offset_kernel(pmd, addr);
 			
 			// modify for pt surgery 4
-			entry = check_pte_is_broken_for_pte_read(pte);
+			entry = ensure_pte_read_safe(pte);
 
 			if (pte_none(entry)) {
 				addr += PAGE_SIZE;

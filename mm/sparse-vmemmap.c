@@ -32,7 +32,7 @@
 #include <asm/pgalloc.h>
 
 // add for pt surgery
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * Allocate a block of memory to be used to back the virtual memory map
@@ -137,7 +137,7 @@ void __meminit vmemmap_verify(pte_t *pte, int node,
 				unsigned long start, unsigned long end)
 {
 	// modify for pt surgery 1
-	unsigned long pfn = pte_pfn(check_pte_is_broken_for_pte_read(pte));
+	unsigned long pfn = pte_pfn(ensure_pte_read_safe(pte));
 	int actual_node = early_pfn_to_nid(pfn);
 
 	if (node_distance(actual_node, node) > LOCAL_DISTANCE)
@@ -151,7 +151,7 @@ pte_t * __meminit vmemmap_pte_populate(pmd_t *pmd, unsigned long addr, int node,
 {
 	pte_t *pte = pte_offset_kernel(pmd, addr);
 	// modify for pt surgery 1
-	if (pte_none(check_pte_is_broken_for_pte_read(pte))) {
+	if (pte_none(ensure_pte_read_safe(pte))) {
 		pte_t entry;
 		void *p;
 
@@ -346,7 +346,7 @@ static int __meminit vmemmap_populate_compound_pages(unsigned long start_pfn,
 		 * with just tail struct pages.
 		 */
 		return vmemmap_populate_range(start, end, node, NULL,
-					      pte_page(check_pte_is_broken_for_pte_read(pte)));
+					      pte_page(ensure_pte_read_safe(pte)));
 	}
 
 	size = min(end - start, pgmap_vmemmap_nr(pgmap) * sizeof(struct page));

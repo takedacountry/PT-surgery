@@ -394,7 +394,7 @@ static void cpa_flush(struct cpa_data *data, int cache)
 		 * Only flush present addresses:
 		 */
 		// modify for pt surgery 1
-		if (pte && (pte_val(check_pte_is_broken_for_pte_read(pte)) & _PAGE_PRESENT))
+		if (pte && (pte_val(ensure_pte_read_safe(pte)) & _PAGE_PRESENT))
 			clflush_cache_range_opt((void *)fix_addr(addr), PAGE_SIZE);
 	}
 	mb();
@@ -758,7 +758,7 @@ phys_addr_t slow_virt_to_phys(void *__virt_addr)
 		offset = virt_addr & ~PMD_PAGE_MASK;
 		break;
 	default:
-		phys_addr = (phys_addr_t)pte_pfn(check_pte_is_broken_for_pte_read(pte)) << PAGE_SHIFT; // modify for pt surgery 1
+		phys_addr = (phys_addr_t)pte_pfn(ensure_pte_read_safe(pte)) << PAGE_SHIFT; // modify for pt surgery 1
 		offset = virt_addr & ~PAGE_MASK;
 	}
 
@@ -1141,7 +1141,7 @@ static bool try_to_free_pte_page(pte_t *pte)
 	// modify for pt surgery 1
 	pte_t *my_pte = pte;
 	for (i = 0; i < PTRS_PER_PTE; i++, my_pte++)
-		if(!pte_none(check_pte_is_broken_for_pte_read(my_pte)))
+		if(!pte_none(ensure_pte_read_safe(my_pte)))
 			return false;
 
 	free_page((unsigned long)pte);
@@ -1576,7 +1576,7 @@ repeat:
 		return __cpa_process_fault(cpa, address, primary);
 
 	// add for pt surgery 1
-	old_pte = check_pte_is_broken_for_pte_read(kpte);
+	old_pte = ensure_pte_read_safe(kpte);
 
 	if (pte_none(old_pte))
 		return __cpa_process_fault(cpa, address, primary);
@@ -2358,7 +2358,7 @@ bool kernel_page_present(struct page *page)
 
 	pte = lookup_address((unsigned long)page_address(page), &level);
 	
-	return (pte_val(check_pte_is_broken_for_pte_read(pte)) & _PAGE_PRESENT);
+	return (pte_val(ensure_pte_read_safe(pte)) & _PAGE_PRESENT);
 }
 
 int __init kernel_map_pages_in_pgd(pgd_t *pgd, u64 pfn, unsigned long address,

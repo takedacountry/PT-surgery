@@ -25,7 +25,7 @@
 #include "internal.h"
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 struct follow_page_context {
 	struct dev_pagemap *pgmap;
@@ -476,13 +476,13 @@ static int follow_pfn_pte(struct vm_area_struct *vma, unsigned long address,
 		// modify for pt surgery 6
 		// pte_t entry = *pte;
 		pte_t entry, _entry;
-		entry = check_pte_is_broken_for_pte_read(pte);
+		entry = ensure_pte_read_safe(pte);
 
 		if (flags & FOLL_WRITE)
 			entry = pte_mkdirty(entry);
 		entry = pte_mkyoung(entry);
 
-		_entry = check_pte_is_broken_for_pte_read(pte);
+		_entry = ensure_pte_read_safe(pte);
 		if (!pte_same(_entry, entry)) {
 			set_pte_at(vma->vm_mm, address, pte, entry);
 			update_mmu_cache(vma, address, pte);
@@ -564,7 +564,7 @@ retry:
 	ptep = pte_offset_map_lock(mm, pmd, address, &ptl);
 	// modify for pt surgery 1
 	// pte = *ptep;
-	pte = check_pte_is_broken_for_pte_read(ptep);
+	pte = ensure_pte_read_safe(ptep);
 
 	if (!pte_present(pte)) {
 		swp_entry_t entry;
@@ -963,7 +963,7 @@ static int get_gate_page(struct mm_struct *mm, unsigned long address,
 	VM_BUG_ON(pmd_trans_huge(*pmd));
 	pte = pte_offset_map(pmd, address);
 	// modify for pt surgery 4
-	entry = check_pte_is_broken_for_pte_read(pte);
+	entry = ensure_pte_read_safe(pte);
 
 	if (pte_none(entry))
 		goto unmap;
@@ -2483,7 +2483,7 @@ static int gup_pte_range(pmd_t pmd, pmd_t *pmdp, unsigned long addr,
 			goto pte_unmap;
 		}
 
-		entry = check_pte_is_broken_for_pte_read(ptep);
+		entry = ensure_pte_read_safe(ptep);
 
 		// modify for pt surgery 1 
 		if (unlikely(pmd_val(pmd) != pmd_val(*pmdp)) ||
@@ -2675,7 +2675,7 @@ static int gup_hugepte(pte_t *ptep, unsigned long sz, unsigned long addr,
 	if (!folio)
 		return 0;
 	
-	entry = check_pte_is_broken_for_pte_read(ptep);
+	entry = ensure_pte_read_safe(ptep);
 
 	// modify for pt surgery 1 
 	if (unlikely(pte_val(pte) != pte_val(entry))) {

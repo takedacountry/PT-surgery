@@ -18,9 +18,6 @@
 #include <linux/static_call_types.h>
 #include <asm/frame.h>
 
-// add for pt surgery 1
-#include <asm/pt_surgery.h>
-
 u64 dummy_steal_clock(int cpu);
 u64 dummy_sched_clock(void);
 
@@ -439,26 +436,6 @@ static inline void ptep_modify_prot_commit(struct vm_area_struct *vma, unsigned 
 }
 
 static inline void set_pte(pte_t *ptep, pte_t pte)
-{
-	// add for pt surgery 11
-	int ret;
-	if((ret = check_pte_is_broken_for_pte_write(ptep)) < 0) { //
-		PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
-	}
-	else if(ret == 0) {
-		PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
-		make_pte_ds_log_usr(ptep, pte);
-	}
-	else {
-		make_pte_ds_log_usr(ptep, pte);	
-	}
-
-	// modify for pt surgery 1
-	// PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
-}
-
-// add for pt surgery 4
-static inline void set_pte_recovery(pte_t *ptep, pte_t pte)
 {
 	PVOP_VCALL2(mmu.set_pte, ptep, pte.pte);
 }

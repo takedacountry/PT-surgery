@@ -515,7 +515,7 @@ static void vfio_batch_fini(struct vfio_batch *batch)
 }
 
 // add for pt surgery 2
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 static int follow_fault_pfn(struct vm_area_struct *vma, struct mm_struct *mm,
 			    unsigned long vaddr, unsigned long *pfn,
@@ -546,7 +546,7 @@ static int follow_fault_pfn(struct vm_area_struct *vma, struct mm_struct *mm,
 	}
 
 	// modify for pt surgery 2
-	entry = check_pte_is_broken_for_pte_read(ptep);
+	entry = ensure_pte_read_safe(ptep);
 
 	if (write_fault && !pte_write(entry))
 		ret = -EFAULT;

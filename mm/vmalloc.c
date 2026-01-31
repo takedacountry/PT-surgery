@@ -115,7 +115,7 @@ static int vmap_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 		return -ENOMEM;
 	do {
 		// modify for pt surgery 
-		BUG_ON(!pte_none(check_pte_is_broken_for_pte_read(pte)));
+		BUG_ON(!pte_none(ensure_pte_read_safe(pte)));
 
 #ifdef CONFIG_HUGETLB_PAGE
 		size = arch_vmap_pte_range_map_size(addr, end, pfn, max_page_shift);
@@ -485,7 +485,7 @@ static int vmap_pages_pte_range(pmd_t *pmd, unsigned long addr,
 		struct page *page = pages[*nr];
 
 		// modify for pt surgery 
-		if (WARN_ON(!pte_none(check_pte_is_broken_for_pte_read(pte))))
+		if (WARN_ON(!pte_none(ensure_pte_read_safe(pte))))
 			return -EBUSY;
 		if (WARN_ON(!page))
 			return -ENOMEM;
@@ -718,7 +718,7 @@ struct page *vmalloc_to_page(const void *vmalloc_addr)
 	ptep = pte_offset_map(pmd, addr);
 	// modify for pt surgery 3
 	// pte = *ptep;
-	pte = check_pte_is_broken_for_pte_read(ptep);
+	pte = ensure_pte_read_safe(ptep);
 	if (pte_present(pte))
 		page = pte_page(pte);
 	pte_unmap(ptep);
@@ -2886,27 +2886,12 @@ struct vmap_pfn_data {
 static int vmap_pfn_apply(pte_t *pte, unsigned long addr, void *private)
 {
 	struct vmap_pfn_data *data = private;
-	// add for pt surgery 1
-	int ret;
 
 	if (WARN_ON_ONCE(pfn_valid(data->pfns[data->idx])))
 		return -EINVAL;
-
+	// modify for pt surgery 1
 	// *pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
-
-	// add for pt surgery 11
-	if((ret = check_pte_is_broken_for_pte_write(pte)) < 0) {
-		*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
-	}
-	else if(ret == 0) {
-		*pte = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
-		make_pte_ds_log_usr(pte, *pte);
-	}
-	else {
-		pte_t entry = pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot));
-		make_pte_ds_log_usr(pte, entry);
-	}
-	
+	ensure_native_set_pte(pte, pte_mkspecial(pfn_pte(data->pfns[data->idx++], data->prot)));
 	return 0;
 }
 

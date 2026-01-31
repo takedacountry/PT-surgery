@@ -510,7 +510,7 @@ static void release_pte_pages(pte_t *pte, pte_t *_pte,
 	while (--_pte >= pte) {
 		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
-		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
+		pte_t pteval = ensure_pte_read_safe(_pte);
 
 		page = pte_page(pteval);
 		if (!pte_none(pteval) && !is_zero_pfn(pte_pfn(pteval)) &&
@@ -550,7 +550,7 @@ static int __collapse_huge_page_isolate(struct vm_area_struct *vma,
 	     _pte++, address += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
-		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
+		pte_t pteval = ensure_pte_read_safe(_pte);
 
 		if (pte_none(pteval) || (pte_present(pteval) &&
 				is_zero_pfn(pte_pfn(pteval)))) {
@@ -694,7 +694,7 @@ static void __collapse_huge_page_copy(pte_t *pte, struct page *page,
 				_pte++, page++, address += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
-		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
+		pte_t pteval = ensure_pte_read_safe(_pte);
 
 		if (pte_none(pteval) || is_zero_pfn(pte_pfn(pteval))) {
 			clear_user_highpage(page, address);
@@ -1167,7 +1167,7 @@ static int hpage_collapse_scan_pmd(struct mm_struct *mm,
 	     _pte++, _address += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// pte_t pteval = *_pte;
-		pte_t pteval = check_pte_is_broken_for_pte_read(_pte);
+		pte_t pteval = ensure_pte_read_safe(_pte);
 
 		if (is_swap_pte(pteval)) {
 			++unmapped;
@@ -1547,7 +1547,7 @@ int collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr,
 	     i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE, pte++) {
 		struct page *page;
 		// modify for pt surgery 4
-		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		pte_t entry = ensure_pte_read_safe(pte);
 
 		/* empty pte, skip */
 		if (pte_none(entry))
@@ -1576,7 +1576,7 @@ int collapse_pte_mapped_thp(struct mm_struct *mm, unsigned long addr,
 	     i < HPAGE_PMD_NR; i++, addr += PAGE_SIZE, pte++) {
 		struct page *page;
 		// add for pt surgery 1	
-		pte_t entry = check_pte_is_broken_for_pte_read(pte);
+		pte_t entry = ensure_pte_read_safe(pte);
 
 		// modify for pt surgery 2 
 		if (pte_none(entry))

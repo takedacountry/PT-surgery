@@ -8,7 +8,7 @@
 #include <asm/mtrr.h>
 
 // add for pt surgery 1
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 #ifdef CONFIG_DYNAMIC_PHYSICAL_MASK
 phys_addr_t physical_mask __ro_after_init = (1ULL << __PHYSICAL_MASK_SHIFT) - 1;
@@ -491,7 +491,7 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
 			  pte_t entry, int dirty)
 {
 	// modify for pt surgery 2
-	int changed = !pte_same(check_pte_is_broken_for_pte_read(ptep), entry);
+	int changed = !pte_same(ensure_pte_read_safe(ptep), entry);
 
 	if (changed && dirty)
 		set_pte(ptep, entry);
@@ -547,7 +547,7 @@ int ptep_test_and_clear_young(struct vm_area_struct *vma,
 {
 	int ret = 0;
 	// modify for pt surgery 1
-	if (pte_young(check_pte_is_broken_for_pte_read(ptep)))
+	if (pte_young(ensure_pte_read_safe(ptep)))
 		ret = test_and_clear_bit(_PAGE_BIT_ACCESSED,
 					 (unsigned long *) &ptep->pte);
 

@@ -125,7 +125,7 @@ static int mincore_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 	for (; addr != end; ptep++, addr += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// pte_t pte = *ptep;
-		pte_t pte = check_pte_is_broken_for_pte_read(ptep);
+		pte_t pte = ensure_pte_read_safe(ptep);
 
 		/* We need to do cache lookup too for pte markers */
 		if (pte_none_mostly(pte))

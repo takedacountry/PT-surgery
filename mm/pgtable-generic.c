@@ -14,7 +14,7 @@
 #include <asm/tlb.h>
 
 // add for pt surgery 
-extern pte_t check_pte_is_broken_for_pte_read(pte_t *ptep);
+extern pte_t ensure_pte_read_safe(pte_t *ptep);
 
 /*
  * If a p?d_bad entry is found while walking page tables, report
@@ -70,7 +70,7 @@ int ptep_set_access_flags(struct vm_area_struct *vma,
 			  pte_t entry, int dirty)
 {
 	// modify for pt surgery 
-	int changed = !pte_same(check_pte_is_broken_for_pte_read(ptep), entry);
+	int changed = !pte_same(ensure_pte_read_safe(ptep), entry);
 	if (changed) {
 		set_pte_at(vma->vm_mm, address, ptep, entry);
 		flush_tlb_fix_spurious_fault(vma, address);

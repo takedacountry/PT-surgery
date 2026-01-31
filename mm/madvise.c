@@ -216,7 +216,7 @@ static int swapin_walk_pmd_entry(pmd_t *pmd, unsigned long start,
 		ptep = pte_offset_map_lock(vma->vm_mm, pmd, index, &ptl);
 		// modify for pt surgery 1
 		// pte = *ptep;
-		pte = check_pte_is_broken_for_pte_read(ptep);
+		pte = ensure_pte_read_safe(ptep);
 
 		pte_unmap_unlock(ptep, ptl);
 
@@ -421,7 +421,7 @@ regular_page:
 	for (; addr < end; pte++, addr += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// ptent = *pte;
-		ptent = check_pte_is_broken_for_pte_read(pte);
+		ptent = ensure_pte_read_safe(pte);
 
 		if (pte_none(ptent))
 			continue;
@@ -629,7 +629,7 @@ static int madvise_free_pte_range(pmd_t *pmd, unsigned long addr,
 	for (; addr != end; pte++, addr += PAGE_SIZE) {
 		// modify for pt surgery 1
 		// ptent = *pte;
-		ptent = check_pte_is_broken_for_pte_read(pte);
+		ptent = ensure_pte_read_safe(pte);
 
 		if (pte_none(ptent))
 			continue;
