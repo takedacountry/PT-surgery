@@ -4,6 +4,13 @@
 #include <asm/page.h>
 #include "pt_surgery.h"
 
+#ifdef EMULATE_EMES_FOR_PTE
+extern unsigned int user_recovery_cnt;
+extern unsigned int kern_recovery_cnt;
+extern unsigned int user_recovery_success_cnt;
+extern unsigned int kern_recovery_success_cnt;
+#endif
+
 LIST_HEAD(user_head);
 DEFINE_SPINLOCK(user_head_lock);
 
@@ -188,6 +195,10 @@ void destroy_pgd_m_log(struct page *pgd_page)
 
 				delete_m_head_struct_node(mhead);
 				printk(KERN_INFO "exit pt surgery %d\n", current->tgid);
+				#ifdef EMULATE_EMES_FOR_PTE
+				printk(KERN_INFO "user recovery cnt: %u, user recovery success cnt: %u\n", user_recovery_cnt, user_recovery_success_cnt);
+				printk(KERN_INFO "kern recovery cnt: %u, kern recovery success cnt: %u\n", kern_recovery_cnt, kern_recovery_success_cnt);
+				#endif
 			}
 			break;
 		}
@@ -271,7 +282,7 @@ static long init_pt_surgery(struct task_struct *p)
 		}
 	}
 
-	if (add_m_head_struct_node(pid, mm) < 0) {
+	if (add_m_head_struct_node(pid, mm, p) < 0) {
 		printk(KERN_INFO "PT SURGERY INIT ERROR: cannot register pid %d\n",pid);
 		goto err;
 	}
@@ -299,6 +310,13 @@ static long init_pt_surgery(struct task_struct *p)
 		}
     }
 	printk(KERN_INFO "init pt surgery %d\n",pid);
+
+#ifdef EMULATE_EMES_FOR_PTE
+	user_recovery_cnt = 0;
+	kern_recovery_cnt = 0;
+	user_recovery_success_cnt = 0;
+	kern_recovery_success_cnt = 0;
+#endif
 	return 0;
 err:
 	return -1;
@@ -339,6 +357,10 @@ static void exit_pt_surgery(struct task_struct *p)
 	}
 	destroy_pgd_m_log(virt_to_page((unsigned long)mm->pgd));
 	printk(KERN_INFO "exit pt surgery %d\n", p->tgid);
+#ifdef EMULATE_EMES_FOR_PTE
+	printk(KERN_INFO "user recovery cnt: %u, user recovery success cnt: %u\n", user_recovery_cnt, user_recovery_success_cnt);
+	printk(KERN_INFO "kern recovery cnt: %u, kern recovery success cnt: %u\n", kern_recovery_cnt, kern_recovery_success_cnt);
+#endif
 }
 
 SYSCALL_DEFINE0(pt_surgery_register_pid)
@@ -349,22 +371,26 @@ SYSCALL_DEFINE0(pt_surgery_register_pid)
 	return ret;
 }
 
-bool is_parent_valid_pt_surgery(pid_t ppid, pid_t pid)
+void pt_surgery_register_child(pid_t ppid, pid_t tgid, pid_t pid, struct task_struct *p)
 {
 	struct m_head_struct *mhead;
 
 	list_for_each_entry(mhead, &user_head, list) {
-		if(mhead->pid == ppid) {
-			return true;
+		if(mhead->pid == tgid) { /* add thread info */
+			add_thread_pt_op(mhead, pid);
+			printk(KERN_INFO "make thread parent %d, process %d, thread %d\n", ppid, tgid, pid);
+			return;
 		}
 	}
-	return false;	
-}
-EXPORT_SYMBOL_GPL(is_parent_valid_pt_surgery);
 
-void pt_surgery_register_child(struct task_struct *p)
-{
-	if (init_pt_surgery(p) < 0)
-		exit_pt_surgery(p);
+	list_for_each_entry(mhead, &user_head, list) {
+		if(mhead->pid == ppid) { /* register child process */
+			if (init_pt_surgery(p) < 0)
+				exit_pt_surgery(p);
+			printk(KERN_INFO "make process parent %d, process %d, thread %d\n", ppid, tgid, pid);
+			return;
+		}
+	}
+	return;	
 }
 EXPORT_SYMBOL_GPL(pt_surgery_register_child);

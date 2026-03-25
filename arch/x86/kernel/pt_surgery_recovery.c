@@ -8,6 +8,11 @@
 
 #ifdef EMULATE_EMES_FOR_PTE
 #include <linux/random.h>
+#define EMULATE_EMES_CNT 2000
+unsigned int user_recovery_cnt;
+unsigned int kern_recovery_cnt;
+unsigned int user_recovery_success_cnt;
+unsigned int kern_recovery_success_cnt;
 #endif
 
 static int pt_replacement(struct mm_struct *mm, struct page *pte_page, pte_t *replica);
@@ -21,7 +26,7 @@ static int recover_pt_from_kwrite(struct page *pte_page, struct m_head_struct *m
 		printk(KERN_INFO "KERN RECOVERY ERROR: malloc replica failed\n");
 		return 0;
 	}
-	printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
+	// printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
 	if (restore_replica(pte_page->m_log->base & PT_OFFSET_MASK_NOT, replica, pte_page) < 0) {
 		printk(KERN_INFO "KERN RECOVERY ERROR: restore replica failed\n");
 		pte_free(mhead->mm, virt_to_page(replica));
@@ -43,61 +48,71 @@ static int recover_pt_from_kwrite(struct page *pte_page, struct m_head_struct *m
 static int recover_pt_from_kread(struct page *pte_page, struct m_head_struct *mhead, pte_t *old_pt)
 {
 	pte_t *replica;
+	int ret = 0;
 
-	/* lazy replacement */
+	while(page_count(pte_page) > 2) { /* lazy replacement */
+		cpu_relax();
+	}
 
 	replica = pte_realloc(mhead->mm);
 	if (!replica) {
 		printk(KERN_INFO "KERN RECOVERY ERROR: malloc replica failed\n");
-		return 0;
+		goto end;
 	}
-	printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
+	// printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
 	if (restore_replica(pte_page->m_log->base & PT_OFFSET_MASK_NOT, replica, pte_page) < 0) {
 		printk(KERN_INFO "KERN RECOVERY ERROR: restore replica failed\n");
 		pte_free(mhead->mm, virt_to_page(replica));
-		return 0;
+		goto end;
 	} 
 	
 	if (pt_replacement(mhead->mm, pte_page, replica) < 0){
 		printk(KERN_INFO "KERN RECOVERY ERROR: page table replacement failed\n");
 		pte_free(mhead->mm, virt_to_page(replica));
-		return 0;
+		goto end;
 	}
 
 	WRITE_ONCE(pte_page->m_log->replica, replica);
 	smp_wmb();
 	WRITE_ONCE(pte_page->m_log->old_pt, old_pt);
-	return 1;
+	ret = 1;
+end:
+	return ret;
 }
 
 static int recover_pt_from_ptwalk(struct page *pte_page, struct m_head_struct *mhead, pte_t *old_pt)
 {
-	pte_t *replica; 
+	pte_t *replica;
+	int ret = 0;
 
-	/* lazy replacement */
+	while(page_count(pte_page) > 2) { /* lazy replacement */
+		cpu_relax();
+	}
 
 	replica = pte_realloc(mhead->mm);
 	if (!replica) {
 		printk(KERN_INFO "USER RECOVERY ERROR: malloc replica failed\n");
-		return 0;
+		goto end;
 	}
-	printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
+	// printk(KERN_INFO "replica %lx %lx %d\n", pte_page->m_log->base, (unsigned long)__pa(replica), mhead->pid);
 	if (restore_replica(pte_page->m_log->base & PT_OFFSET_MASK_NOT, replica, pte_page) < 0) {
 		printk(KERN_INFO "USER RECOVERY ERROR: restore replica failed\n");
 		pte_free(mhead->mm, virt_to_page(replica));
-		return 0;
+		goto end;
 	}
 		
 	if (pt_replacement(mhead->mm, pte_page, replica) < 0){
 		printk(KERN_INFO "USER RECOVERY ERROR: page table replacement failed\n");
 		pte_free(mhead->mm, virt_to_page(replica));
-		return 0;
+		goto end;
 	}
 
 	WRITE_ONCE(pte_page->m_log->replica, replica);
 	smp_wmb();
 	WRITE_ONCE(pte_page->m_log->old_pt, old_pt);
-	return 1;
+	ret = 1;
+end:
+	return ret;
 }
 
 int handle_damaged_pte(unsigned long vaddr)
@@ -105,6 +120,7 @@ int handle_damaged_pte(unsigned long vaddr)
 	struct page *pte_page;
 	struct m_head_struct *mhead;
 	int ret = 0;
+	int count = 0;
 	int state;
 
 	list_for_each_entry(mhead, &user_head, list) {
@@ -115,32 +131,67 @@ int handle_damaged_pte(unsigned long vaddr)
 
 			state = atomic_cmpxchg(&pte_page->m_log->pt_state, PT_PAGE_SAFE, PT_PAGE_RECOVERING);
 			if (state == PT_PAGE_RECOVERING) {
-				// wait to recovery 
-				// write??
-				while(atomic_read(&pte_page->m_log->pt_state) == PT_PAGE_RECOVERING) {
-					cpu_relax();
+				struct thread_pt_op *t_op = xa_load(&mhead->pt_op, current->pid);
+				enum pt_op_type op = READ_ONCE(t_op->op);
+				if (op == PT_OP_WRITE || op == PT_OP_READ) { /* restart pt recovery */
+					page_ref_dec(pte_page);
+					count = dec_preempt_before_schedule();
+					while(atomic_read(&pte_page->m_log->pt_state) == PT_PAGE_RECOVERING) { /* wait to recover pt */
+						cpu_relax();
+					}
+					inc_preempt_after_schedule(count);
+					page_ref_inc(pte_page);
+				} else {
+					count = dec_preempt_before_schedule();
+					while(atomic_read(&pte_page->m_log->pt_state) == PT_PAGE_RECOVERING) { /* wait to recover pt */
+						cpu_relax();
+					}
+					inc_preempt_after_schedule(count);
 				}
 				printk(KERN_INFO "pt page recovering %lx %d\n", pte_page->m_log->base, mhead->pid);
 				return 1;
 			}
 			else if (state == PT_PAGE_SAFE) {
-				enum pt_op_type op = READ_ONCE(current->pt_op);
+				struct thread_pt_op *t_op = xa_load(&mhead->pt_op, current->pid);
+				enum pt_op_type op = READ_ONCE(t_op->op);
 				switch (op) {
 				case PT_OP_WRITE:
-					printk(KERN_INFO "recover pt form kwrite %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
-					ret = recover_pt_from_kwrite(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					if (kern_recovery_cnt < EMULATE_EMES_CNT) {
+						kern_recovery_cnt++;
+						// printk(KERN_INFO "recover pt from kwrite %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
+						ret = recover_pt_from_kwrite(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					}					
 					break;
 				case PT_OP_READ:
-					printk(KERN_INFO "recover pt form kread %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
-					ret = recover_pt_from_kread(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					if (kern_recovery_cnt < EMULATE_EMES_CNT) {
+						kern_recovery_cnt++;
+						// printk(KERN_INFO "recover pt from kread %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
+						ret = recover_pt_from_kread(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					}
 					break;
 				case PT_OP_NONE:
-					printk(KERN_INFO "recover pt form ptwalk %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
-					ret = recover_pt_from_ptwalk(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					if (user_recovery_cnt < EMULATE_EMES_CNT) {
+						user_recovery_cnt++;
+						// printk(KERN_INFO "recover pt from ptwalk %lx %ld %d\n", pte_page->m_log->base, (vaddr & PAGE_OFFSET_MASK)/0x8, mhead->pid);
+						ret = recover_pt_from_ptwalk(pte_page, mhead, (pte_t *)(vaddr & PAGE_MASK));
+					}
 					break;
 				}
 
 				if (ret) { /* recovery successful */
+					#ifdef EMULATE_EMES_FOR_PTE
+					switch (op) {
+					case PT_OP_WRITE:
+						kern_recovery_success_cnt++;
+						break;
+					case PT_OP_READ:
+						kern_recovery_success_cnt++;
+						break;
+					case PT_OP_NONE:	
+						user_recovery_success_cnt++;
+						break;
+					}
+					#endif
 					atomic_cmpxchg(&pte_page->m_log->pt_state, PT_PAGE_RECOVERING, PT_PAGE_RECOVERED);
 				} else { /* recovery failed */
 					atomic_cmpxchg(&pte_page->m_log->pt_state, PT_PAGE_RECOVERING, PT_PAGE_SAFE);
@@ -216,23 +267,23 @@ under_pt_surgery:
 	if (pte_in_corrupted_pt(pte_page, ptep))
 		goto wrprotect_redirection;
 
-	WRITE_ONCE(current->pt_op, PT_OP_WRITE);
+	switch_pt_op_write(mhead, current->pid);
 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&ptep->pte); /* this code induces a memory error in real environments. */
 #ifdef EMULATE_EMES_FOR_PTE
 	unsigned long count;
 	get_random_bytes(&count, sizeof(count));
 	if (count % FAULT_RATIO == 0) {
+		// printk(KERN_INFO "EMEs in pte wrprotect\n");
 		if(handle_damaged_pte((unsigned long)ptep) > 0) /* this code induces a memory error in emulating environments. */
 			goto wrprotect_redirection;
 	}
 #endif
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	make_pte_ds_log_usr(pte_page, ptep, *ptep); // sync. DS-log
 	return;
 
 wrprotect_redirection:
-	printk(KERN_INFO "redirect pte wrprotect\n");
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	redirect_pte_wrprotect(pte_page, ptep);
 	return; // pte redirection 	
 }
@@ -261,23 +312,23 @@ under_pt_surgery:
 	if (pte_in_corrupted_pt(pte_page, ptep))
 		goto write_redirection;
 
-	WRITE_ONCE(current->pt_op, PT_OP_WRITE);
+	switch_pt_op_write(mhead, current->pid);
 	WRITE_ONCE(*ptep, pte); /* this code induces a memory error in real environments. */
 #ifdef EMULATE_EMES_FOR_PTE
 	unsigned long count;
 	get_random_bytes(&count, sizeof(count));
 	if (count % FAULT_RATIO == 0) {
+		// printk(KERN_INFO "EMEs in pte write\n");
 		if(handle_damaged_pte((unsigned long)ptep) > 0) /* this code induces a memory error in emulating environments. */
 			goto write_redirection;
 	}
 #endif
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	make_pte_ds_log_usr(pte_page, ptep, pte); // sync. DS-log
 	return;
 
 write_redirection:
-	printk(KERN_INFO "redirect pte write\n");
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	redirect_pte_write(pte_page, ptep, pte);
 	return; // pte redirection 	
 }
@@ -306,34 +357,34 @@ under_pt_surgery:
 	if (pte_in_corrupted_pt(pte_page, ptep))
 		goto read_redirection; // pte is in corrupted pt
 
-	WRITE_ONCE(current->pt_op, PT_OP_READ);
+	switch_pt_op_read(mhead, current->pid);
 	entry = *ptep; /* this code induces a memory error in real environments. */
 #ifdef EMULATE_EMES_FOR_PTE
 	unsigned long count;
 	get_random_bytes(&count, sizeof(count));
 	if (count % FAULT_RATIO == 0) {
+		// printk(KERN_INFO "EMEs in pte read\n");
 		if(handle_damaged_pte((unsigned long)ptep) > 0) /* this code induces a memory error in emulating environments. */
 			goto read_redirection;
 	}
 #endif
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	return entry;
 
 read_redirection:
-	printk(KERN_INFO "redirect pte read\n");
-	WRITE_ONCE(current->pt_op, PT_OP_NONE);
+	switch_pt_op_none(mhead, current->pid);
 	return redirect_pte_read(pte_page, ptep);
 }
 EXPORT_SYMBOL_GPL(ensure_pte_read_safe);
 
 static int update_pmdp(struct mm_struct *mm, struct page *pte_page, pte_t *replica, pmd_t *pmdp)
 {
-	printk(KERN_INFO "pmd before: %lx %lx %d\n", pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
+	// printk(KERN_INFO "pmd before: %lx %lx %d\n", pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
 	if (restore_page(pte_page, virt_to_page(replica)) < 0) {
 		return -1;	
 	}
 	pmd_reinstall(mm, pmdp, replica);
-	printk(KERN_INFO "pmd after:  %lx %lx %d\n",pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
+	// printk(KERN_INFO "pmd after:  %lx %lx %d\n",pte_page->m_log->base, (unsigned long)pmd_val(*pmdp), current->tgid);
 	return 0;
 }
 
@@ -373,7 +424,7 @@ void block_pt_acquire_under_recovery(pte_t *ptep)
 {
 	struct page *pte_page;
 	struct m_head_struct *mhead;
-	// int count = 0;
+	int count = 0;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
@@ -381,11 +432,11 @@ void block_pt_acquire_under_recovery(pte_t *ptep)
 			if (!pte_page->m_log || !(pte_page->m_log->base & PTE_FLAG_MASK))
 				return;
 
-			// count = dec_preempt_before_schedule();
+			count = dec_preempt_before_schedule();
 			while(atomic_read(&pte_page->m_log->pt_state) == PT_PAGE_RECOVERING) {
 				cpu_relax();
 			}
-			// inc_preempt_after_schedule(count);
+			inc_preempt_after_schedule(count);
 			break;
 		}
 	}
@@ -393,10 +444,11 @@ void block_pt_acquire_under_recovery(pte_t *ptep)
 }
 EXPORT_SYMBOL_GPL(block_pt_acquire_under_recovery);
 
-void inc_writer_ref_count(pte_t *ptep)
+void pt_page_ref_inc(pte_t *ptep)
 {
 	struct page *pte_page;
 	struct m_head_struct *mhead;
+	int ref;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
@@ -404,18 +456,20 @@ void inc_writer_ref_count(pte_t *ptep)
 			if (!pte_page->m_log || !(pte_page->m_log->base & PTE_FLAG_MASK))
 				return;
 
-			page_ref_inc(pte_page);
+			ref = page_ref_inc_return(pte_page);
+			// printk(KERN_INFO "writer inc ref count %lx %d %d\n", pte_page->m_log->base, ref, mhead->pid);
 			break;
 		}
 	}
 	return;
 }
-EXPORT_SYMBOL_GPL(inc_writer_ref_count);
+EXPORT_SYMBOL_GPL(pt_page_ref_inc);
 
-void dec_writer_ref_count(pte_t *ptep)
+void pt_page_ref_dec(pte_t *ptep)
 {
 	struct page *pte_page; 
 	struct m_head_struct *mhead;
+	int ref;
 
 	list_for_each_entry(mhead, &user_head, list) {
 		if(mhead->pid == current->tgid) {
@@ -423,10 +477,11 @@ void dec_writer_ref_count(pte_t *ptep)
 			if (!pte_page->m_log || !(pte_page->m_log->base & PTE_FLAG_MASK)) 
 				return;
 
-			page_ref_dec(pte_page);
+			ref = page_ref_dec_return(pte_page);
+			// printk(KERN_INFO "writer dec ref count %lx %d %d\n", pte_page->m_log->base, ref, mhead->pid);
 			break;
 		}
 	}
 	return;
 }
-EXPORT_SYMBOL_GPL(dec_writer_ref_count);
+EXPORT_SYMBOL_GPL(pt_page_ref_dec);

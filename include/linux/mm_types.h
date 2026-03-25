@@ -210,7 +210,6 @@ struct page {
 #endif
 	struct m_log *m_log;		/* metadata log*/
 	struct list_head ds_head;	/* linked list head of ds_log */
-	// spinlock_t ds_lock;			/* linked list lock of ds_log */
 	/*
 	 * On machines where all RAM is mapped into kernel address space,
 	 * we can simply calculate the virtual address. On machines with

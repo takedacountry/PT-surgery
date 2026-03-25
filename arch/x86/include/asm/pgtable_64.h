@@ -103,7 +103,7 @@ static inline pte_t native_ptep_get_and_clear(pte_t *xp)
 {
 #ifdef CONFIG_SMP
 	// add for pt surgery 3
-	pte_t pte = *xp;
+	pte_t pte = ensure_pte_read_safe(xp);
 	ensure_native_set_pte(xp, native_make_pte(0));
 	return pte;
 	// return native_make_pte(xchg(&xp->pte, 0));

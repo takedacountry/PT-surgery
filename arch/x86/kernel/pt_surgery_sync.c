@@ -112,7 +112,6 @@ int make_pte_ds_log_usr(struct page *pte_page, pte_t *ptep, pte_t pte)
 	if ((dnode = init_ds_log_node(base, base+1, make_ds_offset(base, pte_value), pte_flag)) == NULL) 
 		return -1;
 
-	// spin_lock(&pte_page->ds_lock);
 	if (list_empty(&pte_page->ds_head)) {
 		list_add(&dnode->list, &pte_page->ds_head);
 	}
@@ -128,25 +127,21 @@ int make_pte_ds_log_usr(struct page *pte_page, pte_t *ptep, pte_t pte)
 				else if(ds_log_flag_diff(dnode->flag, prev->flag)) { /* modify ds_log flag */
 					modify_ds_log_flag(prev, dnode, pte_page);
 				}
-				// spin_unlock(&pte_page->ds_lock);
 				goto end;
 			}
 			else if(dnode->base >= prev->limit) { /* create new pte */
 				list_add(&dnode->list, &prev->list);
 				if(list_is_last(&dnode->list, &pte_page->ds_head)) {
 					ds_log_node_merge_prev(dnode);
-					// spin_unlock(&pte_page->ds_lock);
 					goto end;
 				}
 				ds_log_node_merge_both(dnode);
-				// spin_unlock(&pte_page->ds_lock);
 				goto end;
 			}
 		}
 		list_add(&dnode->list, &pte_page->ds_head); /* create new pte that is top of pt */
 		ds_log_node_merge_next(dnode);
 	}
-	// spin_unlock(&pte_page->ds_lock);
 end:
 	return 0;
 }
@@ -196,7 +191,6 @@ int clear_wrbit_ds_log(struct page *pte_page, pte_t *ptep)
 	unsigned long base = make_ds_base_from_pte((unsigned long)ptep, pte_page->m_log->base);
 	unsigned long limit = base + 1;
 
-	// spin_lock(&pte_page->ds_lock);
 	list_for_each_entry_reverse(prev, &pte_page->ds_head, list) {
 		if (prev->base <= base && limit <= prev->limit) {
 			if (ds_log_rw_diff(prev)) {
@@ -205,6 +199,5 @@ int clear_wrbit_ds_log(struct page *pte_page, pte_t *ptep)
 			break;
 		}
 	}
-	// spin_unlock(&pte_page->ds_lock);
 	return 0;
 }

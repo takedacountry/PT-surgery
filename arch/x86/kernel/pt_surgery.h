@@ -6,6 +6,7 @@
 #include <linux/slab.h> 
 #include <linux/printk.h>
 #include <linux/preempt.h> 
+#include <linux/xarray.h>
 #include <asm/pgtable.h>
 #include <asm/pgtable_64_types.h>
 #include <asm/pgalloc.h>
@@ -40,13 +41,12 @@
 #define _PAGE_ACCESSED_DIRTY (_PAGE_ACCESSED | _PAGE_DIRTY)
 
 
-// #define FAULT_RATIO (43750) // for memcached
-#define FAULT_RATIO (40000) // for redis
-// #define FAULT_RATIO (102050) // for apache
-// #define FAULT_RATIO (5000) // for default
+// #define FAULT_RATIO (33750) // for memcached
+#define FAULT_RATIO (30000) // for redis
+// #define FAULT_RATIO (92050) // for apache
+// #define FAULT_RATIO (1000) // for default
 
 #define EMULATE_EMES_FOR_PTE (1)
-#define CONFIG_PT_SURGERY (1)
 
 extern struct list_head user_head;
 extern spinlock_t user_head_lock;
@@ -59,18 +59,6 @@ struct ds_log {
 	struct list_head list;
 };
 
-// struct broken_pte_log {
-// 	unsigned long base;		/* addr of broken pte log */
-// 	struct list_head list;
-// };
-
-// struct pte_access_log {
-// 	pid_t pid; 				/* thread id */
-// 	bool rw;				/* if rw==1, pte write. otherwise, pte read */
-// 	void *return_ip;			/* recovery handler return point */
-// 	struct list_head list;
-// };
-
 enum pt_state {
 	PT_PAGE_SAFE = 0,	/* pt page is healthy */
 	PT_PAGE_RECOVERING, /* pt page is recovering */
@@ -82,16 +70,22 @@ struct m_log {
 	void *replica;					/* replica page table */
 	void *old_pt;					/* old and falty page table */
 	atomic_t pt_state;				/* pt state */
-	// spinlock_t recovery_lock;		/* recovery lock */
-	// struct list_head broken_head;	/* broken pte log */
-	// spinlock_t broken_lock;			/* lock for broken pte log */
-	// struct list_head access_head;	/* pte access log */
-	// spinlock_t access_lock;			/* lock for pte access log */
+};
+
+enum pt_op_type {
+    PT_OP_NONE = 0,	/* pt operation is pt walk */
+    PT_OP_READ,		/* pt operation is pt read */
+    PT_OP_WRITE,	/* pt operation is pt write */
+};
+
+struct thread_pt_op{
+	enum pt_op_type op;
 };
 
 struct m_head_struct{
 	pid_t pid;					/* register pid */
 	struct mm_struct *mm;		/* target mm_struct */
+	struct xarray pt_op;		/* pt operation per thread */
 	struct list_head list;
 };
 
@@ -119,6 +113,7 @@ static inline void redirect_pte_wrprotect(struct page *pte_page, pte_t *ptep)
 	pte_t *replica_ptep = (pte_t *)pte_page->m_log->replica + offset;
 	clear_bit(_PAGE_BIT_RW, (unsigned long *)&replica_ptep->pte);
 	clear_wrbit_ds_log(virt_to_page(pte_page->m_log->replica), replica_ptep);
+	// printk(KERN_INFO "redirect pte wrprotect %lx -> %lx\n", (unsigned long)pte_val(*ptep), (unsigned long)pte_val(*replica_ptep));
 }
 
 static inline void redirect_pte_write(struct page *pte_page, pte_t *ptep, pte_t pte)
@@ -127,12 +122,14 @@ static inline void redirect_pte_write(struct page *pte_page, pte_t *ptep, pte_t 
 	pte_t *replica_ptep = (pte_t *)pte_page->m_log->replica + offset;
 	WRITE_ONCE(*replica_ptep, pte);
 	make_pte_ds_log_usr(virt_to_page(pte_page->m_log->replica), replica_ptep, pte);
+	// printk(KERN_INFO "redirect pte write %lx -> %lx\n", (unsigned long)pte_val(*ptep), (unsigned long)pte_val(*replica_ptep));
 }
 
 static inline pte_t redirect_pte_read(struct page *pte_page, pte_t *ptep)
 {
 	unsigned long offset = (((unsigned long)ptep & PAGE_OFFSET_MASK) / 0x8) & PT_OFFSET_MASK;
 	pte_t *replica_ptep = (pte_t *)pte_page->m_log->replica + offset;
+	// printk(KERN_INFO "redirect pte read %lx -> %lx\n", (unsigned long)pte_val(*ptep), (unsigned long)pte_val(*replica_ptep));
 	return *replica_ptep;
 }
 
@@ -247,28 +244,11 @@ static inline void delete_ds_log_all(struct page *page)
 {
 	struct ds_log *itr, *tmp;
 
-	// spin_lock(&page->ds_lock);
 	list_for_each_entry_safe(itr, tmp, &page->ds_head, list) {
 		list_del(&itr->list);
 		kfree(itr);
 	}
-	// spin_unlock(&page->ds_lock);
 }
-
-// static inline int delete_broken_pte_log_all(struct m_log *m_log)
-// {
-// 	struct broken_pte_log *itr, *tmp;
-// 	int count=0;
-
-// 	spin_lock(&m_log->broken_lock);
-// 	list_for_each_entry_safe(itr, tmp, &m_log->broken_head, list) {
-// 		list_del(&itr->list);
-// 		kfree(itr);
-// 		count++;
-// 	}
-// 	spin_unlock(&m_log->broken_lock);
-// 	return count;
-// }
 
 static inline int init_page_for_pt_surgery(struct page *page)
 {
@@ -278,7 +258,6 @@ static inline int init_page_for_pt_surgery(struct page *page)
 		return -1;
 	}
 	INIT_LIST_HEAD(&page->ds_head);
-	// spin_lock_init(&page->ds_lock);
 	return 0;
 }
 
@@ -293,22 +272,14 @@ static inline void init_m_log(struct m_log *m_log, unsigned long base)
 	m_log->replica = NULL;
 	m_log->old_pt = NULL;
 	atomic_set(&m_log->pt_state, PT_PAGE_SAFE);
-	// spin_lock_init(&m_log->recovery_lock);
-	// INIT_LIST_HEAD(&m_log->broken_head);
-	// spin_lock_init(&m_log->broken_lock);
-	// INIT_LIST_HEAD(&m_log->access_head);
-	// spin_lock_init(&m_log->access_lock);
 }
 
 static inline void exit_m_log(struct m_log *m_log)
 {
 	m_log->base = 0;
-	// spin_lock(&m_log->recovery_lock);
 	m_log->replica = NULL;
 	m_log->old_pt = NULL;
 	atomic_set(&m_log->pt_state, PT_PAGE_SAFE);
-	// spin_unlock(&m_log->recovery_lock);
-	// delete_broken_pte_log_all(m_log);
 }
 
 static inline unsigned long make_ds_base(unsigned long pgd_offset, unsigned long pud_offset, unsigned long pmd_offset, unsigned long pte_offset)
@@ -427,93 +398,57 @@ static inline struct ds_log *init_ds_log_node(unsigned long base, unsigned long 
 	return itr;
 }
 
-// static inline struct broken_pte_log *init_broken_pte_log_node(unsigned long base) 
-// {
-// 	struct broken_pte_log *itr;
-// 	itr = kmalloc(sizeof(struct broken_pte_log), GFP_ATOMIC);
-// 	if (!itr) {
-// 		printk(KERN_INFO "BROKEN_LOG ERROR: kmalloc failed\n");
-// 		return NULL;
-// 	}
+static inline void switch_pt_op_write(struct m_head_struct *mhead, pid_t tid)
+{
+	struct thread_pt_op *itr;
+	itr = xa_load(&mhead->pt_op, tid);
+	if (likely(itr)) {
+		WRITE_ONCE(itr->op, PT_OP_WRITE);
+	}
+}
 
-// 	itr->base = base;
-// 	return itr;
-// }
+static inline void switch_pt_op_read(struct m_head_struct *mhead, pid_t tid)
+{
+	struct thread_pt_op *itr;
+	itr = xa_load(&mhead->pt_op, tid);
+	if (likely(itr)) {
+		WRITE_ONCE(itr->op, PT_OP_READ);
+	}
+}
 
-// static inline int add_broken_pte_log_node(unsigned long base, struct m_log *m_log)
-// {
-// 	struct broken_pte_log *itr;
+static inline void switch_pt_op_none(struct m_head_struct *mhead, pid_t tid)
+{
+	struct thread_pt_op *itr;
+	itr = xa_load(&mhead->pt_op, tid);
+	if (likely(itr)) {
+		WRITE_ONCE(itr->op, PT_OP_NONE);
+	}
+}
 
-// 	itr = init_broken_pte_log_node(base);
-// 	if (!itr)
-// 		return -1;
+static inline void add_thread_pt_op(struct m_head_struct *mhead, pid_t tid)
+{
+	struct thread_pt_op *op;
+	op = kmalloc(sizeof(struct thread_pt_op), GFP_ATOMIC);
+	if (!op) {
+		printk(KERN_INFO "THREAD_PT_OP ERROR: kmalloc failed\n");
+		return;
+	}
+	op->op = PT_OP_NONE;
+	xa_store(&mhead->pt_op, tid, op, GFP_ATOMIC);
+	printk(KERN_INFO "THREAD_PT_OP: added thread id %d in %d\n", tid, mhead->pid);
+}
 
-// 	spin_lock(&m_log->broken_lock);
-// 	list_add_tail(&itr->list, &m_log->broken_head);
-// 	spin_unlock(&m_log->broken_lock);
-// 	return 0;
-// }
+static inline void init_thread_pt_op(struct m_head_struct *mhead, struct task_struct *p)
+{
+	struct task_struct *t;
+	rcu_read_lock();
+	for_each_thread(p->group_leader, t) {
+		add_thread_pt_op(mhead, t->pid);
+	}
+	rcu_read_unlock();
+}
 
-// static inline int is_broken_pte_log_node(unsigned long base, struct m_log *m_log)
-// {
-// 	struct broken_pte_log *bnode;
-
-// 	spin_lock(&m_log->broken_lock);
-// 	list_for_each_entry(bnode, &m_log->broken_head, list) {
-// 		if (base == bnode->base) {
-// 			spin_unlock(&m_log->broken_lock);
-// 			printk(KERN_INFO "Already registered the broken pte %lx\n", base);
-// 			return 1;
-// 		}
-// 	}
-// 	spin_unlock(&m_log->broken_lock);
-// 	return 0;
-// }
-
-// static inline struct pte_access_log *init_pte_access_log_node(pid_t pid, bool rw)
-// {
-// 	struct pte_access_log *itr;
-// 	itr = kmalloc(sizeof(struct pte_access_log), GFP_ATOMIC);
-// 	if (!itr) {
-// 		printk(KERN_INFO "PTE_ACCESS_LOG: kmalloc failed\n");
-// 		return NULL;
-// 	}
-
-// 	itr->pid = pid;
-// 	itr->rw = rw;
-// 	return itr;
-// }
-
-// static inline int add_pte_access_log_node(pid_t pid, bool rw, struct m_log *m_log)
-// {
-// 	struct pte_access_log *itr;
-
-// 	itr = init_pte_access_log_node(pid, rw);
-// 	if (!itr)
-// 		return -1;
-
-// 	spin_lock(&m_log->access_lock);
-// 	list_add_tail(&itr->list, &m_log->access_head);
-// 	spin_unlock(&m_log->access_lock);
-// 	return 0;
-// }
-
-// static inline void delete_pte_access_log_node(pid_t pid, struct m_log *m_log)
-// {
-// 	struct pte_access_log *itr;
-
-// 	spin_lock(&m_log->access_lock);
-// 	list_for_each_entry(itr, &m_log->access_head, list) {
-// 		if (itr->pid == pid) {
-// 			list_del(&itr->list);
-// 			kfree(itr);
-// 			break;
-// 		}
-// 	}
-// 	spin_unlock(&m_log->access_lock);
-// }
-
-static inline struct m_head_struct *init_m_head_struct_node(pid_t pid, struct mm_struct *mm)
+static inline struct m_head_struct *init_m_head_struct_node(pid_t pid, struct mm_struct *mm, struct task_struct *p)
 {
 	struct m_head_struct *itr;
 	itr = kmalloc(sizeof(struct m_head_struct), GFP_ATOMIC);
@@ -523,14 +458,17 @@ static inline struct m_head_struct *init_m_head_struct_node(pid_t pid, struct mm
 	}
 	itr->pid = pid;
 	itr->mm = mm;
+	xa_init(&itr->pt_op);
+	init_thread_pt_op(itr, p);
+	
 	return itr;
 }
 
-static inline int add_m_head_struct_node(pid_t pid, struct mm_struct *mm)
+static inline int add_m_head_struct_node(pid_t pid, struct mm_struct *mm, struct task_struct *p)
 {
 	struct m_head_struct *itr;
 
-	itr = init_m_head_struct_node(pid, mm);
+	itr = init_m_head_struct_node(pid, mm, p);
 	if (!itr)
 		return -1;
 
@@ -544,6 +482,7 @@ static inline void delete_m_head_struct_node(struct m_head_struct *mhead)
 {
 	mhead->pid = 0;
 	mhead->mm = NULL;
+	xa_destroy(&mhead->pt_op);
 	spin_lock(&user_head_lock);
 	list_del(&mhead->list);
 	spin_unlock(&user_head_lock);
@@ -607,15 +546,12 @@ static inline int restore_replica(unsigned long va_start, pte_t *pte, struct pag
 {
 	struct ds_log *itr;
 	
-	// spin_lock(&page->ds_lock);
 	list_for_each_entry(itr, &page->ds_head, list) {
 		if (restore_replica_from_ds_log(&pte, itr, va_start) < 0) {
-			// spin_unlock(&page->ds_lock);
 			return -1;
 		}
 		va_start = itr->limit;
 	}
-	// spin_unlock(&page->ds_lock);
 	return 0;
 }
 
@@ -623,14 +559,10 @@ static inline void copy_ds_log(struct page *before, struct page *after)
 {
 	struct ds_log *itr, *tmp;
 
-	// spin_lock(&before->ds_lock);
-	// spin_lock(&after->ds_lock);
 	list_for_each_entry_safe(itr, tmp, &before->ds_head, list) {
 		list_del(&itr->list);
 		list_add_tail(&itr->list, &after->ds_head);
 	}
-	// spin_unlock(&after->ds_lock);
-	// spin_unlock(&before->ds_lock);
 }
 
 static inline int restore_page(struct page *before, struct page *after)

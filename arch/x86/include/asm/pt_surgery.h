@@ -18,9 +18,8 @@ extern pte_t ensure_pte_read_safe(pte_t *ptep);
 extern void block_pt_acquire_under_recovery(pte_t *ptep);
 
 /* for reference counter */
-extern void inc_writer_ref_count(pte_t *ptep);
-extern void dec_writer_ref_count(pte_t *ptep);
+extern void pt_page_ref_inc(pte_t *ptep);
+extern void pt_page_ref_dec(pte_t *ptep);
 
 /* for fork() */
-extern bool is_parent_valid_pt_surgery(pid_t ppid, pid_t pid);
-extern void pt_surgery_register_child(struct task_struct *p);
+extern void pt_surgery_register_child(pid_t ppid, pid_t tgid, pid_t pid, struct task_struct *p);

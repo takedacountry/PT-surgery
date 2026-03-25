@@ -734,18 +734,7 @@ struct kmap_ctrl {
 #endif
 };
 
-// #ifdef CONFIG_PT_SURGERY // add for pt surgery 7
-enum pt_op_type {
-    PT_OP_NONE = 0,
-    PT_OP_READ,
-    PT_OP_WRITE,
-};
-// #endif
-
 struct task_struct {
-// #ifdef CONFIG_PT_SURGERY // add for pt surgery 3
-	enum pt_op_type pt_op;
-// #endif
 #ifdef CONFIG_THREAD_INFO_IN_TASK
 	/*
 	 * For reasons of header soup (see current_thread_info()), this

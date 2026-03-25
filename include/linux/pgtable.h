@@ -97,25 +97,18 @@ static inline pte_t *pte_offset_kernel(pmd_t *pmd, unsigned long address)
 #define pte_offset_kernel pte_offset_kernel
 #endif
 
-// add for pt surgery 5
-static inline pte_t *pte_offset_map_block(pmd_t *pmd, unsigned long address)
-{
-	// block_pt_acquire_under_recovery((pte_t *)pmd_page_vaddr(*pmd));
-	return pte_offset_kernel(pmd, address);
-}
-
 // add for pt surgery 6
-static inline pte_t *pte_offset_map_block_inc_ref(pmd_t *pmd, unsigned long address)
+static inline pte_t *pte_offset_map_inc_ref(pmd_t *pmd, unsigned long address)
 {
-	// block_pt_acquire_under_recovery((pte_t *)pmd_page_vaddr(*pmd));
-	// inc_writer_ref_count((pte_t *)pmd_page_vaddr(*pmd));
+	block_pt_acquire_under_recovery((pte_t *)pmd_page_vaddr(*pmd));
+	pt_page_ref_inc((pte_t *)pmd_page_vaddr(*pmd));
 	return pte_offset_kernel(pmd, address);
 }
  
 // add for pt surgery 4
 static inline void pte_unmap_dec_ref(pte_t *pte)
 {
-	// dec_writer_ref_count(pte);
+	pt_page_ref_dec(pte);
 }
 
 #if defined(CONFIG_HIGHPTE)
@@ -123,19 +116,13 @@ static inline void pte_unmap_dec_ref(pte_t *pte)
 	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
 	 pte_index((address)))
 #define pte_unmap(pte) kunmap_atomic((pte))
-// add for pt surgery 4
-#define pte_offset_map_for_write(dir, address)		\
-	((pte_t *)kmap_atomic(pmd_page(*(dir))) +		\
-	 pte_index((address)))
-#define pte_unmap_for_write(pte) kunmap_atomic((pte))
 #else
 // #define pte_offset_map(dir, address)	pte_offset_kernel((dir), (address))
-#define pte_unmap(pte) ((void)(pte))	/* NOP */
+// #define pte_unmap(pte) ((void)(pte))	/* NOP */
 
-// add for pt surgery 3
-#define pte_offset_map(dir, address)				pte_offset_map_block((dir), (address))
-#define pte_offset_map_for_write(dir, address) 		pte_offset_map_block_inc_ref((dir), (address))
-#define pte_unmap_for_write(pte)					pte_unmap_dec_ref((pte))
+// modify for pt surgery 2
+#define pte_offset_map(dir, address)	pte_offset_map_inc_ref((dir), (address))
+#define pte_unmap(pte)					pte_unmap_dec_ref((pte))
 #endif
 
 /* Find an entry in the second-level page table.. */
