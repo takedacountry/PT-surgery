@@ -1,51 +1,72 @@
-メインで拡張しているのは /arch/x86/kernel/mycall_ds.c, mycall_print_pgtable.c なのでそちらをご覧ください。
+# PT-surgery
 
-題名：ECC-uncorrectable メモリエラーへの耐性を有するページテーブル管理機構（詳しくは pdf 参照）
+PT-surgery is a Linux kernel mechanism for recovering from ECC-uncorrectable memory errors in page table pages. It reconstructs a damaged page table page from software-maintained metadata and replaces the damaged page table page, enabling the affected process to continue execution without terminating.
 
-背景
+This repository contains the source code and experimental components of PT-surgery, which is based on Linux-6.1.35.
 
-・メモリエラー
+## How to Build
 
-　メモリエラーとはメモリセルが保持するデータを正しく読み出せなくなる現象であり、宇宙線の衝突による一時的なビット反転、メモリセルの物理的破損による永続的なビット反転により発生する。このようなメモリエラーが発生した場合、誤ったデータの参照により、意図しない挙動や最悪の場合ソフトウェアのクラッシュが発生してしまう。
-　このメモリエラーは実環境下で頻繁に報告されており、Google のデータセンタでは一年間で 32% のサーバがメモリエラーを経験していることが報告されている。
+PT-surgery can be built using the standard Linux kernel build process.
 
+```bash
+make oldconfig
+make -j$(nproc)
+make modules -j$(nproc)
+sudo make modules_install
+sudo make install
+sudo reboot
+```
 
-・Error-Correcting Code (ECC)
+## How to Run with PT-surgery
 
-　このようなメモリエラーが発生した際に検査用ビットを用いて誤りを検知・訂正する ECC 機能が存在するが、その検知・訂正機能には限りがある。たとえば、一般的な ECC である SEC-DED では、64 bit のメモリごとにシングルエラー訂正、ダブルエラー検出が可能である。
+PT-surgery can be applied to individual user processes.
 
+A process can be registered with PT-surgery by invoking the `pt_surgery_register_pid` system call. The system call automatically registers the calling process as a target of PT-surgery.
 
-・ECC-uncorrectable Memory Errors (EMEs)
+### Using LD_PRELOAD
 
- 　このような ECC 機能により検知可能であるが訂正が不可能なメモリエラーのことを EMEs という。この EMEs の発生を検知した場合、ECC モジュールがハードウェア割り込みを発生させ、アドレスとともに EMEs の発生を OS に通知する。この際、通知されたアドレスがユーザ空間なら該当するプロセスを停止させ、アドレスがカーネル空間なら OS を停止させる。
- 　この EMEs も様々なフィールドスタディで発生が報告されており、たとえば、SSD 故障の 32.78% がドライブの DRAM 上の EMEs が原因だということが報告されている。
+PT-surgery provides a pre-built `main-hook.so` that automatically invokes `pt_surgery_register_pid` before the application's `main()` function is executed.
 
+To run an application with PT-surgery, set `LD_PRELOAD` to the path of
+`main-hook.so`:
 
-・EMEs が OS 上で発生した場合
+```bash
+LD_PRELOAD=/path/to/PT-surgery/ld-preload/main-hook.so <application>
+```
 
-　OS が停止した場合、現行の OS カーネルでは OS 上で稼働しているすべてのアプリケーションを含めて再起動することで回復する。このため、すべてのアプリケーションの処理が中断し、揮発したメモリ内容を復元するために低速なストレージアクセスが多発してしまう。特に大量のメモリを要求する Memory intensive なアプリケーションの場合、メモリの復元が長期化し、サービスの信頼性や可用性を損なう。
+A successful registration produces output similar to:
 
+```text
+pt_surgery_register_pid: ret=0, pid=12345
+```
 
-・ページテーブル
+## Page Table Fault Injection
 
-　OS のメモリオブジェクトの中でも、ページテーブルはメモリフットプリントが大きいため、相対的に EMEs が発生する可能性が高まる。近年の目盛増加に伴い、x86 では五階層ページテーブルが使用されており、ページテーブルサイズが増加している。さらに、Memory-intensive なアプリケーションが稼働している場合、ページテーブルは肥大化してしまう。たとえば、ヤフーの資料によると、2020 年 12 月時点で、ヤフーのサーバでは 204,980 個以上のコンテナが稼働しており、そのすべてのコンテナが 4 GB のメモリを使用していると仮定した場合、ページテーブルは約 1600 GB ~ 800 TB となり、とてもサイズが大きいことが分かる。
-　そして、このようなサイズの大きいページテーブルの一ページでも EMEs によりダメージを受けると OS 上で稼働しているすべてのアプリケーションがダウンしてしまうため、ページテーブルに EMEs への耐性を付与する必要がある。
- 
+PT-surgery provides a system call to emulate a page table fault injection. The system call takes a user-space virtual address as an argument and treats the page table page containing the corresponding PTE as damaged. PT-surgery then reconstructs and replaces the damaged page table page.
 
-提案
+The system call is defined as follows:
 
-　EMEs への耐性を有するページテーブル管理機構を提案する。これを用いることで、ページテーブルにて EMEs が発生しても再起動を回避し、OS カーネルやアプリケーションを継続して使用可能にする。また、このような機構を Linux と実践的な OS に適用し、低メモリスペースオーバヘッドでハードウェアの変更なく、実現する。
+```c
+SYSCALL_DEFINE1(pt_surgery_handle_damaged_pte, unsigned long, uvaddr)
+```
 
+The system call number on x86-64 is **481**:
 
-この研究を実装するにあたり、二つの重要なデータ構造を作成する。
+```text
+481    common    pt_surgery_handle_damaged_pte    sys_pt_surgery_handle_damaged_pte
+```
 
-・DS_list : ページテーブルの内容を復元するため、ページテーブルの内容を圧縮したデータ構造。
-・M_list : ECC モジュールにより通知されたアドレスから破損したページテーブルを特定するデータ構造。
+### Usage
 
+The system call can be invoked from a user-space program using the `syscall()` interface:
 
-具体的な実装は以下のような手順で行う。
+```c
+#include <unistd.h>
+#include <sys/syscall.h>
 
-1. /mycall_ds.c にて起動したユーザプロセスの PID を登録し、そのプロセスのページテーブルに対して耐性を付与する。
-2. user が malloc (mmap) を実行し、そのメモリ領域を初期化した際、kernel はページテーブルを割り当てる。この時、ページテーブルの割り当ては __pte_alloc (/mm/memory.c) で行われる。その際に、M_list を作成する make_pte_m_log (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
-3. 実際にページテーブルの PTE に値を代入する処理は set_pte(/arch/x86/include/asm/paravirt.h) で行われており、この際に DS_list を作成する make_pte_ds_log_usr (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
-4. user が free (munmap) を実行し、そのメモリ領域の解放を行う場合、kernel はページテーブルも解放する。ページテーブルの解放は __pte_free_tlb (/arch/x86/include/asm/pgalloc.h) で行われており、この際に DS_list, M_list を解放する delete_m_free_pte (/arch/x86/kernel/mycall_ds.c) を呼ぶ。
+#define SYSNUM_PT_SURGERY_HANDLE_DAMAGED_PTE 481
+
+unsigned long uvaddr = /* user-space virtual address */;
+long ret = syscall(SYSNUM_PT_SURGERY_HANDLE_DAMAGED_PTE, uvaddr);
+```
+
